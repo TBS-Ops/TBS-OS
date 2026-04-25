@@ -1,0 +1,2191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="TBS OS">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <meta name="theme-color" content="#1a1a1a">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Two Bear Studios OS</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-primary:#ffffff;--bg-secondary:#f5f5f3;--bg-tertiary:#eeede9;
+  --text-primary:#1a1a1a;--text-secondary:#6b6b6b;--text-tertiary:#9a9a9a;
+  --border-light:rgba(0,0,0,0.1);--border-mid:rgba(0,0,0,0.18);
+  --radius-md:8px;--radius-lg:12px;
+  --blue:#185FA5;--blue-light:#E6F1FB;--blue-dark:#0C447C;
+  --green:#0F6E56;--green-light:#E1F5EE;
+  --amber:#854F0B;--amber-light:#FAEEDA;
+  --orange:#D85A30;--orange-light:#FEF0EA;
+  --purple:#534AB7;--purple-light:#EEEDFE;
+  --red:#A32D2D;--red-light:#FCEBEB;
+  --teal:#1D9E75;--teal-light:#9FE1CB;
+}
+[data-theme="dark"]{
+  --bg-primary:#1c1c1e;--bg-secondary:#2c2c2e;--bg-tertiary:#18181a;
+  --text-primary:#f0f0f0;--text-secondary:#a0a0a0;--text-tertiary:#606060;
+  --border-light:rgba(255,255,255,0.08);--border-mid:rgba(255,255,255,0.15);
+  --blue:#378ADD;--blue-light:#0C2D4A;--blue-dark:#85B7EB;
+  --green:#1D9E75;--green-light:#04342C;
+  --amber:#EF9F27;--amber-light:#3A2200;
+  --orange:#F0997B;--orange-light:#2A1200;
+  --purple:#AFA9EC;--purple-light:#1E1B3A;
+  --red:#F09595;--red-light:#2A0F0F;
+  --teal:#5DCAA5;--teal-light:#04342C;
+}
+[data-theme="dark"] .job-table tr.sel td,
+[data-theme="dark"] .item-table tr.item-row.sel td{background:#0C2D4A}
+[data-theme="dark"] .haul-row.haul-active{background:#2A1200;border-left-color:var(--orange)}
+[data-theme="dark"] .sec-tab.active-brg{background:#3A2200;color:var(--amber);border-color:var(--amber)}
+[data-theme="dark"] .sec-tab.active-photo{background:var(--green-light);color:var(--green);border-color:var(--green)}
+[data-theme="dark"] .sec-tab.active-jub{background:var(--blue-light);color:var(--blue);border-color:var(--blue)}
+[data-theme="dark"] .md input,[data-theme="dark"] .md select,[data-theme="dark"] .md textarea{background:var(--bg-secondary);border-color:var(--border-mid);color:var(--text-primary)}
+[data-theme="dark"] .search-inp{background:var(--bg-tertiary)}
+[data-theme="dark"] .shoot-check{background:var(--bg-secondary)}
+[data-theme="dark"] .shoot-check.checked{background:var(--blue-light);border-color:var(--blue);color:var(--blue-dark)}
+[data-theme="dark"] .week-card{background:var(--bg-secondary)}
+[data-theme="dark"] .stat-card{background:var(--bg-secondary)}
+[data-theme="dark"] .fin-box{background:var(--bg-secondary)}
+[data-theme="dark"] .task-cb-brg:hover{border-color:var(--amber)}
+[data-theme="dark"] .task-cb-brg.checked{background:var(--amber);border-color:var(--amber)}
+[data-theme="dark"] body{background:var(--bg-tertiary)}
+.dark-toggle{background:none;border:1px solid var(--border-mid);border-radius:99px;padding:4px 10px;cursor:pointer;font-size:12px;color:var(--text-secondary);transition:all 0.15s;font-family:inherit;display:flex;align-items:center;gap:5px}
+.dark-toggle:hover{background:var(--bg-secondary);color:var(--text-primary)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg-tertiary);color:var(--text-primary);min-height:100vh;font-size:13px}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;gap:8px;padding:10px 20px;background:var(--bg-primary);border-bottom:1px solid var(--border-light);position:sticky;top:0;z-index:100;flex-wrap:wrap}
+.logo{font-size:15px;font-weight:600;color:var(--text-primary);white-space:nowrap;margin-right:8px;letter-spacing:-0.3px}
+.biz-tabs{display:flex;gap:3px;flex:1;flex-wrap:wrap}
+.biz-tab{padding:6px 12px;border-radius:var(--radius-md);border:1px solid transparent;font-size:12px;cursor:pointer;color:var(--text-secondary);background:transparent;transition:all 0.15s;white-space:nowrap;font-family:inherit}
+.biz-tab.active{background:var(--bg-secondary);border-color:var(--border-mid);color:var(--text-primary);font-weight:500}
+.biz-tab:hover:not(.active){background:var(--bg-secondary)}
+.biz-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:6px}
+.btn{padding:6px 12px;border-radius:var(--radius-md);border:1px solid var(--border-mid);font-size:12px;cursor:pointer;background:transparent;color:var(--text-primary);transition:all 0.15s;white-space:nowrap;font-family:inherit}
+.btn:hover{background:var(--bg-secondary)}
+.btn.primary-brg{background:var(--amber);color:var(--amber-light);border-color:var(--amber)}
+.btn.primary-brg:hover{background:#633806}
+.btn.primary-jub{background:var(--blue);color:var(--blue-light);border-color:var(--blue)}
+.btn.primary-jub:hover{background:var(--blue-dark)}
+.btn.primary-photo{background:var(--green);color:var(--green-light);border-color:var(--green)}
+.btn.primary-photo:hover{background:#085041}
+.btn.primary-flip{background:var(--orange);color:#fff;border-color:var(--orange)}
+.btn.primary-flip:hover{background:#993C1D}
+.btn.blue{background:var(--blue);color:var(--blue-light);border-color:var(--blue)}
+.btn.blue:hover{background:var(--blue-dark)}
+.btn.sheets{background:var(--teal);color:#fff;border-color:var(--teal);display:inline-flex;align-items:center;gap:5px}
+.btn.sheets:hover{background:var(--green)}
+.btn.danger{color:var(--red);border-color:var(--red)}
+.btn.danger:hover{background:var(--red-light)}
+.btn.sm{padding:3px 8px;font-size:11px}
+.btn.active-toggle{background:var(--bg-secondary);font-weight:500;border-color:var(--border-mid)}
+
+/* SECTION BAR */
+.section-bar{display:flex;gap:2px;padding:8px 20px;background:var(--bg-primary);border-bottom:1px solid var(--border-light)}
+.sec-tab{padding:5px 14px;border-radius:var(--radius-md);font-size:12px;cursor:pointer;color:var(--text-secondary);border:1px solid transparent;transition:all 0.15s;font-family:inherit}
+.sec-tab.active-jub{background:var(--blue-light);color:var(--blue);border-color:#B5D4F4;font-weight:500}
+.sec-tab.active-photo{background:var(--green-light);color:var(--green);border-color:#5DCAA5;font-weight:500}
+.sec-tab.active-brg{background:var(--amber-light);color:var(--amber);border-color:#EF9F27;font-weight:500}
+.sec-tab.active-flip{background:var(--orange-light);color:var(--orange);border-color:#F0997B;font-weight:500}
+.sec-tab:hover:not([class*="active"]){background:var(--bg-secondary)}
+
+/* SUBBAR */
+.subbar{display:flex;align-items:center;gap:6px;padding:7px 20px;background:var(--bg-primary);border-bottom:1px solid var(--border-light);flex-wrap:wrap;min-height:40px}
+.subbar2{display:flex;align-items:center;gap:6px;padding:6px 20px;background:var(--bg-secondary);border-bottom:1px solid var(--border-light);flex-wrap:wrap;min-height:36px}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:11px;cursor:pointer;border:1px solid var(--border-light);background:transparent;color:var(--text-secondary);transition:all 0.15s;white-space:nowrap;font-family:inherit}
+.pill.active{background:var(--bg-primary);border-color:var(--border-mid);color:var(--text-primary);font-weight:500}
+.pill:hover:not(.active){background:var(--bg-primary)}
+.pill .x{color:var(--text-tertiary);font-size:14px;line-height:1;margin-left:2px}
+
+/* SUMMARY BAR */
+.summary-bar{display:flex;gap:10px;padding:12px 20px;background:var(--bg-primary);border-bottom:1px solid var(--border-light);flex-wrap:wrap;align-items:center}
+.stat-card{background:var(--bg-secondary);border-radius:var(--radius-md);padding:8px 14px;display:flex;flex-direction:column;gap:2px;min-width:90px}
+.stat-label{font-size:10px;color:var(--text-secondary)}
+.stat-val{font-size:17px;font-weight:500}
+.stat-val.green{color:var(--green)}
+.stat-val.blue{color:var(--blue)}
+.stat-val.amber{color:var(--amber)}
+.stat-val.orange{color:var(--orange)}
+.stat-val.red{color:var(--red)}
+
+/* EMPTY STATE */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:10px;padding:60px 20px;text-align:center}
+.empty-t{font-size:15px;font-weight:500;color:var(--text-primary)}
+.empty-s{font-size:12px;color:var(--text-secondary)}
+
+/* AVATARS */
+.av{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;flex-shrink:0}
+.av.g{background:#CECBF6;color:#3C3489}
+.av.d{background:#9FE1CB;color:#085041}
+
+/* ========== JUBISM ========== */
+.jub-board{display:flex;gap:12px;padding:16px 20px;overflow-x:auto;align-items:flex-start;min-height:500px}
+.jub-col{background:var(--bg-secondary);border-radius:var(--radius-lg);border:1px solid var(--border-light);width:230px;min-width:230px;display:flex;flex-direction:column;flex-shrink:0}
+.jub-col-header{padding:10px 12px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-light)}
+.jub-col-title{font-size:12px;font-weight:500;color:var(--text-primary)}
+.jub-col-count{font-size:11px;color:var(--text-tertiary);background:var(--bg-tertiary);border-radius:99px;padding:1px 7px}
+.jub-col-body{padding:8px;display:flex;flex-direction:column;gap:5px;overflow-y:auto;max-height:520px}
+.task-row{background:var(--bg-primary);border-radius:var(--radius-md);border:1px solid var(--border-light);padding:9px 10px;display:flex;align-items:flex-start;gap:8px;cursor:pointer;transition:border-color 0.15s}
+.task-row:hover{border-color:var(--border-mid)}
+.task-cb{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border-mid);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all 0.15s;background:transparent}
+.task-cb:hover{border-color:var(--blue)}
+.task-cb.checked{background:var(--blue);border-color:var(--blue)}
+.task-cb.checked::after{content:'';display:block;width:4px;height:7px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translateY(-1px)}
+.task-info{flex:1;min-width:0}
+.task-title{font-size:12px;font-weight:500;color:var(--text-primary);line-height:1.4;margin-bottom:3px}
+.task-title.struck{text-decoration:line-through;color:var(--text-tertiary)}
+.task-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.due-today{font-size:10px;font-weight:500;color:var(--blue)}
+.due-overdue{font-size:10px;font-weight:500;color:var(--red)}
+.due-tomorrow{font-size:10px;font-weight:500;color:var(--green)}
+.due-upcoming{font-size:10px;color:var(--text-tertiary)}
+.recur-badge{font-size:9px;padding:1px 5px;border-radius:99px;background:var(--bg-tertiary);color:var(--text-tertiary);border:1px solid var(--border-light)}
+.add-task-btn{margin:0 8px 8px;padding:7px 10px;border-radius:var(--radius-md);border:1px dashed var(--border-mid);font-size:12px;color:var(--text-secondary);cursor:pointer;text-align:left;transition:all 0.15s;background:transparent;font-family:inherit}
+.add-task-btn:hover{background:var(--bg-primary);color:var(--text-primary)}
+
+/* ========== PHOTOGRAPHY ========== */
+.photo-wrap{flex:1;padding:16px 20px;overflow-x:auto}
+.job-table{width:100%;border-collapse:collapse;min-width:750px}
+.job-table th{font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;padding:7px 10px;text-align:left;border-bottom:1px solid var(--border-light);white-space:nowrap;font-weight:500;position:sticky;top:0;background:var(--bg-primary)}
+.job-table td{font-size:12px;color:var(--text-primary);padding:9px 10px;border-bottom:1px solid var(--border-light);vertical-align:middle}
+.job-table tr.job-row:hover td{background:var(--bg-secondary);cursor:pointer}
+.job-table tr.sel td{background:#EBF4FF}
+.status-pill{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:500;white-space:nowrap;display:inline-block}
+.sp-booked{background:var(--blue-light);color:var(--blue)}
+.sp-complete{background:var(--amber-light);color:var(--amber)}
+.sp-edit-started{background:var(--purple-light);color:var(--purple)}
+.sp-edit-complete{background:#C0DD97;color:#27500A}
+.sp-sent-agent{background:var(--teal-light);color:#085041}
+.sp-invoice-sent{background:#FAC775;color:#633806}
+.sp-invoice-paid{background:#EAF3DE;color:#3B6D11}
+.sp-cancelled{background:var(--red-light);color:var(--red)}
+.type-pill{font-size:10px;padding:2px 7px;border-radius:99px;font-weight:500}
+.tp-re{background:var(--blue-light);color:var(--blue-dark)}
+.tp-cv{background:var(--purple-light);color:var(--purple)}
+.shoot-tag{font-size:10px;padding:1px 6px;border-radius:99px;background:var(--bg-secondary);color:var(--text-secondary);border:1px solid var(--border-light);white-space:nowrap}
+.shoot-check{display:flex;align-items:center;gap:5px;font-size:12px;padding:5px 10px;border-radius:var(--radius-md);border:1px solid var(--border-light);cursor:pointer;background:var(--bg-secondary);transition:all 0.15s;user-select:none}
+.shoot-check:hover{border-color:var(--border-mid)}
+.shoot-check.checked{background:var(--blue-light);border-color:var(--blue);color:var(--blue)}
+.fin-profit{color:var(--green);font-weight:500}
+.fin-loss{color:var(--red);font-weight:500}
+
+/* ========== BRG ========== */
+.content-wrap{display:flex;gap:0;flex:1;min-height:500px}
+.content-col{flex:1;display:flex;flex-direction:column;border-right:1px solid var(--border-light)}
+.content-col:last-child{border-right:none}
+.content-col-header{padding:9px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-light);background:var(--bg-secondary);flex-shrink:0}
+.content-col-title{font-size:11px;font-weight:500;color:var(--text-secondary)}
+.content-col-body{padding:8px;display:flex;flex-direction:column;gap:5px;overflow-y:auto;flex:1}
+.task-cb-brg{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border-mid);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all 0.15s;background:transparent}
+.task-cb-brg:hover{border-color:var(--amber)}
+.task-cb-brg.checked{background:var(--amber);border-color:var(--amber)}
+.task-cb-brg.checked::after{content:'';display:block;width:4px;height:7px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translateY(-1px)}
+.cal-wrap{flex:1;padding:16px 20px;overflow-y:auto}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-title{font-size:15px;font-weight:500;color:var(--text-primary)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal-dn{font-size:10px;color:var(--text-tertiary);text-align:center;padding:4px 0;font-weight:500}
+.cal-cell{min-height:76px;background:var(--bg-primary);border:1px solid var(--border-light);border-radius:var(--radius-md);padding:5px}
+.cal-cell.om{background:transparent;border-color:transparent}
+.cal-cell.today-cell{border-color:var(--amber)}
+.cal-num{font-size:10px;color:var(--text-secondary);margin-bottom:3px;font-weight:500}
+.cal-cell.today-cell .cal-num{color:var(--amber);font-weight:600}
+.cal-ev{font-size:9px;border-radius:3px;padding:1px 5px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-ig{background:var(--purple-light);color:var(--purple)}
+.ev-fb{background:var(--blue-light);color:var(--blue)}
+.ev-short{background:var(--red-light);color:var(--red)}
+.ev-pod{background:var(--amber-light);color:var(--amber)}
+.ev-other{background:var(--bg-secondary);color:var(--text-secondary)}
+.fin-wrap{flex:1;padding:16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.fin-section-title{font-size:13px;font-weight:500;color:var(--text-primary);margin-bottom:10px}
+.week-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:6px}
+.week-card{background:var(--bg-secondary);border-radius:var(--radius-md);padding:10px 14px}
+.wc-label{font-size:10px;color:var(--text-secondary);margin-bottom:4px}
+.wc-val{font-size:19px;font-weight:500;color:var(--text-primary)}
+.wc-val.green{color:var(--green)}
+.wc-val.red{color:var(--red)}
+.wc-val.amber{color:var(--amber)}
+.wc-val.blue{color:var(--blue)}
+.week-table{width:100%;border-collapse:collapse}
+.week-table th{font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;padding:6px 10px;text-align:left;border-bottom:1px solid var(--border-light);font-weight:500}
+.week-table td{font-size:12px;padding:9px 10px;border-bottom:1px solid var(--border-light);color:var(--text-primary);vertical-align:middle}
+.week-table tr:hover td{background:var(--bg-secondary)}
+.profit-pos{color:var(--green);font-weight:500}
+.profit-neg{color:var(--red);font-weight:500}
+.margin-bar-wrap{display:flex;align-items:center;gap:6px}
+.margin-bar{flex:1;height:5px;background:var(--bg-tertiary);border-radius:99px;overflow:hidden;min-width:40px}
+.margin-fill{height:100%;border-radius:99px;background:var(--teal)}
+
+/* ========== FLIPPERS ========== */
+.flippers-layout{display:flex;flex:1;min-height:500px;overflow:hidden}
+.haul-panel{width:300px;min-width:260px;border-right:1px solid var(--border-light);display:flex;flex-direction:column;background:var(--bg-primary)}
+.haul-panel-header{padding:10px 14px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.haul-panel-title{font-size:12px;font-weight:500;color:var(--text-primary)}
+.haul-list{overflow-y:auto;flex:1}
+.haul-row{padding:11px 14px;border-bottom:1px solid var(--border-light);cursor:pointer;transition:background 0.12s}
+.haul-row:hover{background:var(--bg-secondary)}
+.haul-row.haul-active{background:var(--orange-light);border-left:3px solid var(--orange)}
+.haul-name{font-size:12px;font-weight:500;color:var(--text-primary);margin-bottom:3px}
+.haul-meta{font-size:11px;color:var(--text-secondary)}
+.haul-recovery{height:3px;border-radius:99px;background:var(--bg-tertiary);margin-top:5px;overflow:hidden}
+.haul-recovery-fill{height:100%;border-radius:99px}
+.items-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.items-header{padding:10px 16px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;background:var(--bg-primary)}
+.haul-strip{display:flex;gap:10px;padding:10px 16px;background:var(--bg-secondary);border-bottom:1px solid var(--border-light);flex-wrap:wrap;align-items:center}
+.hs-card{display:flex;flex-direction:column;gap:1px}
+.hs-label{font-size:10px;color:var(--text-tertiary)}
+.hs-val{font-size:13px;font-weight:500;color:var(--text-primary)}
+.hs-val.green{color:var(--green)}
+.recovery-wrap{display:flex;align-items:center;gap:6px;flex:1;min-width:120px}
+.recovery-bar{flex:1;height:6px;background:var(--bg-tertiary);border-radius:99px;overflow:hidden;min-width:60px}
+.recovery-fill{height:100%;border-radius:99px}
+.items-body{overflow-x:auto;overflow-y:auto;flex:1}
+.item-table{width:100%;border-collapse:collapse;min-width:600px}
+.item-table th{font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;padding:6px 10px;text-align:left;border-bottom:1px solid var(--border-light);font-weight:500;position:sticky;top:0;background:var(--bg-primary)}
+.item-table td{font-size:12px;color:var(--text-primary);padding:8px 10px;border-bottom:1px solid var(--border-light);vertical-align:middle}
+.item-table tr.item-row:hover td{background:var(--bg-secondary);cursor:pointer}
+.item-table tr.item-row.sel td{background:#EBF4FF}
+.status-badge{font-size:10px;padding:2px 7px;border-radius:99px;font-weight:500;white-space:nowrap;display:inline-block}
+.sb-stock{background:var(--blue-light);color:var(--blue)}
+.sb-listed{background:var(--amber-light);color:var(--amber)}
+.sb-sold{background:#C0DD97;color:#27500A}
+.sb-shipped{background:#EAF3DE;color:#3B6D11}
+.loc-badge{font-size:11px;background:#EAF3DE;color:#27500A;padding:3px 10px;border-radius:99px;font-weight:500}
+
+/* DETAIL PANEL */
+.detail-panel{position:fixed;top:0;right:0;width:300px;height:100vh;background:var(--bg-primary);border-left:1px solid var(--border-light);padding:16px;display:none;overflow-y:auto;z-index:200;flex-direction:column;gap:0;box-shadow:-4px 0 20px rgba(0,0,0,0.06)}
+.detail-panel.open{display:flex}
+.dp-title{font-size:14px;font-weight:500;color:var(--text-primary);flex:1;line-height:1.4}
+.pl{font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-top:14px;margin-bottom:3px}
+.pv{font-size:13px;color:var(--text-primary)}
+.pdiv{border:none;border-top:1px solid var(--border-light);margin:12px 0 0}
+.close-btn{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary);line-height:1;flex-shrink:0;font-family:inherit}
+.fin-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px}
+.fin-label{color:var(--text-secondary)}
+.fin-val{font-weight:500}
+.fin-divider{border:none;border-top:1px solid var(--border-light);margin:4px 0}
+.fin-box{background:var(--bg-secondary);border-radius:var(--radius-md);padding:10px 12px;margin-top:4px}
+
+/* MODALS */
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:300;align-items:center;justify-content:center}
+.mo.open{display:flex}
+.md{background:var(--bg-primary);border-radius:var(--radius-lg);border:1px solid var(--border-light);padding:20px;width:400px;max-width:95vw;display:flex;flex-direction:column;gap:12px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.15)}
+.md input,.md select,.md textarea{width:100%;font-size:12px;padding:7px 10px;border-radius:var(--radius-md);border:1px solid var(--border-mid);background:var(--bg-primary);color:var(--text-primary);font-family:inherit;outline:none;transition:border-color 0.15s}
+.md input:focus,.md select:focus,.md textarea:focus{border-color:var(--blue)}
+.md textarea{resize:vertical;min-height:55px}
+.ml{font-size:11px;color:var(--text-secondary);margin-bottom:3px}
+.mt{font-size:15px;font-weight:500;color:var(--text-primary)}
+.ma{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.section-sep{font-size:11px;font-weight:500;color:var(--text-secondary);padding-top:6px;border-top:1px solid var(--border-light)}
+.shoot-checks{display:flex;flex-wrap:wrap;gap:6px}
+.select-native{font-size:12px;padding:6px 10px;border-radius:var(--radius-md);border:1px solid var(--border-mid);background:var(--bg-primary);color:var(--text-primary);font-family:inherit;width:100%;outline:none}
+
+/* SEARCH */
+.search-wrap{padding:8px 12px;border-bottom:1px solid var(--border-light);flex-shrink:0}
+.search-inp{width:100%;font-size:12px;padding:6px 10px;border-radius:var(--radius-md);border:1px solid var(--border-light);background:var(--bg-secondary);color:var(--text-primary);font-family:inherit;outline:none}
+.search-inp:focus{border-color:var(--border-mid)}
+
+
+/* DASHBOARD */
+.dash-tab{padding:5px 12px;border-radius:var(--radius-md);border:1px solid transparent;font-size:12px;cursor:pointer;color:var(--text-secondary);background:transparent;transition:all 0.15s;white-space:nowrap;font-family:inherit;font-weight:500}
+.dash-tab.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+[data-theme="dark"] .dash-tab.active{background:#f0f0f0;color:#1a1a1a;border-color:#f0f0f0}
+.dash-tab:hover:not(.active){background:var(--bg-secondary)}
+.dash-wrap{padding:20px;max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.dash-greeting{font-size:22px;font-weight:500;color:var(--text-primary);letter-spacing:-0.3px}
+.dash-date{font-size:13px;color:var(--text-secondary);margin-top:3px}
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.dash-card{background:var(--bg-primary);border-radius:var(--radius-lg);border:1px solid var(--border-light);padding:16px;display:flex;flex-direction:column;gap:10px}
+.dash-card-header{display:flex;align-items:center;justify-content:space-between}
+.dash-card-title{font-size:12px;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em}
+.dash-card-count{font-size:11px;color:var(--text-tertiary);background:var(--bg-secondary);border-radius:99px;padding:1px 8px}
+.dash-item{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border-light)}
+.dash-item:last-child{border-bottom:none;padding-bottom:0}
+.dash-item-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.dash-item-title{font-size:12px;font-weight:500;color:var(--text-primary);line-height:1.4}
+.dash-item-meta{font-size:11px;color:var(--text-secondary);margin-top:1px}
+.dash-item-badge{font-size:10px;padding:1px 6px;border-radius:99px;font-weight:500;flex-shrink:0;margin-left:auto}
+.dash-empty{font-size:12px;color:var(--text-tertiary);font-style:italic;padding:8px 0}
+.dash-stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dash-stat{display:flex;flex-direction:column;gap:2px;background:var(--bg-secondary);border-radius:var(--radius-md);padding:8px 10px}
+.dash-stat-label{font-size:10px;color:var(--text-secondary)}
+.dash-stat-val{font-size:16px;font-weight:500;color:var(--text-primary)}
+.dash-go{font-size:11px;color:var(--blue);cursor:pointer;white-space:nowrap}
+.dash-go:hover{text-decoration:underline}
+.dash-section-label{font-size:11px;font-weight:500;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px}
+.overdue-banner{background:var(--red-light);border:1px solid var(--red);border-radius:var(--radius-md);padding:10px 14px;display:flex;align-items:center;gap:10px}
+.overdue-banner-text{font-size:12px;color:var(--red);font-weight:500}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:9px 18px;border-radius:99px;font-size:12px;z-index:999;transition:opacity 0.3s;pointer-events:none;opacity:0}
+</style>
+
+  <!-- Firebase SDKs -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCGmWL_vO9l_7rWj8vfHvFJsFQ-iorfhys",
+      authDomain: "tbs-os.firebaseapp.com",
+      projectId: "tbs-os",
+      storageBucket: "tbs-os.firebasestorage.app",
+      messagingSenderId: "352310365278",
+      appId: "1:352310365278:web:544207eeed570c600278cf"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const DOC_ID = "main";
+    const COLL = "appstate";
+
+    // Save state to Firestore
+    window.saveToFirebase = async function(state) {
+      try {
+        await setDoc(doc(db, COLL, DOC_ID), {
+          jubTasks: JSON.stringify(state.jubTasks),
+          jobs: JSON.stringify(state.jobs),
+          agents: JSON.stringify(state.agents),
+          brgTasks: JSON.stringify(state.brgTasks),
+          weekly: JSON.stringify(state.weekly),
+          hauls: JSON.stringify(state.hauls),
+          flipItems: JSON.stringify(state.flipItems)
+        });
+      } catch(e) {
+        console.error("Save error:", e);
+      }
+    };
+
+    // Load state from Firestore
+    window.loadFromFirebase = async function() {
+      try {
+        const snap = await getDoc(doc(db, COLL, DOC_ID));
+        if (snap.exists()) {
+          const d = snap.data();
+          return {
+            jubTasks: d.jubTasks ? JSON.parse(d.jubTasks) : null,
+            jobs: d.jobs ? JSON.parse(d.jobs) : null,
+            agents: d.agents ? JSON.parse(d.agents) : null,
+            brgTasks: d.brgTasks ? JSON.parse(d.brgTasks) : null,
+            weekly: d.weekly ? JSON.parse(d.weekly) : null,
+            hauls: d.hauls ? JSON.parse(d.hauls) : null,
+            flipItems: d.flipItems ? JSON.parse(d.flipItems) : null
+          };
+        }
+        return null;
+      } catch(e) {
+        console.error("Load error:", e);
+        return null;
+      }
+    };
+
+    // Listen for real-time changes (for 2-user sync)
+    window.listenFirebase = function(callback) {
+      onSnapshot(doc(db, COLL, DOC_ID), (snap) => {
+        if (snap.exists()) {
+          const d = snap.data();
+          callback({
+            jubTasks: d.jubTasks ? JSON.parse(d.jubTasks) : null,
+            jobs: d.jobs ? JSON.parse(d.jobs) : null,
+            agents: d.agents ? JSON.parse(d.agents) : null,
+            brgTasks: d.brgTasks ? JSON.parse(d.brgTasks) : null,
+            weekly: d.weekly ? JSON.parse(d.weekly) : null,
+            hauls: d.hauls ? JSON.parse(d.hauls) : null,
+            flipItems: d.flipItems ? JSON.parse(d.flipItems) : null
+          });
+        }
+      });
+    };
+
+    // Boot the app after Firebase is ready
+    window.addEventListener('load', async () => {
+      // Show loading
+      document.getElementById('main-content').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:300px;flex-direction:column;gap:12px"><div style="font-size:14px;color:#6b6b6b">Loading Two Bear Studios OS...</div></div>';
+
+      const saved = await window.loadFromFirebase();
+      if (saved) {
+        if (saved.jubTasks) STATE.jubTasks = saved.jubTasks;
+        if (saved.jobs) STATE.jobs = saved.jobs;
+        if (saved.agents) STATE.agents = saved.agents;
+        if (saved.brgTasks) STATE.brgTasks = saved.brgTasks;
+        if (saved.weekly) STATE.weekly = saved.weekly;
+        if (saved.hauls) STATE.hauls = saved.hauls;
+        if (saved.flipItems) STATE.flipItems = saved.flipItems;
+        // Find highest ID
+        const allIds = [...STATE.jubTasks, ...STATE.jobs, ...STATE.brgTasks, ...STATE.weekly, ...STATE.hauls, ...STATE.flipItems].map(x=>x.id||0);
+        if (allIds.length) NID = Math.max(...allIds) + 1;
+        showSyncBadge('✓ Data loaded');
+      } else {
+        showSyncBadge('New session — data will save automatically');
+      }
+
+      // Listen for real-time updates from Darren
+      let isFirstLoad = true;
+      window.listenFirebase((data) => {
+        if (isFirstLoad) { isFirstLoad = false; return; }
+        if (data.jubTasks) STATE.jubTasks = data.jubTasks;
+        if (data.jobs) STATE.jobs = data.jobs;
+        if (data.agents) STATE.agents = data.agents;
+        if (data.brgTasks) STATE.brgTasks = data.brgTasks;
+        if (data.weekly) STATE.weekly = data.weekly;
+        if (data.hauls) STATE.hauls = data.hauls;
+        if (data.flipItems) STATE.flipItems = data.flipItems;
+        render();
+        showSyncBadge('↻ Synced with Darren');
+      });
+
+      STATE.activeBiz = null;
+      render();
+      // Also update NID to avoid ID conflicts with loaded data
+      const allLoaded=[...STATE.jubTasks,...STATE.jobs,...STATE.brgTasks,...STATE.weekly,...STATE.hauls,...STATE.flipItems];
+      if(allLoaded.length){
+        const maxId=Math.max(...allLoaded.map(x=>x.id||0));
+        if(maxId>=NID)NID=maxId+1;
+      }
+    });
+  </script>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<div class="topbar">
+  <span class="logo" style="cursor:pointer" onclick="showDashboard()">Two Bear Studios OS</span>
+  <button class="dash-tab active" id="dash-tab" onclick="showDashboard()">⌂ Home</button>
+  <div class="biz-tabs" id="biz-tabs"></div>
+  <button class="dark-toggle" id="dark-toggle" onclick="toggleDark()"><span id="dark-icon">🌙</span><span id="dark-label">Dark</span></button>
+  <button class="btn" id="main-cta" style="display:none" onclick="mainCTA()">+ New task</button>
+</div>
+<div id="section-bar-wrap"></div>
+<div id="subbar-wrap"></div>
+<div id="main-content"></div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-panel" id="detail-panel">
+  <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
+    <span class="dp-title" id="panel-title"></span>
+    <button class="close-btn" onclick="closePanel()">&#215;</button>
+  </div>
+  <div id="panel-body"></div>
+</div>
+
+<!-- JUBISM TASK MODAL -->
+<div class="mo" id="mo-jubtask">
+  <div class="md">
+    <div class="mt" id="jubtask-title">New task</div>
+    <div><div class="ml">Task name</div><input type="text" id="jt-name" placeholder="What needs to be done?"></div>
+    <div><div class="ml">Brand</div>
+      <select id="jt-brand">
+        <option value="nt">Now Trending (NT)</option>
+        <option value="es">Exclusive Signings (ES)</option>
+        <option value="ag">Ausgel (AG)</option>
+        <option value="cgw">Celebration Giftware (CGW)</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div><div class="ml">Assignee</div><select id="jt-assignee"><option>Gordon</option><option>Darren</option></select></div>
+    <div><div class="ml">Due date</div><input type="date" id="jt-due"></div>
+    <div><div class="ml">Recurrence</div>
+      <select id="jt-recur">
+        <option value="none">One-off</option>
+        <option value="daily">Daily</option>
+        <option value="weekdays">Weekdays only (Mon–Fri)</option>
+        <option value="weekly">Weekly</option>
+        <option value="fortnightly">Fortnightly</option>
+        <option value="monthly">Monthly</option>
+      </select>
+    </div>
+    <div><div class="ml">Notes</div><textarea id="jt-notes" placeholder="Optional..."></textarea></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('jubtask')">Cancel</button>
+      <button class="btn primary-jub" id="jubtask-save" onclick="saveJubTask()">Create task</button>
+    </div>
+  </div>
+</div>
+
+<!-- PHOTO JOB MODAL -->
+<div class="mo" id="mo-job">
+  <div class="md">
+    <div class="mt" id="job-modal-title">New job</div>
+    <div><div class="ml">Property / job description</div><input type="text" id="nj-title" placeholder="e.g. 12 Smith St, Paddington"></div>
+    <div class="form-row">
+      <div><div class="ml">Type</div><select id="nj-type"><option value="re">Real Estate</option><option value="cv">Commercial / Video</option></select></div>
+      <div><div class="ml">Assignee</div><select id="nj-assignee"><option>Gordon</option><option>Darren</option></select></div>
+    </div>
+    <div class="form-row">
+      <div><div class="ml">Date</div><input type="date" id="nj-date"></div>
+      <div><div class="ml">Time</div><input type="time" id="nj-time"></div>
+    </div>
+    <div><div class="ml">Agent</div><select id="nj-agent"><option value="">— Select agent —</option></select></div>
+    <div>
+      <div class="ml">Shoot types (select all that apply)</div>
+      <div class="shoot-checks" id="shoot-checks"></div>
+    </div>
+    <div><div class="ml">Status</div>
+      <select id="nj-status">
+        <option value="booked">Shoot booked</option><option value="complete">Shoot complete</option>
+        <option value="edit-started">Edit started</option><option value="edit-complete">Edit complete</option>
+        <option value="sent-agent">Sent to agent</option><option value="invoice-sent">Invoice sent</option>
+        <option value="invoice-paid">Invoice paid</option><option value="cancelled">Cancelled</option>
+      </select>
+    </div>
+    <div class="section-sep">Financials</div>
+    <div class="form-row">
+      <div><div class="ml">Invoice amount ($)</div><input type="number" id="nj-invoice" placeholder="0.00" step="0.01"></div>
+      <div><div class="ml">Cost ($)</div><input type="number" id="nj-cost" placeholder="0.00" step="0.01"></div>
+    </div>
+    <div><div class="ml">Notes</div><textarea id="nj-notes" placeholder="Optional..."></textarea></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('job')">Cancel</button>
+      <button class="btn primary-photo" id="job-save-btn" onclick="saveJob()">Add job</button>
+    </div>
+  </div>
+</div>
+
+<!-- AGENT MODAL -->
+<div class="mo" id="mo-agents">
+  <div class="md">
+    <div class="mt">Manage agents</div>
+    <div id="agent-list" style="display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto"></div>
+    <div style="display:flex;gap:6px">
+      <input type="text" id="new-agent" placeholder="Agent name..." onkeydown="if(event.key==='Enter')addAgent()">
+      <button class="btn primary-photo sm" onclick="addAgent()">Add</button>
+    </div>
+    <div class="ma"><button class="btn" onclick="closeModal('agents')">Done</button></div>
+  </div>
+</div>
+
+<!-- BRG TASK MODAL -->
+<div class="mo" id="mo-brgtask">
+  <div class="md">
+    <div class="mt" id="brgtask-title">New task</div>
+    <div><div class="ml">Task name</div><input type="text" id="bt-name" placeholder="e.g. Record podcast"></div>
+    <div><div class="ml">Category</div>
+      <select id="bt-cat">
+        <option value="ig">Instagram</option><option value="fb">Facebook</option>
+        <option value="short">Daily Short</option><option value="pod">Podcast</option>
+        <option value="ads">Ads / Marketing</option><option value="other">Other</option>
+      </select>
+    </div>
+    <div><div class="ml">Assignee</div><select id="bt-assignee"><option>Gordon</option><option>Darren</option></select></div>
+    <div><div class="ml">Due date</div><input type="date" id="bt-due"></div>
+    <div><div class="ml">Recurrence</div>
+      <select id="bt-recur">
+        <option value="none">One-off</option><option value="daily">Daily</option>
+        <option value="weekdays">Weekdays only</option><option value="weekly">Weekly</option>
+        <option value="fortnightly">Fortnightly</option><option value="monthly">Monthly</option>
+      </select>
+    </div>
+    <div><div class="ml">Notes</div><textarea id="bt-notes" placeholder="Optional..."></textarea></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('brgtask')">Cancel</button>
+      <button class="btn primary-brg" id="brgtask-save" onclick="saveBRGTask()">Create task</button>
+    </div>
+  </div>
+</div>
+
+<!-- P&L MODAL -->
+<div class="mo" id="mo-pl">
+  <div class="md">
+    <div class="mt" id="pl-modal-title">Add weekly P&L</div>
+    <div><div class="ml">Week starting (Monday)</div><input type="date" id="pl-date"></div>
+    <div class="section-sep">Website (Shopify)</div>
+    <div class="form-row">
+      <div><div class="ml">Website revenue ($)</div><input type="number" id="pl-rev" placeholder="0.00" step="0.01"></div>
+      <div><div class="ml">Website orders</div><input type="number" id="pl-orders" placeholder="0" step="1"></div>
+    </div>
+    <div class="section-sep">Etsy</div>
+    <div class="form-row">
+      <div><div class="ml">Etsy revenue ($)</div><input type="number" id="pl-etsy-rev" placeholder="0.00" step="0.01"></div>
+      <div><div class="ml">Etsy orders</div><input type="number" id="pl-etsy-orders" placeholder="0" step="1"></div>
+    </div>
+    <div class="section-sep">Traffic & sales</div>
+    <div class="form-row">
+      <div><div class="ml">Sessions</div><input type="number" id="pl-sessions" placeholder="0" step="1"></div>
+      <div><div class="ml">Units sold</div><input type="number" id="pl-units" placeholder="0" step="1"></div>
+    </div>
+    <div class="section-sep">Costs</div>
+    <div class="form-row">
+      <div><div class="ml">Ad spend ($)</div><input type="number" id="pl-ads" placeholder="0.00" step="0.01"></div>
+      <div><div class="ml">COGS ($)</div><input type="number" id="pl-cogs" placeholder="0.00" step="0.01"></div>
+    </div>
+    <div class="form-row">
+      <div><div class="ml">Shopify / apps ($)</div><input type="number" id="pl-shopify" placeholder="0.00" step="0.01"></div>
+      <div><div class="ml">Other costs ($)</div><input type="number" id="pl-othercost" placeholder="0.00" step="0.01"></div>
+    </div>
+    <div><div class="ml">Notes</div><textarea id="pl-notes" placeholder="Optional notes..."></textarea></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('pl')">Cancel</button>
+      <button class="btn primary-brg" id="pl-save-btn" onclick="savePL()">Save week</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- TARGET MODAL -->
+<div class="mo" id="mo-target">
+  <div class="md">
+    <div class="mt">Annual revenue target</div>
+    <div><div class="ml">Target ($)</div><input type="number" id="target-val" placeholder="50000" step="1000"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('target')">Cancel</button>
+      <button class="btn primary-brg" onclick="saveTarget()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- HAUL MODAL -->
+<div class="mo" id="mo-haul">
+  <div class="md">
+    <div class="mt" id="haul-modal-title">New haul</div>
+    <div><div class="ml">Haul name / description</div><input type="text" id="nh-name" placeholder="e.g. 250 Hotwheels — Facebook Marketplace"></div>
+    <div class="form-row">
+      <div><div class="ml">Source</div><input type="text" id="nh-source" placeholder="e.g. Facebook Marketplace"></div>
+      <div><div class="ml">Date purchased</div><input type="date" id="nh-date"></div>
+    </div>
+    <div class="form-row">
+      <div><div class="ml">Total haul cost ($)</div><input type="number" id="nh-cost" placeholder="0.00" step="0.01" oninput="updateCPI()"></div>
+      <div><div class="ml">Number of items</div><input type="number" id="nh-qty" placeholder="0" oninput="updateCPI()"></div>
+    </div>
+    <div><div class="ml">Cost per item (auto)</div><input type="text" id="nh-cpi" readonly style="background:var(--bg-secondary);color:var(--text-secondary)"></div>
+    <div><div class="ml">Notes</div><textarea id="nh-notes" placeholder="Optional..."></textarea></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('haul')">Cancel</button>
+      <button class="btn primary-flip" id="haul-save-btn" onclick="saveHaul()">Create haul</button>
+    </div>
+  </div>
+</div>
+
+<!-- ITEM MODAL -->
+<div class="mo" id="mo-item">
+  <div class="md">
+    <div class="mt" id="item-modal-title">Add item</div>
+    <div><div class="ml">Item name</div><input type="text" id="ni-name" placeholder="e.g. Hotwheels 1969 Camaro"></div>
+    <div class="form-row">
+      <div><div class="ml">SKU</div><input type="text" id="ni-sku" placeholder="e.g. HW-001"></div>
+      <div><div class="ml">Storage location</div><input type="text" id="ni-loc" placeholder="e.g. Shelf 3, Box B"></div>
+    </div>
+    <div class="form-row">
+      <div><div class="ml">Item cost ($)</div><input type="number" id="ni-cost" placeholder="0.00" step="0.01"></div>
+      <div><div class="ml">Status</div>
+        <select id="ni-status"><option value="stock">In stock</option><option value="listed">Listed</option><option value="sold">Sold</option><option value="shipped">Shipped</option></select>
+      </div>
+    </div>
+    <div class="section-sep">Sale details</div>
+    <div class="form-row">
+      <div><div class="ml">Sale price ($)</div><input type="number" id="ni-sale" placeholder="0.00" step="0.01"></div>
+      <div><div class="ml">Shipping cost ($)</div><input type="number" id="ni-ship" placeholder="0.00" step="0.01"></div>
+    </div>
+    <div><div class="ml">eBay listing URL</div><input type="text" id="ni-url" placeholder="https://ebay.com.au/itm/..."></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('item')">Cancel</button>
+      <button class="btn blue" id="item-save-btn" onclick="saveItem()">Add item</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONSTANTS & DATA
+// ============================================================
+const BIZ=[
+  {id:'jubism',name:'Jubism Work',dot:'#378ADD'},
+  {id:'photo',name:'Photography',dot:'#1D9E75'},
+  {id:'backroom',name:'BackRoom Gear',dot:'#EF9F27'},
+  {id:'flippers',name:'Two Bear Flippers',dot:'#D85A30'}
+];
+const JUB_BRANDS=[
+  {id:'nt',name:'Now Trending',short:'NT'},
+  {id:'es',name:'Exclusive Signings',short:'ES'},
+  {id:'ag',name:'Ausgel',short:'AG'},
+  {id:'cgw',name:'Celebration Giftware',short:'CGW'},
+  {id:'admin',name:'Admin',short:'ADM'}
+];
+const PHOTO_STATUSES=[
+  {id:'booked',label:'Shoot booked',cls:'sp-booked'},
+  {id:'complete',label:'Shoot complete',cls:'sp-complete'},
+  {id:'edit-started',label:'Edit started',cls:'sp-edit-started'},
+  {id:'edit-complete',label:'Edit complete',cls:'sp-edit-complete'},
+  {id:'sent-agent',label:'Sent to agent',cls:'sp-sent-agent'},
+  {id:'invoice-sent',label:'Invoice sent',cls:'sp-invoice-sent'},
+  {id:'invoice-paid',label:'Invoice paid',cls:'sp-invoice-paid'},
+  {id:'cancelled',label:'Cancelled',cls:'sp-cancelled'}
+];
+const SHOOT_TYPES=['15 Photos','20 Photos','25 Photos','Floor Plan','Video with agent','Video walkthrough','Travel fee','Other'];
+const RECUR_LABELS={none:'One-off',daily:'Daily',weekdays:'Weekdays',weekly:'Weekly',fortnightly:'Fortnightly',monthly:'Monthly'};
+const CAT_LABELS={ig:'Instagram',fb:'Facebook',short:'Daily Short',pod:'Podcast',ads:'Ads',other:'Other'};
+const CAT_EV={ig:'ev-ig',fb:'ev-fb',short:'ev-short',pod:'ev-pod',ads:'ev-other',other:'ev-other'};
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const FULL_MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function todayStr(){return new Date().toISOString().slice(0,10);}
+function tomorrowStr(){const d=new Date();d.setDate(d.getDate()+1);return d.toISOString().slice(0,10);}
+function addDays(ds,n){const d=new Date(ds);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
+function nextWeekSunday(){const d=new Date();d.setDate(d.getDate()+(7-d.getDay()));return d.toISOString().slice(0,10);}
+function nextOcc(ds,recur){
+  if(recur==='none')return null;
+  if(recur==='daily')return addDays(ds,1);
+  if(recur==='weekdays'){let d=new Date(ds);d.setDate(d.getDate()+1);while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()+1);return d.toISOString().slice(0,10);}
+  if(recur==='weekly')return addDays(ds,7);
+  if(recur==='fortnightly')return addDays(ds,14);
+  if(recur==='monthly'){const d=new Date(ds);d.setMonth(d.getMonth()+1);return d.toISOString().slice(0,10);}
+  return null;
+}
+function getDiff(ds){if(!ds)return null;const d=new Date(ds),n=new Date();n.setHours(0,0,0,0);return Math.round((d-n)/(1000*60*60*24));}
+function fmtDate(ds){if(!ds)return'—';const d=new Date(ds+'T00:00:00');return d.getDate()+' '+MONTHS[d.getMonth()];}
+function fmtTime(ts){if(!ts)return'';const p=ts.split(':');return p[0]+':'+p[1];}
+function fmt$(n){return n?'$'+parseFloat(n).toFixed(2):'—';}
+function avHtml(name){return`<div class="av ${name==='Gordon'?'g':'d'}">${name.slice(0,2).toUpperCase()}</div>`;}
+function statusObj(id){return PHOTO_STATUSES.find(s=>s.id===id)||PHOTO_STATUSES[0];}
+
+let STATE={
+  activeBiz:'jubism',
+  // Jubism
+  jubFilter:'today',
+  jubTasks:[
+    {id:1,title:'Daily Social Media Post',brand:'nt',assignee:'Gordon',due:todayStr(),recur:'daily',notes:'',done:false},
+    {id:2,title:'Check Orders',brand:'nt',assignee:'Darren',due:todayStr(),recur:'weekdays',notes:'',done:false},
+    {id:3,title:'Daily Social Media Post',brand:'es',assignee:'Gordon',due:todayStr(),recur:'daily',notes:'',done:false},
+    {id:4,title:'Review Ads',brand:'es',assignee:'Darren',due:todayStr(),recur:'weekly',notes:'',done:false},
+    {id:5,title:'Social Media Post',brand:'ag',assignee:'Gordon',due:todayStr(),recur:'daily',notes:'',done:false},
+    {id:6,title:'Check Inventory',brand:'cgw',assignee:'Darren',due:tomorrowStr(),recur:'weekly',notes:'',done:false},
+    {id:7,title:'Reply to emails',brand:'admin',assignee:'Gordon',due:todayStr(),recur:'weekdays',notes:'',done:false},
+  ],
+  editingJubId:null,
+  // Photo
+  photoFilter:'all',
+  photoTypeFilter:'all',
+  agents:[],
+  selectedShootTypes:[],
+  editingJobId:null,
+  jobs:[
+    {id:1,title:'14 Hawthorne St, Bulimba',type:'re',assignee:'Gordon',date:'2026-04-10',time:'09:00',agent:'',shootTypes:['20 Photos','Floor Plan'],status:'sent-agent',invoice:350,cost:0,notes:''},
+    {id:2,title:'Unit 4, 22 James St, Fortitude Valley',type:'re',assignee:'Gordon',date:'2026-04-12',time:'11:00',agent:'',shootTypes:['15 Photos'],status:'edit-complete',invoice:280,cost:0,notes:''},
+    {id:3,title:'Commercial shoot — BackRoom Gear',type:'cv',assignee:'Darren',date:'2026-04-15',time:'13:00',agent:'',shootTypes:['Video walkthrough'],status:'booked',invoice:800,cost:150,notes:'Full day shoot'},
+    {id:4,title:'8 River Rd, Kangaroo Point',type:'re',assignee:'Gordon',date:'2026-04-08',time:'10:00',agent:'',shootTypes:['25 Photos','Floor Plan','Video with agent'],status:'invoice-paid',invoice:650,cost:0,notes:''}
+  ],
+  // BRG
+  brgSection:'content',
+  brgContentView:'list',
+  brgContentFilter:'all',
+  calYear:new Date().getFullYear(),
+  calMonth:new Date().getMonth(),
+  editingBRGId:null,
+  brgTasks:[
+    {id:1,name:'Daily IG Post',cat:'ig',assignee:'Gordon',due:todayStr(),recur:'daily',notes:'',done:false},
+    {id:2,name:'Daily FB Post',cat:'fb',assignee:'Gordon',due:todayStr(),recur:'daily',notes:'',done:false},
+    {id:3,name:'Daily Short',cat:'short',assignee:'Darren',due:todayStr(),recur:'daily',notes:'',done:false},
+    {id:4,name:'Weekly Podcast',cat:'pod',assignee:'Gordon',due:todayStr(),recur:'weekly',notes:'',done:false},
+    {id:5,name:'Check Meta Ads',cat:'ads',assignee:'Gordon',due:todayStr(),recur:'weekdays',notes:'',done:false},
+  ],
+  editingPLId:null,
+  revenueTarget:50000,
+  weekly:[
+    {id:1,date:'2026-04-06',rev:1240,other:0,ads:380,shopify:79,cogs:310,othercost:0,notes:'Good week, Reels performing well'},
+    {id:2,date:'2026-03-30',rev:980,other:0,ads:420,shopify:79,cogs:245,othercost:0,notes:'Ad spend too high, pull back'},
+    {id:3,date:'2026-03-23',rev:1450,other:50,ads:350,shopify:79,cogs:362,othercost:0,notes:'Best week this month'}
+  ],
+  // Flippers
+  activeHaulId:null,
+  selectedItemId:null,
+  editingHaulId:null,
+  editingItemId:null,
+  itemFilter:'all',
+  itemSearch:'',
+  hauls:[
+    {id:1,name:'250 Hotwheels',source:'Facebook Marketplace',date:'2026-03-01',cost:250,qty:250,notes:'Mixed lot, mostly 80s-90s'},
+    {id:2,name:'Lego Bundle — 15 sets',source:'Gumtree',date:'2026-03-15',cost:180,qty:15,notes:'All incomplete, need parts check'}
+  ],
+  flipItems:[
+    {id:1,haulId:1,name:'Hotwheels 1969 Camaro',sku:'HW-001',loc:'Shelf 1, Box A',cost:1,status:'shipped',sale:9.99,ship:4.50,url:''},
+    {id:2,haulId:1,name:'Hotwheels Deora III',sku:'HW-002',loc:'Shelf 1, Box A',cost:1,status:'listed',sale:0,ship:0,url:''},
+    {id:3,haulId:1,name:'Hotwheels Twin Mill',sku:'HW-003',loc:'Shelf 1, Box A',cost:1,status:'stock',sale:0,ship:0,url:''},
+    {id:4,haulId:1,name:'Hotwheels Bone Shaker',sku:'HW-004',loc:'Shelf 1, Box A',cost:1,status:'sold',sale:19.95,ship:0,url:''},
+    {id:5,haulId:2,name:'Lego City Police Station',sku:'LG-001',loc:'Shelf 2, Box C',cost:12,status:'listed',sale:0,ship:0,url:''},
+    {id:6,haulId:2,name:'Lego Technic Crane',sku:'LG-002',loc:'Shelf 2, Box D',cost:12,status:'stock',sale:0,ship:0,url:''}
+  ],
+  // Panel
+  selectedPanelId:null,
+  panelType:null
+};
+let NID=200;
+
+// ============================================================
+// RENDER TOP LEVEL
+// ============================================================
+function render(){
+  renderTabs();
+  const biz=STATE.activeBiz;
+  if(!biz) renderDashboard();
+  else if(biz==='jubism') renderJubism();
+  else if(biz==='photo') renderPhoto();
+  else if(biz==='backroom') renderBRG();
+  else renderFlippers();
+}
+
+function renderTabs(){
+  document.getElementById('biz-tabs').innerHTML=BIZ.map(b=>`
+    <button class="biz-tab${b.id===STATE.activeBiz?' active':''}" onclick="switchBiz('${b.id}')">
+      <span class="biz-dot" style="background:${b.dot}"></span>${b.name}
+    </button>`).join('');
+  const dashTab=document.getElementById('dash-tab');
+  if(dashTab) dashTab.classList.toggle('active',!STATE.activeBiz);
+  // CTA button
+  const cta=document.getElementById('main-cta');
+  if(!STATE.activeBiz){cta.style.display='none';return;}
+  cta.style.display='';
+  if(STATE.activeBiz==='jubism'){cta.textContent='+ New task';cta.className='btn primary-jub';}
+  else if(STATE.activeBiz==='photo'){cta.textContent='+ New job';cta.className='btn primary-photo';}
+  else if(STATE.activeBiz==='backroom'){
+    if(STATE.brgSection==='financials'){cta.textContent='+ Add week';cta.className='btn primary-brg';}
+    else{cta.textContent='+ New task';cta.className='btn primary-brg';}
+  }
+  else{cta.textContent='+ New haul';cta.className='btn primary-flip';}
+}
+
+function switchBiz(id){
+  STATE.activeBiz=id;
+  closePanel();
+  document.getElementById('section-bar-wrap').innerHTML='';
+  render();
+}
+
+function mainCTA(){
+  const b=STATE.activeBiz;
+  if(b==='jubism') openJubTaskModal();
+  else if(b==='photo') openJobModal();
+  else if(b==='backroom'){
+    if(STATE.brgSection==='financials') openPLModal();
+    else openBRGTaskModal();
+  }
+  else openHaulModal();
+}
+
+function showToast(msg,color){
+  const el=document.getElementById('toast');
+  el.style.background=color||'#1a1a1a';
+  el.style.color='#fff';
+  el.textContent=msg;el.style.opacity='1';
+  clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity='0',2500);
+}
+
+// ============================================================
+// JUBISM
+// ============================================================
+function renderJubism(){
+  document.getElementById('section-bar-wrap').innerHTML='';
+  const today=todayStr();
+  document.getElementById('subbar-wrap').innerHTML=`
+    <div class="subbar">
+      <button class="btn sm${STATE.jubFilter==='today'?' active-toggle':''}" onclick="setJubFilter('today')">Today</button>
+      <button class="btn sm${STATE.jubFilter==='upcoming'?' active-toggle':''}" onclick="setJubFilter('upcoming')">Upcoming</button>
+      <button class="btn sm${STATE.jubFilter==='all'?' active-toggle':''}" onclick="setJubFilter('all')">All</button>
+      <span style="flex:1"></span>
+      <span style="font-size:11px;color:var(--text-tertiary)">${new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}</span>
+    </div>`;
+
+  let tasks=STATE.jubTasks;
+  if(STATE.jubFilter==='today') tasks=tasks.filter(t=>t.due<=today);
+  else if(STATE.jubFilter==='upcoming') tasks=tasks.filter(t=>t.due>today);
+
+  document.getElementById('main-content').innerHTML=`<div class="jub-board">
+    ${JUB_BRANDS.map(brand=>{
+      const bt=tasks.filter(t=>t.brand===brand.id);
+      return`<div class="jub-col">
+        <div class="jub-col-header">
+          <span class="jub-col-title">${brand.name}</span>
+          <span class="jub-col-count">${bt.length}</span>
+        </div>
+        <div class="jub-col-body">
+          ${bt.map(t=>`
+            <div class="task-row" onclick="openJubPanel(${t.id})">
+              <div class="task-cb${t.done?' checked':''}" onclick="event.stopPropagation();tickJubTask(${t.id})"></div>
+              <div class="task-info">
+                <div class="task-title${t.done?' struck':''}">${t.title}</div>
+                <div class="task-meta">
+                  ${jubDueLbl(t.due)}
+                  ${t.recur!=='none'?`<span class="recur-badge">${RECUR_LABELS[t.recur]}</span>`:''}
+                  ${avHtml(t.assignee)}
+                </div>
+              </div>
+            </div>`).join('')}
+        </div>
+        <button class="add-task-btn" onclick="openJubTaskModal('${brand.id}')">+ Add task</button>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function jubDueLbl(ds){
+  const diff=getDiff(ds);
+  if(diff===null)return'';
+  if(diff<0)return`<span class="due-overdue">Overdue</span>`;
+  if(diff===0)return`<span class="due-today">Today</span>`;
+  if(diff===1)return`<span class="due-tomorrow">Tomorrow</span>`;
+  return`<span class="due-upcoming">${fmtDate(ds)}</span>`;
+}
+
+function setJubFilter(f){STATE.jubFilter=f;renderJubism();}
+
+function tickJubTask(id){
+  const t=STATE.jubTasks.find(x=>x.id===id);if(!t)return;
+  if(t.recur!=='none'){
+    const next=nextOcc(t.due,t.recur);
+    t.due=next;t.done=false;
+    showToast(`Rescheduled: ${t.title} → ${fmtDate(next)}`,'#185FA5');saveState();
+  } else {t.done=!t.done;}
+  renderJubism();saveState();
+}
+
+function openJubPanel(id){
+  const t=STATE.jubTasks.find(x=>x.id===id);if(!t)return;
+  STATE.selectedPanelId=id;STATE.panelType='jubtask';
+  const brand=JUB_BRANDS.find(b=>b.id===t.brand);
+  document.getElementById('panel-title').textContent=t.title;
+  document.getElementById('panel-body').innerHTML=`
+    <hr class="pdiv">
+    <div class="pl">Brand</div><div class="pv">${brand?brand.name:''}</div>
+    <div class="pl">Assignee</div><div class="pv" style="display:flex;align-items:center;gap:6px">${avHtml(t.assignee)}<span>${t.assignee}</span></div>
+    <div class="pl">Due</div><div class="pv">${t.due||'No date'}</div>
+    <div class="pl">Recurrence</div><div class="pv">${RECUR_LABELS[t.recur]||'One-off'}</div>
+    ${t.notes?`<div class="pl">Notes</div><div class="pv" style="font-size:12px;white-space:pre-wrap">${t.notes}</div>`:''}
+    <div style="display:flex;gap:6px;margin-top:16px">
+      <button class="btn sm" style="flex:1" onclick="openEditJubTask(${id})">Edit</button>
+      <button class="btn sm danger" style="flex:1" onclick="deleteJubTask(${id})">Delete</button>
+    </div>`;
+  document.getElementById('detail-panel').classList.add('open');
+  renderJubism();
+}
+
+function openEditJubTask(id){
+  const t=STATE.jubTasks.find(x=>x.id===id);if(!t)return;
+  STATE.editingJubId=id;
+  document.getElementById('jubtask-title').textContent='Edit task';
+  document.getElementById('jubtask-save').textContent='Save changes';
+  document.getElementById('jt-name').value=t.title;
+  document.getElementById('jt-notes').value=t.notes||'';
+  document.getElementById('jt-due').value=t.due||'';
+  document.getElementById('jt-recur').value=t.recur||'none';
+  document.getElementById('jt-brand').value=t.brand;
+  document.getElementById('jt-assignee').value=t.assignee;
+  openModal('jubtask');
+}
+
+function deleteJubTask(id){
+  if(!confirm('Delete this task?'))return;
+  STATE.jubTasks=STATE.jubTasks.filter(x=>x.id!==id);
+  saveState();closePanel();renderJubism();
+}
+
+function openJubTaskModal(brandId){
+  STATE.editingJubId=null;
+  document.getElementById('jubtask-title').textContent='New task';
+  document.getElementById('jubtask-save').textContent='Create task';
+  document.getElementById('jt-name').value='';
+  document.getElementById('jt-notes').value='';
+  document.getElementById('jt-due').value=todayStr();
+  document.getElementById('jt-recur').value='none';
+  document.getElementById('jt-brand').value=brandId||'nt';
+  document.getElementById('jt-assignee').value='Gordon';
+  openModal('jubtask');
+}
+
+function saveJubTask(){
+  const name=document.getElementById('jt-name').value.trim();if(!name)return;
+  const task={title:name,brand:document.getElementById('jt-brand').value,assignee:document.getElementById('jt-assignee').value,due:document.getElementById('jt-due').value||todayStr(),recur:document.getElementById('jt-recur').value,notes:document.getElementById('jt-notes').value.trim(),done:false};
+  if(STATE.editingJubId){const idx=STATE.jubTasks.findIndex(x=>x.id===STATE.editingJubId);if(idx>=0){task.id=STATE.editingJubId;STATE.jubTasks[idx]=task;}}
+  else{task.id=NID++;STATE.jubTasks.push(task);}
+  STATE.editingJubId=null;closeModal('jubtask');renderJubism();saveState();
+}
+
+// ============================================================
+// PHOTOGRAPHY
+// ============================================================
+function renderPhoto(){
+  document.getElementById('section-bar-wrap').innerHTML='';
+  const allJobs=STATE.jobs;
+  const active=allJobs.filter(j=>j.status!=='invoice-paid'&&j.status!=='cancelled').length;
+  const invoiced=allJobs.filter(j=>['invoice-sent','invoice-paid'].includes(j.status)).reduce((s,j)=>s+parseFloat(j.invoice||0),0);
+  const paid=allJobs.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+parseFloat(j.invoice||0),0);
+  const totalProfit=allJobs.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+(parseFloat(j.invoice||0)-parseFloat(j.cost||0)),0);
+
+  document.getElementById('subbar-wrap').innerHTML=`
+    <div class="summary-bar">
+      <div class="stat-card"><span class="stat-label">Active jobs</span><span class="stat-val blue">${active}</span></div>
+      <div class="stat-card"><span class="stat-label">Invoiced</span><span class="stat-val amber">$${invoiced.toFixed(0)}</span></div>
+      <div class="stat-card"><span class="stat-label">Paid</span><span class="stat-val blue">$${paid.toFixed(0)}</span></div>
+      <div class="stat-card"><span class="stat-label">Profit (paid)</span><span class="stat-val green">$${totalProfit.toFixed(0)}</span></div>
+      <div style="margin-left:auto"><button class="btn sm" onclick="openModal('agents')">Manage agents</button></div>
+    </div>
+    <div class="subbar" style="overflow-x:auto;flex-wrap:nowrap">
+      <span style="font-size:11px;color:var(--text-secondary);white-space:nowrap">Status:</span>
+      <span class="pill${STATE.photoFilter==='all'?' active':''}" onclick="setPhotoFilter('all')">All</span>
+      ${PHOTO_STATUSES.map(s=>`<span class="pill${STATE.photoFilter===s.id?' active':''}" onclick="setPhotoFilter('${s.id}')">${s.label}</span>`).join('')}
+      <span style="flex:1;min-width:8px"></span>
+      <span class="pill${STATE.photoTypeFilter==='all'?' active':''}" onclick="setPhotoTypeFilter('all')">All types</span>
+      <span class="pill${STATE.photoTypeFilter==='re'?' active':''}" onclick="setPhotoTypeFilter('re')">Real Estate</span>
+      <span class="pill${STATE.photoTypeFilter==='cv'?' active':''}" onclick="setPhotoTypeFilter('cv')">Commercial/Video</span>
+    </div>`;
+
+  let jobs=STATE.jobs;
+  if(STATE.photoFilter!=='all') jobs=jobs.filter(j=>j.status===STATE.photoFilter);
+  if(STATE.photoTypeFilter!=='all') jobs=jobs.filter(j=>j.type===STATE.photoTypeFilter);
+  jobs=[...jobs].sort((a,b)=>b.date>a.date?1:-1);
+
+  if(!jobs.length){
+    document.getElementById('main-content').innerHTML=`<div class="empty"><span class="empty-t">No jobs found</span><span class="empty-s">Try a different filter or add a new job</span><button class="btn primary-photo" onclick="openJobModal()">+ New job</button></div>`;
+    return;
+  }
+
+  document.getElementById('main-content').innerHTML=`<div class="photo-wrap"><table class="job-table">
+    <thead><tr><th>Date</th><th>Time</th><th>Property / Job</th><th>Shoot type</th><th>Type</th><th>Agent</th><th>Assignee</th><th>Status</th><th>Invoice</th><th>Cost</th><th>Profit</th></tr></thead>
+    <tbody>
+      ${jobs.map(j=>{
+        const s=statusObj(j.status);
+        const p=parseFloat(j.invoice||0)-parseFloat(j.cost||0);
+        const showFin=['invoice-sent','invoice-paid'].includes(j.status);
+        const shoots=(j.shootTypes||[]).map(t=>`<span class="shoot-tag">${t}</span>`).join(' ');
+        return`<tr class="job-row${STATE.selectedPanelId===j.id&&STATE.panelType==='job'?' sel':''}" onclick="openJobPanel(${j.id})">
+          <td style="white-space:nowrap;color:var(--text-secondary)">${fmtDate(j.date)}</td>
+          <td style="white-space:nowrap;color:var(--text-secondary)">${fmtTime(j.time)||'—'}</td>
+          <td style="font-weight:500;min-width:160px">${j.title}</td>
+          <td style="min-width:130px"><div style="display:flex;flex-wrap:wrap;gap:3px">${shoots||'<span style="color:var(--text-tertiary);font-size:11px">—</span>'}</div></td>
+          <td><span class="type-pill ${j.type==='re'?'tp-re':'tp-cv'}">${j.type==='re'?'Real Estate':'Commercial'}</span></td>
+          <td style="color:var(--text-secondary)">${j.agent||'—'}</td>
+          <td>${avHtml(j.assignee)}</td>
+          <td><span class="status-pill ${s.cls}">${s.label}</span></td>
+          <td>${j.invoice?'$'+parseFloat(j.invoice).toFixed(0):'—'}</td>
+          <td>${j.cost?'$'+parseFloat(j.cost).toFixed(0):'—'}</td>
+          <td class="${showFin?(p>=0?'fin-profit':'fin-loss'):''}">${showFin?(p>=0?'+':'')+('$'+Math.abs(p).toFixed(0)):'—'}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+function setPhotoFilter(f){STATE.photoFilter=f;STATE.selectedPanelId=null;closePanel();renderPhoto();}
+function setPhotoTypeFilter(f){STATE.photoTypeFilter=f;STATE.selectedPanelId=null;closePanel();renderPhoto();}
+
+function openJobPanel(id){
+  const j=STATE.jobs.find(x=>x.id===id);if(!j)return;
+  STATE.selectedPanelId=id;STATE.panelType='job';
+  const s=statusObj(j.status);
+  const p=parseFloat(j.invoice||0)-parseFloat(j.cost||0);
+  const showFin=['invoice-sent','invoice-paid'].includes(j.status);
+  document.getElementById('panel-title').textContent=j.title;
+  document.getElementById('panel-body').innerHTML=`
+    <hr class="pdiv">
+    <div class="pl">Date & time</div><div class="pv">${fmtDate(j.date)}${j.time?' at '+fmtTime(j.time):''}</div>
+    <div class="pl">Type</div><div class="pv">${j.type==='re'?'Real Estate':'Commercial / Video'}</div>
+    <div class="pl">Shoot types</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px">${(j.shootTypes||[]).map(t=>`<span class="shoot-tag">${t}</span>`).join('')||'—'}</div>
+    <div class="pl">Agent</div><div class="pv">${j.agent||'—'}</div>
+    <div class="pl">Assignee</div><div class="pv" style="display:flex;align-items:center;gap:6px">${avHtml(j.assignee)}<span>${j.assignee}</span></div>
+    <div class="pl">Status</div>
+    <select class="select-native" style="margin-bottom:6px" onchange="quickJobStatus(${id},this.value)">
+      ${PHOTO_STATUSES.map(st=>`<option value="${st.id}"${st.id===j.status?' selected':''}>${st.label}</option>`).join('')}
+    </select>
+    ${j.notes?`<div class="pl">Notes</div><div class="pv" style="font-size:12px;white-space:pre-wrap">${j.notes}</div>`:''}
+    <div class="pl">Financials</div>
+    <div class="fin-box">
+      <div class="fin-row"><span class="fin-label">Invoice</span><span class="fin-val">${fmt$(j.invoice)}</span></div>
+      <div class="fin-row"><span class="fin-label">Cost</span><span class="fin-val">${fmt$(j.cost)}</span></div>
+      <hr class="fin-divider">
+      <div class="fin-row"><span class="fin-label">Profit</span><span class="${showFin?(p>=0?'fin-profit':'fin-loss'):''}">${showFin?(p>=0?'+':'')+fmt$(Math.abs(p)):'Add invoice to see profit'}</span></div>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:16px">
+      <button class="btn sm" style="flex:1" onclick="openJobModal(${id})">Edit</button>
+      <button class="btn sm danger" style="flex:1" onclick="deleteJob(${id})">Delete</button>
+    </div>`;
+  document.getElementById('detail-panel').classList.add('open');
+  renderPhoto();
+}
+
+function quickJobStatus(id,status){const j=STATE.jobs.find(x=>x.id===id);if(j)j.status=status;saveState();openJobPanel(id);}
+
+function openJobModal(editId){
+  STATE.editingJobId=editId||null;
+  const j=editId?STATE.jobs.find(x=>x.id===editId):null;
+  document.getElementById('job-modal-title').textContent=j?'Edit job':'New job';
+  document.getElementById('job-save-btn').textContent=j?'Save changes':'Add job';
+  document.getElementById('nj-title').value=j?j.title:'';
+  document.getElementById('nj-type').value=j?j.type:'re';
+  document.getElementById('nj-assignee').value=j?j.assignee:'Gordon';
+  document.getElementById('nj-date').value=j?j.date:'';
+  document.getElementById('nj-time').value=j?j.time:'';
+  document.getElementById('nj-status').value=j?j.status:'booked';
+  document.getElementById('nj-invoice').value=j&&j.invoice?j.invoice:'';
+  document.getElementById('nj-cost').value=j&&j.cost?j.cost:'';
+  document.getElementById('nj-notes').value=j?j.notes:'';
+  populateAgentSelect(j?j.agent:'');
+  renderShootChecks(j?j.shootTypes:[]);
+  openModal('job');
+}
+
+function deleteJob(id){
+  if(!confirm('Delete this job?'))return;
+  STATE.jobs=STATE.jobs.filter(x=>x.id!==id);saveState();
+  closePanel();renderPhoto();
+}
+
+function saveJob(){
+  const title=document.getElementById('nj-title').value.trim();if(!title)return;
+  const job={title,type:document.getElementById('nj-type').value,assignee:document.getElementById('nj-assignee').value,date:document.getElementById('nj-date').value,time:document.getElementById('nj-time').value,agent:document.getElementById('nj-agent').value,shootTypes:[...STATE.selectedShootTypes],status:document.getElementById('nj-status').value,invoice:parseFloat(document.getElementById('nj-invoice').value)||0,cost:parseFloat(document.getElementById('nj-cost').value)||0,notes:document.getElementById('nj-notes').value.trim()};
+  if(STATE.editingJobId){const idx=STATE.jobs.findIndex(x=>x.id===STATE.editingJobId);if(idx>=0){job.id=STATE.editingJobId;STATE.jobs[idx]=job;}}
+  else{job.id=NID++;STATE.jobs.push(job);}
+  STATE.editingJobId=null;closeModal('job');saveState();
+  if(STATE.selectedPanelId)openJobPanel(STATE.selectedPanelId);
+  else renderPhoto();
+}
+
+function renderShootChecks(selected){
+  selected=selected||[];
+  STATE.selectedShootTypes=[...selected];
+  document.getElementById('shoot-checks').innerHTML=SHOOT_TYPES.map(t=>`
+    <div class="shoot-check${selected.includes(t)?' checked':''}" onclick="toggleShoot('${t}',this)">${t}</div>`).join('');
+}
+
+function toggleShoot(type,el){
+  el.classList.toggle('checked');
+  if(STATE.selectedShootTypes.includes(type)) STATE.selectedShootTypes=STATE.selectedShootTypes.filter(x=>x!==type);
+  else STATE.selectedShootTypes.push(type);
+}
+
+function populateAgentSelect(sel){
+  document.getElementById('nj-agent').innerHTML=`<option value="">— Select agent —</option>`+STATE.agents.map(a=>`<option value="${a}"${a===sel?' selected':''}>${a}</option>`).join('');
+}
+
+function renderAgentList(){
+  document.getElementById('agent-list').innerHTML=STATE.agents.length
+    ?STATE.agents.map((a,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg-secondary);border-radius:var(--radius-md)"><span style="flex:1;font-size:13px">${a}</span><button class="btn sm danger" onclick="removeAgent(${i})">Remove</button></div>`).join('')
+    :`<span style="font-size:12px;color:var(--text-secondary)">No agents yet</span>`;
+}
+
+function addAgent(){
+  const inp=document.getElementById('new-agent');const name=inp.value.trim();
+  if(!name||STATE.agents.includes(name))return;
+  STATE.agents.push(name);inp.value='';saveState();renderAgentList();
+}
+function removeAgent(i){STATE.agents.splice(i,1);saveState();renderAgentList();}
+
+// ============================================================
+// BACKROOM GEAR
+// ============================================================
+function renderBRG(){
+  document.getElementById('section-bar-wrap').innerHTML=`
+    <div class="section-bar">
+      ${['content','ads','financials'].map(s=>`<div class="sec-tab${STATE.brgSection===s?' active-brg':''}" onclick="setBRGSection('${s}')">${s==='content'?'Content':s==='ads'?'Ads & Marketing':'Financials'}</div>`).join('')}
+    </div>`;
+  if(STATE.brgSection==='content') renderBRGContent();
+  else if(STATE.brgSection==='ads') renderBRGAds();
+  else renderBRGFinancials();
+  renderTabs();
+}
+
+function setBRGSection(s){STATE.brgSection=s;renderBRG();}
+
+function renderBRGContent(){
+  const today=todayStr();
+  document.getElementById('subbar-wrap').innerHTML=`
+    <div class="subbar">
+      <span class="pill${STATE.brgContentFilter==='all'?' active':''}" onclick="STATE.brgContentFilter='all';renderBRGContent()">All</span>
+      <span class="pill${STATE.brgContentFilter==='ig'?' active':''}" onclick="STATE.brgContentFilter='ig';renderBRGContent()">Instagram</span>
+      <span class="pill${STATE.brgContentFilter==='fb'?' active':''}" onclick="STATE.brgContentFilter='fb';renderBRGContent()">Facebook</span>
+      <span class="pill${STATE.brgContentFilter==='short'?' active':''}" onclick="STATE.brgContentFilter='short';renderBRGContent()">Daily Short</span>
+      <span class="pill${STATE.brgContentFilter==='pod'?' active':''}" onclick="STATE.brgContentFilter='pod';renderBRGContent()">Podcast</span>
+      <span style="flex:1"></span>
+      <button class="btn sm${STATE.brgContentView==='list'?' active-toggle':''}" onclick="STATE.brgContentView='list';renderBRGContent()">Today</button>
+      <button class="btn sm${STATE.brgContentView==='cal'?' active-toggle':''}" onclick="STATE.brgContentView='cal';renderBRGContent()">Calendar</button>
+      <span style="font-size:11px;color:var(--text-tertiary)">${new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}</span>
+    </div>`;
+
+  if(STATE.brgContentView==='cal'){renderBRGCal();return;}
+
+  let tasks=STATE.brgTasks.filter(t=>t.cat!=='ads'&&t.due<=today);
+  if(STATE.brgContentFilter!=='all') tasks=tasks.filter(t=>t.cat===STATE.brgContentFilter);
+
+  const cats=['ig','fb','short','pod','other'];
+  const catLabels={ig:'Instagram',fb:'Facebook',short:'Daily Short',pod:'Podcast',other:'Other'};
+
+  document.getElementById('main-content').innerHTML=`<div class="content-wrap">
+    ${cats.map(cat=>{
+      const ct=tasks.filter(t=>t.cat===cat);
+      return`<div class="content-col">
+        <div class="content-col-header">
+          <span class="content-col-title">${catLabels[cat]}</span>
+          <span style="font-size:10px;color:var(--text-tertiary)">${ct.length}</span>
+        </div>
+        <div class="content-col-body">
+          ${ct.map(t=>`
+            <div class="task-row" onclick="openBRGPanel(${t.id})">
+              <div class="task-cb-brg${t.done?' checked':''}" onclick="event.stopPropagation();tickBRGTask(${t.id})"></div>
+              <div class="task-info">
+                <div class="task-title${t.done?' struck':''}">${t.name}</div>
+                <div class="task-meta">
+                  ${getDiff(t.due)===0?'<span class="due-today">Today</span>':getDiff(t.due)<0?'<span class="due-overdue">Overdue</span>':''}
+                  ${t.recur!=='none'?`<span class="recur-badge">${RECUR_LABELS[t.recur]}</span>`:''}
+                  ${avHtml(t.assignee)}
+                </div>
+              </div>
+            </div>`).join('')}
+        </div>
+        <button class="add-task-btn" onclick="openBRGTaskModal('${cat}')">+ Add task</button>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function renderBRGCal(){
+  const y=STATE.calYear,m=STATE.calMonth;
+  const first=new Date(y,m,1).getDay();
+  const dim=new Date(y,m+1,0).getDate();
+  const today=new Date();
+  let html=`<div class="cal-wrap">
+    <div class="cal-header">
+      <button class="btn sm" onclick="brgCalNav(-1)">&#8592;</button>
+      <span class="cal-title">${FULL_MONTHS[m]} ${y}</span>
+      <button class="btn sm" onclick="brgCalNav(1)">&#8594;</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+      <span style="font-size:10px;padding:2px 7px;border-radius:3px;background:var(--purple-light);color:var(--purple)">Instagram</span>
+      <span style="font-size:10px;padding:2px 7px;border-radius:3px;background:var(--blue-light);color:var(--blue)">Facebook</span>
+      <span style="font-size:10px;padding:2px 7px;border-radius:3px;background:var(--red-light);color:var(--red)">Short</span>
+      <span style="font-size:10px;padding:2px 7px;border-radius:3px;background:var(--amber-light);color:var(--amber)">Podcast</span>
+    </div>
+    <div class="cal-grid">${DAYS.map(d=>`<div class="cal-dn">${d}</div>`).join('')}`;
+  for(let i=0;i<first;i++)html+=`<div class="cal-cell om"></div>`;
+  for(let d=1;d<=dim;d++){
+    const isToday=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow=new Date(ds+'T00:00:00').getDay();
+    const dayTasks=STATE.brgTasks.filter(t=>{
+      if(t.cat==='ads')return false;
+      if(!t.due)return false;
+      if(t.recur==='daily')return true;
+      if(t.recur==='weekdays')return dow>0&&dow<6;
+      if(t.recur==='weekly'){const due=new Date(t.due+'T00:00:00'),cur=new Date(ds+'T00:00:00');return due.getDay()===cur.getDay()&&cur>=due;}
+      return t.due===ds;
+    });
+    html+=`<div class="cal-cell${isToday?' today-cell':''}"><div class="cal-num">${d}</div>${dayTasks.map(t=>`<div class="cal-ev ${CAT_EV[t.cat]||'ev-other'}">${t.name}</div>`).join('')}</div>`;
+  }
+  html+=`</div></div>`;
+  document.getElementById('main-content').innerHTML=html;
+}
+
+function brgCalNav(dir){
+  STATE.calMonth+=dir;
+  if(STATE.calMonth>11){STATE.calMonth=0;STATE.calYear++;}
+  if(STATE.calMonth<0){STATE.calMonth=11;STATE.calYear--;}
+  renderBRGCal();
+}
+
+function renderBRGAds(){
+  document.getElementById('subbar-wrap').innerHTML=`<div class="subbar"><span style="font-size:11px;color:var(--text-secondary)">Ads & Marketing tasks</span></div>`;
+  const tasks=STATE.brgTasks.filter(t=>t.cat==='ads');
+  document.getElementById('main-content').innerHTML=`
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:6px;max-width:600px">
+      ${tasks.map(t=>`
+        <div class="task-row" onclick="openBRGPanel(${t.id})">
+          <div class="task-cb-brg${t.done?' checked':''}" onclick="event.stopPropagation();tickBRGTask(${t.id})"></div>
+          <div class="task-info">
+            <div class="task-title${t.done?' struck':''}">${t.name}</div>
+            <div class="task-meta">
+              ${getDiff(t.due)===0?'<span class="due-today">Today</span>':getDiff(t.due)<0?'<span class="due-overdue">Overdue</span>':'<span class="due-upcoming">'+fmtDate(t.due)+'</span>'}
+              ${t.recur!=='none'?`<span class="recur-badge">${RECUR_LABELS[t.recur]}</span>`:''}
+              ${avHtml(t.assignee)}
+            </div>
+          </div>
+        </div>`).join('')}
+      <button class="add-task-btn" onclick="openBRGTaskModal('ads')" style="max-width:none">+ Add ads task</button>
+    </div>`;
+}
+
+function tickBRGTask(id){
+  const t=STATE.brgTasks.find(x=>x.id===id);if(!t)return;
+  if(t.recur!=='none'){const next=nextOcc(t.due,t.recur);t.due=next;t.done=false;showToast(`Rescheduled → ${fmtDate(next)}`,'#854F0B');}
+  else t.done=!t.done;
+  renderBRG();saveState();
+}
+
+function renderBRGFinancials(){
+  var allWeeks=[...STATE.weekly].sort(function(a,b){return a.date>b.date?1:-1;});
+  var target=STATE.revenueTarget||50000;
+  var now=new Date();
+  var yearStart=new Date(now.getFullYear(),0,1);
+  var weeksElapsed=Math.max(1,Math.ceil((now-yearStart)/(7*24*60*60*1000)));
+  var weeksRemaining=Math.max(0,52-weeksElapsed);
+  var ytd=allWeeks.filter(function(w){return w.date&&w.date.startsWith(String(now.getFullYear()));});
+  var revYTD=ytd.reduce(function(s,w){return s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0);},0);
+  var etsyRevYTD=ytd.reduce(function(s,w){return s+parseFloat(w.etsyRev||0);},0);
+  var ordersYTD=ytd.reduce(function(s,w){return s+parseInt(w.orders||0)+parseInt(w.etsyOrders||0);},0);
+  var sessionsYTD=ytd.reduce(function(s,w){return s+parseInt(w.sessions||0);},0);
+  var unitsYTD=ytd.reduce(function(s,w){return s+parseInt(w.units||0);},0);
+  var cogsYTD=ytd.reduce(function(s,w){return s+parseFloat(w.cogs||0);},0);
+  var adsYTD=ytd.reduce(function(s,w){return s+parseFloat(w.ads||0);},0);
+  var otherYTD=ytd.reduce(function(s,w){return s+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
+  var totalCostsYTD=cogsYTD+adsYTD+otherYTD;
+  var profitYTD=revYTD-totalCostsYTD;
+  var marginYTD=revYTD>0?((profitYTD/revYTD)*100).toFixed(1):0;
+  var avgWeeklyRev=ytd.length>0?(revYTD/ytd.length):0;
+  var projectedAnnual=avgWeeklyRev*52;
+  var gapToTarget=Math.max(0,target-revYTD);
+  var weeklyNeeded=weeksRemaining>0?gapToTarget/weeksRemaining:0;
+  var aov=ordersYTD>0?(revYTD/ordersYTD):0;
+  var convRate=sessionsYTD>0?((ordersYTD/sessionsYTD)*100).toFixed(2):0;
+  var ordersNeeded=aov>0?Math.ceil(gapToTarget/aov):0;
+  var trafficNeeded=parseFloat(convRate)>0?Math.ceil(ordersNeeded/(parseFloat(convRate)/100)):0;
+  var pace=avgWeeklyRev>=weeklyNeeded&&weeklyNeeded>0?'Ahead':'Behind';
+  var paceColor=pace==='Ahead'?'var(--green)':'var(--red)';
+  var pctOfTarget=target>0?((revYTD/target)*100).toFixed(1):0;
+  var blendedCAC=ordersYTD>0?(adsYTD/ordersYTD).toFixed(0):0;
+  var bestLever=parseFloat(convRate)<1?'Lift conv. rate':ordersNeeded>500?'More traffic':'Increase AOV';
+  var tw=allWeeks.length?allWeeks[allWeeks.length-1]:null;
+  var twRev=tw?parseFloat(tw.rev||0)+parseFloat(tw.etsyRev||0):0;
+  var twCosts=tw?parseFloat(tw.ads||0)+parseFloat(tw.cogs||0)+parseFloat(tw.shopify||0)+parseFloat(tw.othercost||0):0;
+  var twProfit=twRev-twCosts;
+
+  function pSign(n){return (n>=0?'+':'')+'$'+Math.abs(n).toFixed(0);}
+  function sc(label,val,color){
+    return '<div class="dash-stat"><span class="dash-stat-label">'+label+'</span><span class="dash-stat-val" style="color:'+color+';">'+val+'</span></div>';
+  }
+
+  document.getElementById('subbar-wrap').innerHTML='<div class="subbar"><span style="font-size:11px;color:var(--text-secondary)">'+allWeeks.length+' week'+(allWeeks.length!==1?'s':'')+' entered &nbsp;&middot;&nbsp; Target: <strong>$'+target.toLocaleString()+'</strong></span><button class="btn sm" onclick="openModal(\'target\')" style="margin-left:6px">Edit target</button><span style="flex:1"></span></div>';
+
+  var html='<div class="fin-wrap">';
+
+  // Three panels
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">';
+
+  // Run rate
+  html+='<div class="dash-card" style="border-top:3px solid var(--amber)">';
+  html+='<div class="fin-section-title" style="margin-bottom:10px">Run rate</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  html+=sc('Revenue YTD','$'+revYTD.toFixed(0),'var(--blue)');
+  html+=sc('Projected annual','$'+projectedAnnual.toFixed(0),'var(--blue)');
+  html+=sc('Avg weekly','$'+avgWeeklyRev.toFixed(0),'var(--text-primary)');
+  html+=sc('Gap to target','$'+gapToTarget.toFixed(0),'var(--red)');
+  html+=sc('Weekly needed','$'+weeklyNeeded.toFixed(0),'var(--text-primary)');
+  html+='<div class="dash-stat"><span class="dash-stat-label">Pace</span><span class="dash-stat-val" style="color:'+paceColor+';font-size:15px;font-weight:600">'+pace+'</span></div>';
+  html+='</div></div>';
+
+  // Store health
+  html+='<div class="dash-card" style="border-top:3px solid var(--green)">';
+  html+='<div class="fin-section-title" style="margin-bottom:10px">Store health</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  html+=sc('Orders YTD',ordersYTD,'var(--text-primary)');
+  html+=sc('Sessions YTD',sessionsYTD.toLocaleString(),'var(--text-primary)');
+  html+=sc('Avg order value','$'+aov.toFixed(2),'var(--text-primary)');
+  html+=sc('Conversion rate',convRate+'%','var(--text-primary)');
+  html+=sc('Units sold YTD',unitsYTD,'var(--text-primary)');
+  html+=sc('Profit margin',marginYTD+'%',parseFloat(marginYTD)>=0?'var(--green)':'var(--red)');
+  html+='</div></div>';
+
+  // Path to target
+  html+='<div class="dash-card" style="border-top:3px solid var(--blue)">';
+  html+='<div class="fin-section-title" style="margin-bottom:10px">Path to $'+(target/1000).toFixed(0)+'k</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  html+=sc('Orders needed',Math.max(0,ordersNeeded).toLocaleString(),'var(--text-primary)');
+  html+=sc('Traffic needed',Math.max(0,trafficNeeded).toLocaleString(),'var(--text-primary)');
+  html+=sc('Weeks remaining',weeksRemaining,'var(--text-primary)');
+  html+=sc('% of target',pctOfTarget+'%',parseFloat(pctOfTarget)>=50?'var(--green)':'var(--red)');
+  html+=sc('Blended CAC','$'+blendedCAC,'var(--text-primary)');
+  html+='<div class="dash-stat"><span class="dash-stat-label">Best lever</span><span class="dash-stat-val" style="font-size:11px;color:var(--blue)">'+bestLever+'</span></div>';
+  html+='</div></div>';
+
+  html+='</div>'; // end three panel grid
+
+  // Marketing snapshot
+  html+='<div class="dash-card" style="border-top:3px solid var(--orange)">';
+  html+='<div class="fin-section-title" style="margin-bottom:10px">Marketing & profit \u2014 YTD</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">';
+  html+=sc('COGS YTD','$'+cogsYTD.toFixed(0),'var(--amber)');
+  html+=sc('Ad spend YTD','$'+adsYTD.toFixed(0),'var(--amber)');
+  html+=sc('Other costs YTD','$'+otherYTD.toFixed(0),'var(--amber)');
+  html+=sc('Profit YTD',pSign(profitYTD),profitYTD>=0?'var(--green)':'var(--red)');
+  html+=sc('Etsy rev YTD','$'+etsyRevYTD.toFixed(0),'var(--blue)');
+  html+='</div></div>';
+
+  // Latest week
+  if(tw){
+    html+='<div class="dash-card">';
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+    html+='<div class="fin-section-title" style="margin:0">Latest week \u2014 w/c '+fmtDate(tw.date)+'</div>';
+    if(tw.notes) html+='<span style="font-size:11px;color:var(--text-secondary);font-style:italic">&quot;'+tw.notes+'&quot;</span>';
+    html+='</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px">';
+    html+=sc('Website','$'+parseFloat(tw.rev||0).toFixed(0),'var(--blue)');
+    html+=sc('Etsy','$'+parseFloat(tw.etsyRev||0).toFixed(0),'var(--blue)');
+    html+=sc('Ad spend','$'+parseFloat(tw.ads||0).toFixed(0),'var(--amber)');
+    html+=sc('COGS','$'+parseFloat(tw.cogs||0).toFixed(0),'var(--amber)');
+    html+=sc('Sessions',parseInt(tw.sessions||0).toLocaleString(),'var(--text-primary)');
+    html+=sc('Profit',pSign(twProfit),twProfit>=0?'var(--green)':'var(--red)');
+    html+='</div></div>';
+  }
+
+  // Weekly table
+  html+='<div><div class="fin-section-title" style="margin-bottom:8px">Weekly breakdown</div>';
+  html+='<div style="overflow-x:auto"><table class="week-table" style="min-width:820px">';
+  html+='<thead><tr><th>Week w/c</th><th>Web rev</th><th>Etsy rev</th><th>Total rev</th><th>Orders</th><th>Sessions</th><th>Ad spend</th><th>COGS</th><th>Profit</th><th>Margin</th><th></th></tr></thead><tbody>';
+
+  var revWeeks=[...allWeeks].reverse();
+  for(var i=0;i<revWeeks.length;i++){
+    var w=revWeeks[i];
+    var rev=parseFloat(w.rev||0)+parseFloat(w.etsyRev||0);
+    var costs=parseFloat(w.ads||0)+parseFloat(w.shopify||0)+parseFloat(w.cogs||0)+parseFloat(w.othercost||0);
+    var p=rev-costs;
+    var margin=rev>0?Math.round((p/rev)*100):0;
+    var orders=parseInt(w.orders||0)+parseInt(w.etsyOrders||0);
+    var mColor=margin>=0?'var(--green)':'var(--red)';
+    var pCls=p>=0?'profit-pos':'profit-neg';
+    html+='<tr>';
+    html+='<td style="font-weight:500;white-space:nowrap">'+fmtDate(w.date)+'</td>';
+    html+='<td>$'+parseFloat(w.rev||0).toFixed(0)+'</td>';
+    html+='<td>$'+parseFloat(w.etsyRev||0).toFixed(0)+'</td>';
+    html+='<td style="font-weight:500">$'+rev.toFixed(0)+'</td>';
+    html+='<td>'+orders+'</td>';
+    html+='<td>'+parseInt(w.sessions||0).toLocaleString()+'</td>';
+    html+='<td style="color:var(--amber)">$'+parseFloat(w.ads||0).toFixed(0)+'</td>';
+    html+='<td style="color:var(--amber)">$'+parseFloat(w.cogs||0).toFixed(0)+'</td>';
+    html+='<td class="'+pCls+'">'+pSign(p)+'</td>';
+    html+='<td><div class="margin-bar-wrap"><div class="margin-bar"><div class="margin-fill" style="width:'+Math.max(0,margin)+'%;"></div></div><span style="font-size:11px;color:'+mColor+';min-width:32px">'+margin+'%</span></div></td>';
+    html+='<td><div style="display:flex;gap:4px"><button class="btn sm" onclick="openEditPL('+w.id+')">Edit</button><button class="btn sm danger" onclick="deletePL('+w.id+')">Delete</button></div></td>';
+    html+='</tr>';
+  }
+
+  html+='</tbody></table></div></div>';
+  html+='</div>';
+  document.getElementById('main-content').innerHTML=html;
+}
+
+
+function openBRGPanel(id){
+  const t=STATE.brgTasks.find(x=>x.id===id);if(!t)return;
+  STATE.selectedPanelId=id;STATE.panelType='brgtask';
+  document.getElementById('panel-title').textContent=t.name;
+  document.getElementById('panel-body').innerHTML=`
+    <hr class="pdiv">
+    <div class="pl">Category</div><div class="pv">${CAT_LABELS[t.cat]||t.cat}</div>
+    <div class="pl">Assignee</div><div class="pv" style="display:flex;align-items:center;gap:6px">${avHtml(t.assignee)}<span>${t.assignee}</span></div>
+    <div class="pl">Due</div><div class="pv">${t.due||'No date'}</div>
+    <div class="pl">Recurrence</div><div class="pv">${RECUR_LABELS[t.recur]||'One-off'}</div>
+    ${t.notes?`<div class="pl">Notes</div><div class="pv" style="font-size:12px;white-space:pre-wrap">${t.notes}</div>`:''}
+    <div style="display:flex;gap:6px;margin-top:16px">
+      <button class="btn sm" style="flex:1" onclick="openEditBRGTask(${id})">Edit</button>
+      <button class="btn sm danger" style="flex:1" onclick="deleteBRGTask(${id})">Delete</button>
+    </div>`;
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function openEditBRGTask(id){
+  const t=STATE.brgTasks.find(x=>x.id===id);if(!t)return;
+  STATE.editingBRGId=id;
+  document.getElementById('brgtask-title').textContent='Edit task';
+  document.getElementById('brgtask-save').textContent='Save changes';
+  document.getElementById('bt-name').value=t.name;
+  document.getElementById('bt-notes').value=t.notes||'';
+  document.getElementById('bt-due').value=t.due||'';
+  document.getElementById('bt-recur').value=t.recur||'none';
+  document.getElementById('bt-cat').value=t.cat||'ig';
+  document.getElementById('bt-assignee').value=t.assignee;
+  openModal('brgtask');
+}
+
+function deleteBRGTask(id){
+  if(!confirm('Delete this task?'))return;
+  STATE.brgTasks=STATE.brgTasks.filter(x=>x.id!==id);
+  saveState();renderBRG();
+}
+
+function openBRGTaskModal(cat){
+  STATE.editingBRGId=null;
+  document.getElementById('brgtask-title').textContent='New task';
+  document.getElementById('brgtask-save').textContent='Create task';
+  document.getElementById('bt-name').value='';
+  document.getElementById('bt-notes').value='';
+  document.getElementById('bt-due').value=todayStr();
+  document.getElementById('bt-recur').value='none';
+  document.getElementById('bt-cat').value=cat||'ig';
+  document.getElementById('bt-assignee').value='Gordon';
+  openModal('brgtask');
+}
+
+function saveBRGTask(){
+  const name=document.getElementById('bt-name').value.trim();if(!name)return;
+  const task={name,cat:document.getElementById('bt-cat').value,assignee:document.getElementById('bt-assignee').value,due:document.getElementById('bt-due').value||todayStr(),recur:document.getElementById('bt-recur').value,notes:document.getElementById('bt-notes').value.trim(),done:false};
+  if(STATE.editingBRGId){const idx=STATE.brgTasks.findIndex(x=>x.id===STATE.editingBRGId);if(idx>=0){task.id=STATE.editingBRGId;STATE.brgTasks[idx]=task;}}
+  else{task.id=NID++;STATE.brgTasks.push(task);}
+  STATE.editingBRGId=null;closeModal('brgtask');renderBRG();saveState();
+}
+
+function openPLModal(){
+  STATE.editingPLId=null;
+  document.getElementById('pl-modal-title').textContent='Add weekly P&L';
+  document.getElementById('pl-save-btn').textContent='Save week';
+  // Default to this Monday
+  const mon=new Date();mon.setDate(mon.getDate()-(mon.getDay()||7)+1);
+  document.getElementById('pl-date').value=mon.toISOString().slice(0,10);
+  ['pl-rev','pl-orders','pl-etsy-rev','pl-etsy-orders','pl-sessions','pl-units','pl-ads','pl-cogs','pl-shopify','pl-othercost'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('pl-notes').value='';
+  openModal('pl');
+}
+
+function saveTarget(){
+  const val=parseFloat(document.getElementById('target-val').value);
+  if(!val)return;
+  STATE.revenueTarget=val;
+  saveState();closeModal('target');renderBRGFinancials();
+}
+
+function deletePL(id){
+  if(!confirm('Delete this week?'))return;
+  STATE.weekly=STATE.weekly.filter(x=>x.id!==id);
+  saveState();renderBRGFinancials();
+}
+
+function openEditPL(id){
+  const w=STATE.weekly.find(x=>x.id===id);if(!w)return;
+  STATE.editingPLId=id;
+  document.getElementById('pl-modal-title').textContent='Edit week';
+  document.getElementById('pl-save-btn').textContent='Save changes';
+  document.getElementById('pl-date').value=w.date;
+  document.getElementById('pl-rev').value=w.rev||'';
+  document.getElementById('pl-orders').value=w.orders||'';
+  document.getElementById('pl-etsy-rev').value=w.etsyRev||'';
+  document.getElementById('pl-etsy-orders').value=w.etsyOrders||'';
+  document.getElementById('pl-sessions').value=w.sessions||'';
+  document.getElementById('pl-units').value=w.units||'';
+  document.getElementById('pl-ads').value=w.ads||'';
+  document.getElementById('pl-shopify').value=w.shopify||'';
+  document.getElementById('pl-cogs').value=w.cogs||'';
+  document.getElementById('pl-othercost').value=w.othercost||'';
+  document.getElementById('pl-notes').value=w.notes||'';
+  openModal('pl');
+}
+
+function savePL(){
+  const date=document.getElementById('pl-date').value;if(!date)return;
+  const w={
+    date,
+    rev:parseFloat(document.getElementById('pl-rev').value)||0,
+    orders:parseInt(document.getElementById('pl-orders').value)||0,
+    etsyRev:parseFloat(document.getElementById('pl-etsy-rev').value)||0,
+    etsyOrders:parseInt(document.getElementById('pl-etsy-orders').value)||0,
+    sessions:parseInt(document.getElementById('pl-sessions').value)||0,
+    units:parseInt(document.getElementById('pl-units').value)||0,
+    ads:parseFloat(document.getElementById('pl-ads').value)||0,
+    cogs:parseFloat(document.getElementById('pl-cogs').value)||0,
+    shopify:parseFloat(document.getElementById('pl-shopify').value)||0,
+    othercost:parseFloat(document.getElementById('pl-othercost').value)||0,
+    notes:document.getElementById('pl-notes').value.trim()
+  };
+  if(STATE.editingPLId){const idx=STATE.weekly.findIndex(x=>x.id===STATE.editingPLId);if(idx>=0){w.id=STATE.editingPLId;STATE.weekly[idx]=w;}}
+  else{w.id=NID++;STATE.weekly.push(w);}
+  STATE.editingPLId=null;closeModal('pl');renderBRGFinancials();saveState();
+}
+
+// ============================================================
+// FLIPPERS
+// ============================================================
+function renderFlippers(){
+  document.getElementById('section-bar-wrap').innerHTML='';
+  const g=globalFlipStats();
+  document.getElementById('subbar-wrap').innerHTML=`
+    <div class="summary-bar">
+      <div class="stat-card"><span class="stat-label">Hauls</span><span class="stat-val orange">${STATE.hauls.length}</span></div>
+      <div class="stat-card"><span class="stat-label">Total items</span><span class="stat-val blue">${STATE.flipItems.length}</span></div>
+      <div class="stat-card"><span class="stat-label">In stock</span><span class="stat-val blue">${g.inStock}</span></div>
+      <div class="stat-card"><span class="stat-label">Listed</span><span class="stat-val amber">${g.listed}</span></div>
+      <div class="stat-card"><span class="stat-label">Revenue</span><span class="stat-val green">$${g.revenue.toFixed(2)}</span></div>
+      <div class="stat-card"><span class="stat-label">Profit</span><span class="stat-val ${g.profit>=0?'green':'red'}">$${g.profit.toFixed(2)}</span></div>
+    </div>`;
+
+  document.getElementById('main-content').innerHTML=`
+    <div class="flippers-layout">
+      <div class="haul-panel">
+        <div class="haul-panel-header">
+          <span class="haul-panel-title">Hauls</span>
+          <span style="font-size:11px;color:var(--text-tertiary)">${STATE.hauls.length}</span>
+        </div>
+        <div class="search-wrap"><input class="search-inp" id="haul-search" placeholder="Search hauls..." oninput="renderHaulList()"></div>
+        <div class="haul-list" id="haul-list"></div>
+      </div>
+      <div class="items-panel" id="items-panel">
+        <div class="empty"><span class="empty-t">Select a haul</span><span class="empty-s">Choose a haul from the left or create a new one</span><button class="btn primary-flip" onclick="openHaulModal()">+ New haul</button></div>
+      </div>
+    </div>`;
+
+  renderHaulList();
+  if(STATE.activeHaulId) renderItemsPanel();
+}
+
+function globalFlipStats(){
+  const revenue=STATE.flipItems.filter(i=>i.status==='sold'||i.status==='shipped').reduce((s,i)=>s+parseFloat(i.sale||0),0);
+  const shipping=STATE.flipItems.filter(i=>i.status==='shipped').reduce((s,i)=>s+parseFloat(i.ship||0),0);
+  const cogs=STATE.flipItems.reduce((s,i)=>s+parseFloat(i.cost||0),0);
+  return{revenue,profit:revenue-shipping-cogs,inStock:STATE.flipItems.filter(i=>i.status==='stock').length,listed:STATE.flipItems.filter(i=>i.status==='listed').length};
+}
+
+function haulStats(haulId){
+  const items=STATE.flipItems.filter(i=>i.haulId===haulId);
+  const haul=STATE.hauls.find(h=>h.id===haulId);
+  const totalCost=haul?parseFloat(haul.cost||0):0;
+  const revenue=items.filter(i=>i.status==='sold'||i.status==='shipped').reduce((s,i)=>s+parseFloat(i.sale||0),0);
+  const shippingCosts=items.filter(i=>i.status==='shipped').reduce((s,i)=>s+parseFloat(i.ship||0),0);
+  const cogs=items.reduce((s,i)=>s+parseFloat(i.cost||0),0);
+  const profit=revenue-shippingCosts-cogs;
+  const recoveryPct=totalCost>0?Math.min(Math.round((revenue/totalCost)*100),100):0;
+  const inCream=revenue>=totalCost;
+  return{totalCost,revenue,shippingCosts,cogs,profit,recoveryPct,inCream,
+    inStock:items.filter(i=>i.status==='stock').length,
+    listed:items.filter(i=>i.status==='listed').length,
+    sold:items.filter(i=>i.status==='sold'||i.status==='shipped').length,
+    total:items.length};
+}
+
+function renderHaulList(){
+  const q=(document.getElementById('haul-search')?document.getElementById('haul-search').value:'').toLowerCase();
+  const hauls=STATE.hauls.filter(h=>!q||h.name.toLowerCase().includes(q)||h.source.toLowerCase().includes(q));
+  const el=document.getElementById('haul-list');
+  if(!el)return;
+  el.innerHTML=hauls.map(h=>{
+    const st=haulStats(h.id);
+    const fc=st.inCream?'#1D9E75':st.recoveryPct>50?'#EF9F27':'#D85A30';
+    return`<div class="haul-row${STATE.activeHaulId===h.id?' haul-active':''}" onclick="selectHaul(${h.id})">
+      <div class="haul-name">${h.name}</div>
+      <div class="haul-meta">${h.source} · ${fmtDate(h.date)} · $${parseFloat(h.cost).toFixed(0)} · ${st.total} items</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:5px">
+        <div class="haul-recovery" style="flex:1"><div class="haul-recovery-fill" style="width:${st.recoveryPct}%;background:${fc}"></div></div>
+        <span style="font-size:10px;color:${fc};font-weight:500">${st.recoveryPct}%${st.inCream?' ✓':''}</span>
+      </div>
+    </div>`;
+  }).join('')||`<div style="padding:20px;text-align:center;font-size:12px;color:var(--text-secondary)">No hauls found</div>`;
+}
+
+function selectHaul(id){
+  STATE.activeHaulId=id;STATE.selectedItemId=null;STATE.itemFilter='all';STATE.itemSearch='';
+  closePanel();
+  renderHaulList();
+  renderItemsPanel();
+}
+
+function renderItemsPanel(){
+  const haul=STATE.hauls.find(h=>h.id===STATE.activeHaulId);
+  if(!haul){return;}
+  const st=haulStats(haul.id);
+  const fc=st.inCream?'#1D9E75':st.recoveryPct>50?'#EF9F27':'#D85A30';
+  let items=STATE.flipItems.filter(i=>i.haulId===haul.id);
+  if(STATE.itemFilter!=='all') items=items.filter(i=>i.status===STATE.itemFilter);
+  if(STATE.itemSearch) items=items.filter(i=>i.name.toLowerCase().includes(STATE.itemSearch)||i.sku.toLowerCase().includes(STATE.itemSearch)||(i.loc||'').toLowerCase().includes(STATE.itemSearch));
+
+  const panel=document.getElementById('items-panel');
+  if(!panel)return;
+  panel.innerHTML=`
+    <div class="items-header">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500">${haul.name}</div>
+        <div style="font-size:11px;color:var(--text-secondary)">${haul.source} · Purchased ${fmtDate(haul.date)}</div>
+      </div>
+      <button class="btn sm primary-flip" onclick="openItemModal()">+ Add item</button>
+      <button class="btn sm" onclick="openEditHaul(${haul.id})">Edit haul</button>
+      <button class="btn sm danger" onclick="deleteHaul(${haul.id})">Delete</button>
+    </div>
+    <div class="haul-strip">
+      <div class="hs-card"><span class="hs-label">Haul cost</span><span class="hs-val">$${parseFloat(haul.cost).toFixed(2)}</span></div>
+      <div class="hs-card"><span class="hs-label">Cost/item</span><span class="hs-val">$${haul.qty>0?(parseFloat(haul.cost)/haul.qty).toFixed(2):'—'}</span></div>
+      <div class="hs-card"><span class="hs-label">Revenue</span><span class="hs-val green">$${st.revenue.toFixed(2)}</span></div>
+      <div class="hs-card"><span class="hs-label">Profit</span><span class="hs-val ${st.profit>=0?'green':''}">$${st.profit.toFixed(2)}</span></div>
+      <div class="hs-card"><span class="hs-label">In stock</span><span class="hs-val">${st.inStock}</span></div>
+      <div class="hs-card"><span class="hs-label">Listed</span><span class="hs-val">${st.listed}</span></div>
+      <div class="hs-card"><span class="hs-label">Sold</span><span class="hs-val">${st.sold}</span></div>
+      <div class="recovery-wrap">
+        <span style="font-size:10px;color:var(--text-secondary);white-space:nowrap">Recovery</span>
+        <div class="recovery-bar"><div class="recovery-fill" style="width:${st.recoveryPct}%;background:${fc}"></div></div>
+        <span style="font-size:11px;font-weight:500;color:${fc};white-space:nowrap">${st.recoveryPct}%${st.inCream?' — In the cream!':''}</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-bottom:1px solid var(--border-light);flex-wrap:wrap;background:var(--bg-primary)">
+      <input style="font-size:12px;padding:4px 9px;border-radius:var(--radius-md);border:1px solid var(--border-light);background:var(--bg-secondary);color:var(--text-primary);font-family:inherit;width:180px;outline:none" placeholder="Search items, SKU, location..." oninput="STATE.itemSearch=this.value.toLowerCase();renderItemsPanel()">
+      <span class="pill${STATE.itemFilter==='all'?' active':''}" onclick="STATE.itemFilter='all';renderItemsPanel()">All</span>
+      <span class="pill${STATE.itemFilter==='stock'?' active':''}" onclick="STATE.itemFilter='stock';renderItemsPanel()">In stock</span>
+      <span class="pill${STATE.itemFilter==='listed'?' active':''}" onclick="STATE.itemFilter='listed';renderItemsPanel()">Listed</span>
+      <span class="pill${STATE.itemFilter==='sold'?' active':''}" onclick="STATE.itemFilter='sold';renderItemsPanel()">Sold</span>
+      <span class="pill${STATE.itemFilter==='shipped'?' active':''}" onclick="STATE.itemFilter='shipped';renderItemsPanel()">Shipped</span>
+    </div>
+    <div class="items-body">
+      ${items.length?`<table class="item-table">
+        <thead><tr><th>SKU</th><th>Item</th><th>Location</th><th>Cost</th><th>Status</th><th>Sale price</th><th>Shipping</th><th>Profit</th></tr></thead>
+        <tbody>
+          ${items.map(i=>{
+            const p=parseFloat(i.sale||0)-parseFloat(i.ship||0)-parseFloat(i.cost||0);
+            const showP=i.status==='sold'||i.status==='shipped';
+            const sbCls={stock:'sb-stock',listed:'sb-listed',sold:'sb-sold',shipped:'sb-shipped'}[i.status]||'sb-stock';
+            const sbLbl={stock:'In stock',listed:'Listed',sold:'Sold',shipped:'Shipped'}[i.status]||i.status;
+            return`<tr class="item-row${STATE.selectedItemId===i.id?' sel':''}" onclick="openItemPanel(${i.id})">
+              <td style="color:var(--text-tertiary);font-size:11px">${i.sku||'—'}</td>
+              <td style="font-weight:500">${i.name}</td>
+              <td><span class="loc-badge">${i.loc||'—'}</span></td>
+              <td>$${parseFloat(i.cost||0).toFixed(2)}</td>
+              <td><span class="status-badge ${sbCls}">${sbLbl}</span></td>
+              <td>${i.sale?'$'+parseFloat(i.sale).toFixed(2):'—'}</td>
+              <td>${i.ship?'$'+parseFloat(i.ship).toFixed(2):'—'}</td>
+              <td class="${showP?(p>=0?'fin-profit':'fin-loss'):''}">${showP?(p>=0?'+':'')+('$'+Math.abs(p).toFixed(2)):'—'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`:`<div class="empty"><span class="empty-t">No items</span><span class="empty-s">Add items to this haul</span><button class="btn blue" onclick="openItemModal()">+ Add item</button></div>`}
+    </div>`;
+}
+
+function openItemPanel(id){
+  const i=STATE.flipItems.find(x=>x.id===id);if(!i)return;
+  STATE.selectedItemId=id;STATE.panelType='item';STATE.selectedPanelId=id;
+  const p=parseFloat(i.sale||0)-parseFloat(i.ship||0)-parseFloat(i.cost||0);
+  const showP=i.status==='sold'||i.status==='shipped';
+  document.getElementById('panel-title').textContent=i.name;
+  document.getElementById('panel-body').innerHTML=`
+    <hr class="pdiv">
+    <div class="pl">SKU</div><div class="pv">${i.sku||'—'}</div>
+    <div class="pl">Location</div>
+    <div style="margin-top:3px"><span class="loc-badge" style="font-size:13px">${i.loc||'—'}</span></div>
+    <div class="pl">Status</div>
+    <select class="select-native" style="margin-bottom:6px" onchange="quickItemStatus(${id},this.value)">
+      <option value="stock"${i.status==='stock'?' selected':''}>In stock</option>
+      <option value="listed"${i.status==='listed'?' selected':''}>Listed</option>
+      <option value="sold"${i.status==='sold'?' selected':''}>Sold</option>
+      <option value="shipped"${i.status==='shipped'?' selected':''}>Shipped</option>
+    </select>
+    <div class="pl">Financials</div>
+    <div class="fin-box">
+      <div class="fin-row"><span class="fin-label">Item cost (COGS)</span><span class="fin-val">$${parseFloat(i.cost||0).toFixed(2)}</span></div>
+      <div class="fin-row"><span class="fin-label">Sale price</span><span class="fin-val">${i.sale?'$'+parseFloat(i.sale).toFixed(2):'—'}</span></div>
+      <div class="fin-row"><span class="fin-label">Shipping cost</span><span class="fin-val">${i.ship?'$'+parseFloat(i.ship).toFixed(2):'—'}</span></div>
+      <hr class="fin-divider">
+      <div class="fin-row"><span class="fin-label">Profit</span><span class="${showP?(p>=0?'fin-profit':'fin-loss'):''}">${showP?(p>=0?'+':'')+('$'+Math.abs(p).toFixed(2)):'Sell to calculate'}</span></div>
+    </div>
+    ${i.url?`<div class="pl">eBay listing</div><div><a href="${i.url}" target="_blank" style="font-size:12px;color:var(--blue)">View on eBay</a></div>`:''}
+    <div style="display:flex;gap:6px;margin-top:16px">
+      <button class="btn sm" style="flex:1" onclick="openEditItem(${id})">Edit</button>
+      <button class="btn sm danger" style="flex:1" onclick="deleteItem(${id})">Delete</button>
+    </div>`;
+  document.getElementById('detail-panel').classList.add('open');
+  renderItemsPanel();
+}
+
+function quickItemStatus(id,status){
+  const i=STATE.flipItems.find(x=>x.id===id);if(i)i.status=status;
+  openItemPanel(id);renderHaulList();
+}
+
+function openHaulModal(editId){
+  STATE.editingHaulId=editId||null;
+  const h=editId?STATE.hauls.find(x=>x.id===editId):null;
+  document.getElementById('haul-modal-title').textContent=h?'Edit haul':'New haul';
+  document.getElementById('haul-save-btn').textContent=h?'Save changes':'Create haul';
+  document.getElementById('nh-name').value=h?h.name:'';
+  document.getElementById('nh-source').value=h?h.source:'';
+  document.getElementById('nh-date').value=h?h.date:'';
+  document.getElementById('nh-cost').value=h?h.cost:'';
+  document.getElementById('nh-qty').value=h?h.qty:'';
+  document.getElementById('nh-notes').value=h?h.notes:'';
+  document.getElementById('nh-cpi').value=h&&h.qty?'$'+(h.cost/h.qty).toFixed(2):'';
+  openModal('haul');
+}
+
+function openEditHaul(id){openHaulModal(id);}
+
+function updateCPI(){
+  const cost=parseFloat(document.getElementById('nh-cost').value)||0;
+  const qty=parseInt(document.getElementById('nh-qty').value)||0;
+  document.getElementById('nh-cpi').value=qty>0?'$'+(cost/qty).toFixed(2):'—';
+}
+
+function saveHaul(){
+  const name=document.getElementById('nh-name').value.trim();if(!name)return;
+  const haul={name,source:document.getElementById('nh-source').value.trim(),date:document.getElementById('nh-date').value,cost:parseFloat(document.getElementById('nh-cost').value)||0,qty:parseInt(document.getElementById('nh-qty').value)||0,notes:document.getElementById('nh-notes').value.trim()};
+  if(STATE.editingHaulId){const idx=STATE.hauls.findIndex(x=>x.id===STATE.editingHaulId);if(idx>=0){haul.id=STATE.editingHaulId;STATE.hauls[idx]=haul;}}
+  else{haul.id=NID++;STATE.hauls.push(haul);STATE.activeHaulId=haul.id;}
+  STATE.editingHaulId=null;closeModal('haul');renderFlippers();saveState();
+}
+
+function deleteHaul(id){
+  if(!confirm('Delete this haul and all its items?'))return;
+  STATE.hauls=STATE.hauls.filter(x=>x.id!==id);
+  STATE.flipItems=STATE.flipItems.filter(x=>x.haulId!==id);
+  STATE.activeHaulId=null;saveState();closePanel();renderFlippers();
+}
+
+function openItemModal(){
+  if(!STATE.activeHaulId){alert('Select a haul first.');return;}
+  STATE.editingItemId=null;
+  const haul=STATE.hauls.find(h=>h.id===STATE.activeHaulId);
+  const cpi=haul&&haul.qty>0?(haul.cost/haul.qty).toFixed(2):'1.00';
+  document.getElementById('item-modal-title').textContent='Add item';
+  document.getElementById('item-save-btn').textContent='Add item';
+  document.getElementById('ni-name').value='';
+  document.getElementById('ni-sku').value='';
+  document.getElementById('ni-loc').value='';
+  document.getElementById('ni-cost').value=cpi;
+  document.getElementById('ni-status').value='stock';
+  document.getElementById('ni-sale').value='';
+  document.getElementById('ni-ship').value='';
+  document.getElementById('ni-url').value='';
+  openModal('item');
+}
+
+function openEditItem(id){
+  const i=STATE.flipItems.find(x=>x.id===id);if(!i)return;
+  STATE.editingItemId=id;
+  document.getElementById('item-modal-title').textContent='Edit item';
+  document.getElementById('item-save-btn').textContent='Save changes';
+  document.getElementById('ni-name').value=i.name;
+  document.getElementById('ni-sku').value=i.sku||'';
+  document.getElementById('ni-loc').value=i.loc||'';
+  document.getElementById('ni-cost').value=i.cost||'';
+  document.getElementById('ni-status').value=i.status;
+  document.getElementById('ni-sale').value=i.sale||'';
+  document.getElementById('ni-ship').value=i.ship||'';
+  document.getElementById('ni-url').value=i.url||'';
+  openModal('item');
+}
+
+function saveItem(){
+  const name=document.getElementById('ni-name').value.trim();if(!name)return;
+  const item={haulId:STATE.activeHaulId,name,sku:document.getElementById('ni-sku').value.trim(),loc:document.getElementById('ni-loc').value.trim(),cost:parseFloat(document.getElementById('ni-cost').value)||0,status:document.getElementById('ni-status').value,sale:parseFloat(document.getElementById('ni-sale').value)||0,ship:parseFloat(document.getElementById('ni-ship').value)||0,url:document.getElementById('ni-url').value.trim()};
+  if(STATE.editingItemId){const idx=STATE.flipItems.findIndex(x=>x.id===STATE.editingItemId);if(idx>=0){item.id=STATE.editingItemId;STATE.flipItems[idx]=item;}}
+  else{item.id=NID++;STATE.flipItems.push(item);}
+  STATE.editingItemId=null;closeModal('item');saveState();
+  if(STATE.selectedItemId)openItemPanel(STATE.selectedItemId);
+  else{renderHaulList();renderItemsPanel();}
+}
+
+function deleteItem(id){
+  if(!confirm('Delete this item?'))return;
+  STATE.flipItems=STATE.flipItems.filter(x=>x.id!==id);saveState();
+  closePanel();renderHaulList();renderItemsPanel();
+}
+
+// ============================================================
+// SHARED
+// ============================================================
+function closePanel(){
+  STATE.selectedPanelId=null;STATE.panelType=null;STATE.selectedItemId=null;
+  document.getElementById('detail-panel').classList.remove('open');
+}
+
+function openModal(type){
+  document.getElementById('mo-'+type).classList.add('open');
+  setTimeout(()=>{
+    const inputs={'jubtask':'jt-name','job':'nj-title','brgtask':'bt-name','haul':'nh-name','item':'ni-name','pl':'pl-date','agents':'new-agent'};
+    const inp=document.getElementById(inputs[type]);
+    if(inp)inp.focus();
+  },60);
+}
+
+function closeModal(type){document.getElementById('mo-'+type).classList.remove('open');}
+
+// Close modals on overlay click
+document.querySelectorAll('.mo').forEach(mo=>{
+  mo.addEventListener('click',e=>{if(e.target===mo)mo.classList.remove('open');});
+});
+
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function showDashboard(){
+  STATE.activeBiz=null;
+  document.getElementById('dash-tab').classList.add('active');
+  document.getElementById('section-bar-wrap').innerHTML='';
+  document.getElementById('subbar-wrap').innerHTML='';
+  document.getElementById('main-cta').style.display='none';
+  closePanel();
+  renderDashboard();
+  renderTabs();
+}
+
+function renderDashboard(){
+  const today=todayStr();
+  const now=new Date();
+  const hour=now.getHours();
+  const realGreeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
+  const dateStr=now.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const monthName=now.toLocaleDateString('en-AU',{month:'long'});
+  const thisMonth=now.getMonth();
+  const thisYear=now.getFullYear();
+
+  // ---- BRG ----
+  const mtdWeeks=STATE.weekly.filter(w=>{if(!w.date)return false;const d=new Date(w.date+'T00:00:00');return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;});
+  const mtdRev=mtdWeeks.reduce((s,w)=>s+parseFloat(w.rev||0)+parseFloat(w.other||0),0);
+  const mtdAds=mtdWeeks.reduce((s,w)=>s+parseFloat(w.ads||0),0);
+  const mtdCogs=mtdWeeks.reduce((s,w)=>s+parseFloat(w.cogs||0),0);
+  const mtdOther=mtdWeeks.reduce((s,w)=>s+parseFloat(w.shopify||0)+parseFloat(w.othercost||0),0);
+  const mtdProfit=mtdRev-(mtdAds+mtdCogs+mtdOther);
+  const mtdMargin=mtdRev>0?Math.round((mtdProfit/mtdRev)*100):0;
+  const brgToday=STATE.brgTasks.filter(t=>t.due<=today&&!t.done);
+
+  // ---- Photography ----
+  const photoMTD=STATE.jobs.filter(j=>{if(!j.date)return false;const d=new Date(j.date+'T00:00:00');return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;});
+  const photoInvoiced=photoMTD.filter(j=>['invoice-sent','invoice-paid'].includes(j.status)).reduce((s,j)=>s+parseFloat(j.invoice||0),0);
+  const photoPaid=photoMTD.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+parseFloat(j.invoice||0),0);
+  const photoProfit=photoMTD.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+(parseFloat(j.invoice||0)-parseFloat(j.cost||0)),0);
+  const photoOutstanding=STATE.jobs.filter(j=>j.status==='invoice-sent');
+  const photoActiveJobs=STATE.jobs.filter(j=>!['invoice-paid','cancelled'].includes(j.status));
+
+  // ---- Jubism ----
+  const jubToday=STATE.jubTasks.filter(t=>t.due<=today&&!t.done);
+
+  // ---- Flippers ----
+  const flipProfit=STATE.flipItems.filter(i=>i.status==='shipped').reduce((s,i)=>s+(parseFloat(i.sale||0)-parseFloat(i.ship||0)-parseFloat(i.cost||0)),0);
+  const toShip=STATE.flipItems.filter(i=>i.status==='sold');
+  const totalListed=STATE.flipItems.filter(i=>i.status==='listed').length;
+  const totalStock=STATE.flipItems.filter(i=>i.status==='stock').length;
+
+  // ---- Overdue ----
+  const jubOverdue=STATE.jubTasks.filter(t=>t.due<today&&!t.done);
+  const photoOverdue=STATE.jobs.filter(j=>j.date<today&&j.status==='booked');
+  const brgOverdue=STATE.brgTasks.filter(t=>t.due<today&&!t.done);
+  const allOverdue=[
+    ...jubOverdue.map(t=>({title:t.title,biz:'Jubism Work',bizColor:'#378ADD',meta:JUB_BRANDS.find(b=>b.id===t.brand)?.name||''})),
+    ...photoOverdue.map(j=>({title:j.title,biz:'Photography',bizColor:'#1D9E75',meta:'Shoot overdue'})),
+    ...brgOverdue.map(t=>({title:t.name,biz:'BackRoom Gear',bizColor:'#EF9F27',meta:CAT_LABELS[t.cat]||t.cat}))
+  ];
+
+  function bizRow(color, label, bizId, leftHtml, rightHtml){
+    return`<div style="border-left:3px solid ${color};padding-left:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="dash-section-label" style="color:${color};margin:0">${label}</div>
+        <span class="dash-go" onclick="switchBiz('${bizId}')">Open →</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        ${leftHtml}
+        ${rightHtml}
+      </div>
+    </div>`;
+  }
+
+  function taskCard(tasks, emptyMsg, color, recur=true){
+    return`<div class="dash-card" style="border-top:2px solid ${color}">
+      <div class="dash-card-header">
+        <span class="dash-card-title">Today's tasks</span>
+        <span class="dash-card-count">${tasks.length} due</span>
+      </div>
+      ${tasks.length?tasks.slice(0,6).map(t=>`
+        <div class="dash-item">
+          <div class="dash-item-dot" style="background:${color}"></div>
+          <div style="flex:1;min-width:0">
+            <div class="dash-item-title">${t.title||t.name}</div>
+            <div class="dash-item-meta">${t.assignee}${t.brand?(' · '+(JUB_BRANDS.find(b=>b.id===t.brand)?.name||'')):(t.cat?' · '+CAT_LABELS[t.cat]:'')}</div>
+          </div>
+          ${recur&&t.recur&&t.recur!=='none'?`<span class="dash-item-badge" style="background:${color}22;color:${color}">${RECUR_LABELS[t.recur]}</span>`:''}
+        </div>`).join('')+(tasks.length>6?`<div style="font-size:11px;color:var(--text-tertiary);padding-top:4px">+${tasks.length-6} more</div>`:'')
+      :`<div class="dash-empty">${emptyMsg}</div>`}
+    </div>`;
+  }
+
+  // BRG financials card
+  const brgFinCard=`<div class="dash-card" style="border-top:2px solid #EF9F27">
+    <div class="dash-card-header">
+      <span class="dash-card-title">Financials — ${monthName}</span>
+      <span class="dash-go" onclick="switchBiz('backroom');setTimeout(()=>setBRGSection('financials'),80)">Details →</span>
+    </div>
+    <div class="dash-stat-row">
+      <div class="dash-stat"><span class="dash-stat-label">Revenue</span><span class="dash-stat-val" style="color:var(--blue)">$${mtdRev.toFixed(0)}</span></div>
+      <div class="dash-stat"><span class="dash-stat-label">Ad spend</span><span class="dash-stat-val" style="color:var(--amber)">$${mtdAds.toFixed(0)}</span></div>
+      <div class="dash-stat"><span class="dash-stat-label">COGS</span><span class="dash-stat-val" style="color:var(--amber)">$${mtdCogs.toFixed(0)}</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px">
+      <div class="dash-stat"><span class="dash-stat-label">Profit</span><span class="dash-stat-val" style="color:${mtdProfit>=0?'var(--green)':'var(--red)'}">$${mtdProfit.toFixed(0)}</span></div>
+      <div class="dash-stat"><span class="dash-stat-label">Margin</span><span class="dash-stat-val" style="color:${mtdMargin>=0?'var(--green)':'var(--red)'}">${mtdMargin}%</span></div>
+    </div>
+    ${mtdWeeks.length===0?`<div class="dash-empty">No weeks entered for ${monthName} yet.</div>`:`<div style="font-size:11px;color:var(--text-secondary);margin-top:4px">${mtdWeeks.length} week${mtdWeeks.length!==1?'s':''} recorded</div>`}
+  </div>`;
+
+  // Photo financials card
+  const photoFinCard=`<div class="dash-card" style="border-top:2px solid #1D9E75">
+    <div class="dash-card-header">
+      <span class="dash-card-title">Financials — ${monthName}</span>
+      <span class="dash-go" onclick="switchBiz('photo')">Details →</span>
+    </div>
+    <div class="dash-stat-row">
+      <div class="dash-stat"><span class="dash-stat-label">Invoiced</span><span class="dash-stat-val" style="color:var(--amber)">$${photoInvoiced.toFixed(0)}</span></div>
+      <div class="dash-stat"><span class="dash-stat-label">Paid</span><span class="dash-stat-val" style="color:var(--blue)">$${photoPaid.toFixed(0)}</span></div>
+      <div class="dash-stat"><span class="dash-stat-label">Profit</span><span class="dash-stat-val" style="color:var(--green)">$${photoProfit.toFixed(0)}</span></div>
+    </div>
+    ${photoOutstanding.length?`<div style="background:var(--amber-light);border-radius:var(--radius-md);padding:8px 10px;margin-top:6px">
+      <div style="font-size:11px;font-weight:500;color:var(--amber)">${photoOutstanding.length} outstanding invoice${photoOutstanding.length!==1?'s':''}</div>
+      ${photoOutstanding.slice(0,3).map(j=>`<div style="font-size:11px;color:var(--amber);margin-top:2px">· ${j.title} — $${parseFloat(j.invoice||0).toFixed(0)}</div>`).join('')}
+      ${photoOutstanding.length>3?`<div style="font-size:11px;color:var(--amber)">+${photoOutstanding.length-3} more</div>`:''}
+    </div>`:`<div style="font-size:12px;color:var(--green);padding:6px 0">✓ No outstanding invoices</div>`}
+    <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">${photoMTD.length} shoot${photoMTD.length!==1?'s':''} this month · ${photoActiveJobs.length} active</div>
+  </div>`;
+
+  // Photo active jobs card
+  const photoJobsCard=`<div class="dash-card" style="border-top:2px solid #1D9E75">
+    <div class="dash-card-header">
+      <span class="dash-card-title">Active jobs</span>
+      <span class="dash-card-count">${photoActiveJobs.length}</span>
+    </div>
+    ${photoActiveJobs.length?photoActiveJobs.slice(0,5).map(j=>{
+      const s=statusObj(j.status);
+      return`<div class="dash-item">
+        <div class="dash-item-dot" style="background:#1D9E75"></div>
+        <div style="flex:1;min-width:0">
+          <div class="dash-item-title">${j.title}</div>
+          <div class="dash-item-meta">${fmtDate(j.date)}${j.time?' at '+fmtTime(j.time):''} · ${j.assignee}</div>
+        </div>
+        <span class="dash-item-badge ${s.cls}">${s.label}</span>
+      </div>`;
+    }).join('')+(photoActiveJobs.length>5?`<div style="font-size:11px;color:var(--text-tertiary);padding-top:4px">+${photoActiveJobs.length-5} more</div>`:'')
+    :`<div class="dash-empty">No active jobs.</div>`}
+  </div>`;
+
+  // Flippers ship card
+  const flipShipCard=`<div class="dash-card" style="border-top:2px solid #D85A30">
+    <div class="dash-card-header">
+      <span class="dash-card-title">Ready to ship</span>
+      <span class="dash-card-count">${toShip.length} item${toShip.length!==1?'s':''}</span>
+    </div>
+    ${toShip.length?toShip.slice(0,5).map(i=>`
+      <div class="dash-item">
+        <div class="dash-item-dot" style="background:#D85A30"></div>
+        <div style="flex:1;min-width:0">
+          <div class="dash-item-title">${i.name}</div>
+          <div class="dash-item-meta">Sale: $${parseFloat(i.sale||0).toFixed(2)}</div>
+        </div>
+        <span style="font-size:10px;font-weight:500;background:#EAF3DE;color:#27500A;padding:2px 7px;border-radius:99px;flex-shrink:0;white-space:nowrap">${i.loc||'No location'}</span>
+      </div>`).join('')+(toShip.length>5?`<div style="font-size:11px;color:var(--text-tertiary);padding-top:4px">+${toShip.length-5} more</div>`:'')
+    :`<div class="dash-empty">✓ Nothing waiting to ship.</div>`}
+  </div>`;
+
+  // Flippers financials card
+  const flipFinCard=`<div class="dash-card" style="border-top:2px solid #D85A30">
+    <div class="dash-card-header">
+      <span class="dash-card-title">Inventory & profit</span>
+      <span class="dash-go" onclick="switchBiz('flippers')">Details →</span>
+    </div>
+    <div class="dash-stat-row">
+      <div class="dash-stat"><span class="dash-stat-label">In stock</span><span class="dash-stat-val">${totalStock}</span></div>
+      <div class="dash-stat"><span class="dash-stat-label">Listed</span><span class="dash-stat-val" style="color:var(--amber)">${totalListed}</span></div>
+      <div class="dash-stat"><span class="dash-stat-label">Profit</span><span class="dash-stat-val" style="color:var(--green)">$${flipProfit.toFixed(0)}</span></div>
+    </div>
+    <div style="margin-top:10px;border-top:1px solid var(--border-light);padding-top:10px">
+      <div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:6px">Haul recovery</div>
+      ${STATE.hauls.slice(0,4).map(h=>{
+        const st=haulStats(h.id);
+        const fc=st.inCream?'var(--green)':st.recoveryPct>50?'var(--amber)':'var(--orange)';
+        return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="font-size:11px;color:var(--text-primary);width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0">${h.name}</div>
+          <div style="flex:1;height:5px;background:var(--bg-tertiary);border-radius:99px;overflow:hidden"><div style="height:100%;width:${st.recoveryPct}%;background:${fc};border-radius:99px"></div></div>
+          <span style="font-size:11px;font-weight:500;color:${fc};min-width:40px;text-align:right">${st.recoveryPct}%${st.inCream?' ✓':''}</span>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  let html=`<div class="dash-wrap">
+    <div>
+      <div class="dash-greeting">${realGreeting}, Gordon 👋</div>
+      <div class="dash-date">${dateStr}</div>
+    </div>
+
+    ${bizRow('#D85A30','Two Bear Flippers','flippers', flipShipCard, flipFinCard)}
+    ${bizRow('#1D9E75','Photography','photo', photoJobsCard, photoFinCard)}
+    ${bizRow('#EF9F27','BackRoom Gear','backroom', taskCard(brgToday,'No content tasks due today.','#EF9F27'), brgFinCard)}
+    ${bizRow('#378ADD','Jubism Work','jubism', taskCard(jubToday,'All caught up — no tasks due today.','#378ADD'), `<div class="dash-card" style="border-top:2px solid #378ADD;justify-content:center;align-items:center;background:var(--bg-secondary);border-style:dashed solid solid solid">
+      <div style="text-align:center;padding:16px 0">
+        <div style="font-size:11px;font-weight:500;color:var(--text-primary);margin-bottom:4px">${jubToday.length} task${jubToday.length!==1?'s':''} due today</div>
+        <div style="font-size:11px;color:var(--text-secondary)">${STATE.jubTasks.filter(t=>t.recur!=='none').length} recurring tasks across ${JUB_BRANDS.length} brands</div>
+        <div class="dash-go" style="margin-top:10px;display:inline-block" onclick="switchBiz('jubism')">Open Jubism →</div>
+      </div>
+    </div>`)}
+
+    ${allOverdue.length?`<div>
+      <div class="dash-section-label" style="margin-bottom:8px;color:var(--red)">⚠️ Overdue across all businesses (${allOverdue.length})</div>
+      <div class="dash-card" style="border-color:var(--red);border-width:1px">
+        ${allOverdue.map(item=>`
+          <div class="dash-item">
+            <div class="dash-item-dot" style="background:${item.bizColor}"></div>
+            <div style="flex:1;min-width:0">
+              <div class="dash-item-title">${item.title}</div>
+              <div class="dash-item-meta">${item.biz}${item.meta?' · '+item.meta:''}</div>
+            </div>
+            <span class="dash-item-badge" style="background:var(--red-light);color:var(--red)">Overdue</span>
+          </div>`).join('')}
+      </div>
+    </div>`:''}
+
+  </div>`;
+  document.getElementById('main-content').innerHTML=html;
+}
+
+
+// ============================================================
+// FIREBASE SYNC
+// ============================================================
+function showSyncBadge(msg) {
+  let el = document.getElementById('sync-badge');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'sync-badge';
+    el.style.cssText = 'position:fixed;bottom:24px;right:20px;background:#1a1a1a;color:#fff;padding:7px 14px;border-radius:99px;font-size:11px;z-index:999;transition:opacity 0.4s;opacity:0;pointer-events:none';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.style.opacity = '0', 3000);
+}
+
+// Auto-save wrapper — call this after any state change
+function saveState() {
+  if (window.saveToFirebase) {
+    window.saveToFirebase(STATE);
+    showSyncBadge('✓ Saved');
+  }
+}
+
+// ============================================================
+// DARK MODE
+// ============================================================
+function toggleDark(){
+  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
+  setDark(!isDark);
+}
+function setDark(dark){
+  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+  document.getElementById('dark-icon').textContent=dark?'☀️':'🌙';
+  document.getElementById('dark-label').textContent=dark?'Light':'Dark';
+  try{localStorage.setItem('tbs-theme',dark?'dark':'light');}catch(e){}
+}
+(function(){
+  try{
+    const saved=localStorage.getItem('tbs-theme');
+    if(saved==='dark')setDark(true);
+    else if(!saved&&window.matchMedia('(prefers-color-scheme: dark)').matches)setDark(true);
+  }catch(e){}
+})();
+
+// ============================================================
+// INIT
+// ============================================================
+// Firebase handles initial render after loading data
+// STATE.activeBiz=null;
+// render();
+</script>
+
+<script>
+if('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('SW registered'))
+      .catch(err => console.log('SW error:', err));
+  });
+}
+</script>
+</body>
+</html>
