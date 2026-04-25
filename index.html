@@ -166,6 +166,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .type-pill{font-size:10px;padding:2px 7px;border-radius:99px;font-weight:500}
 .tp-re{background:var(--blue-light);color:var(--blue-dark)}
 .tp-cv{background:var(--purple-light);color:var(--purple)}
+.tp-jr{background:#EAF3DE;color:#27500A}
+.tp-other{background:var(--bg-secondary);color:var(--text-secondary)}
 .shoot-tag{font-size:10px;padding:1px 6px;border-radius:99px;background:var(--bg-secondary);color:var(--text-secondary);border:1px solid var(--border-light);white-space:nowrap}
 .shoot-check{display:flex;align-items:center;gap:5px;font-size:12px;padding:5px 10px;border-radius:var(--radius-md);border:1px solid var(--border-light);cursor:pointer;background:var(--bg-secondary);transition:all 0.15s;user-select:none}
 .shoot-check:hover{border-color:var(--border-mid)}
@@ -321,6 +323,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .overdue-banner{background:var(--red-light);border:1px solid var(--red);border-radius:var(--radius-md);padding:10px 14px;display:flex;align-items:center;gap:10px}
 .overdue-banner-text{font-size:12px;color:var(--red);font-weight:500}
 
+
+.day-pill{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:99px;font-size:12px;cursor:pointer;border:1px solid var(--border-mid);background:var(--bg-secondary);color:var(--text-secondary);transition:all 0.15s;user-select:none}
+.day-pill:has(input:checked){background:var(--blue-light);border-color:var(--blue);color:var(--blue);font-weight:500}
+.day-pill input{display:none}
+.celebrate{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:60px;z-index:9999;pointer-events:none;animation:celebratePop 0.6s ease-out forwards}
+@keyframes celebratePop{0%{opacity:0;transform:translate(-50%,-50%) scale(0.3)}40%{opacity:1;transform:translate(-50%,-50%) scale(1.3)}70%{transform:translate(-50%,-50%) scale(0.9)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.task-fade{animation:fadeOut 30s forwards}
+@keyframes fadeOut{0%{opacity:1}85%{opacity:1}100%{opacity:0;height:0;margin:0;padding:0;border:none}}
+.task-notes-preview{font-size:11px;color:var(--text-secondary);margin-top:3px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.undo-bar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:8px 16px;border-radius:99px;font-size:12px;z-index:999;display:flex;align-items:center;gap:10px}
+.undo-btn{background:var(--blue);color:#fff;border:none;border-radius:99px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit}
+
 /* TOAST */
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:9px 18px;border-radius:99px;font-size:12px;z-index:999;transition:opacity 0.3s;pointer-events:none;opacity:0}
 </style>
@@ -458,7 +472,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <span class="logo" style="cursor:pointer" onclick="showDashboard()">Two Bear Studios OS</span>
   <button class="dash-tab active" id="dash-tab" onclick="showDashboard()">⌂ Home</button>
   <div class="biz-tabs" id="biz-tabs"></div>
-  <button class="btn sm" onclick="openModal('import')" style="font-size:11px">⬆ Import</button>
   <button class="dark-toggle" id="dark-toggle" onclick="toggleDark()"><span id="dark-icon">🌙</span><span id="dark-label">Dark</span></button>
   <button class="btn" id="main-cta" style="display:none" onclick="mainCTA()">+ New task</button>
 </div>
@@ -489,19 +502,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <option value="admin">Admin</option>
       </select>
     </div>
-    <div><div class="ml">Assignee</div><select id="jt-assignee"><option>Gordon</option><option>Darren</option></select></div>
+    <div><div class="ml">Assignee</div>
+      <select id="jt-assignee">
+        <option value="both">Both (Gordon & Darren)</option>
+        <option value="Gordon">Gordon</option>
+        <option value="Darren">Darren</option>
+      </select>
+    </div>
     <div><div class="ml">Due date</div><input type="date" id="jt-due"></div>
     <div><div class="ml">Recurrence</div>
-      <select id="jt-recur">
+      <select id="jt-recur" onchange="toggleCustomDays()">
         <option value="none">One-off</option>
-        <option value="daily">Daily</option>
-        <option value="weekdays">Weekdays only (Mon–Fri)</option>
+        <option value="daily">Daily (Mon–Fri)</option>
         <option value="weekly">Weekly</option>
         <option value="fortnightly">Fortnightly</option>
         <option value="monthly">Monthly</option>
+        <option value="custom">Custom days</option>
       </select>
     </div>
-    <div><div class="ml">Notes</div><textarea id="jt-notes" placeholder="Optional..."></textarea></div>
+    <div id="custom-days-wrap" style="display:none">
+      <div class="ml">Repeat on these days</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+        <label class="day-pill" id="dp-mon"><input type="checkbox" value="1"> Mon</label>
+        <label class="day-pill" id="dp-tue"><input type="checkbox" value="2"> Tue</label>
+        <label class="day-pill" id="dp-wed"><input type="checkbox" value="3"> Wed</label>
+        <label class="day-pill" id="dp-thu"><input type="checkbox" value="4"> Thu</label>
+        <label class="day-pill" id="dp-fri"><input type="checkbox" value="5"> Fri</label>
+        <label class="day-pill" id="dp-sat"><input type="checkbox" value="6"> Sat</label>
+        <label class="day-pill" id="dp-sun"><input type="checkbox" value="0"> Sun</label>
+      </div>
+    </div>
+    <div><div class="ml">Notes</div><textarea id="jt-notes" placeholder="What needs to be done? Any details..."></textarea></div>
     <div class="ma">
       <button class="btn" onclick="closeModal('jubtask')">Cancel</button>
       <button class="btn primary-jub" id="jubtask-save" onclick="saveJubTask()">Create task</button>
@@ -515,7 +546,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="mt" id="job-modal-title">New job</div>
     <div><div class="ml">Property / job description</div><input type="text" id="nj-title" placeholder="e.g. 12 Smith St, Paddington"></div>
     <div class="form-row">
-      <div><div class="ml">Type</div><select id="nj-type"><option value="re">Real Estate</option><option value="cv">Commercial / Video</option></select></div>
+      <div><div class="ml">Type</div><select id="nj-type">
+  <option value="re">Real Estate</option>
+  <option value="cv">Commercial / Video</option>
+  <option value="jr">Jubism Retainer</option>
+  <option value="other">Other</option>
+</select></div>
       <div><div class="ml">Assignee</div><select id="nj-assignee"><option>Gordon</option><option>Darren</option></select></div>
     </div>
     <div class="form-row">
@@ -552,12 +588,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="mo" id="mo-agents">
   <div class="md">
     <div class="mt">Manage agents</div>
-    <div id="agent-list" style="display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto"></div>
-    <div style="display:flex;gap:6px">
+    <div id="agent-list" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto"></div>
+    <div style="display:flex;gap:6px;margin-top:4px">
       <input type="text" id="new-agent" placeholder="Agent name..." onkeydown="if(event.key==='Enter')addAgent()">
       <button class="btn primary-photo sm" onclick="addAgent()">Add</button>
     </div>
     <div class="ma"><button class="btn" onclick="closeModal('agents')">Done</button></div>
+  </div>
+</div>
+
+<!-- EDIT AGENT MODAL -->
+<div class="mo" id="mo-edit-agent">
+  <div class="md" style="width:340px">
+    <div class="mt">Edit agent</div>
+    <div><div class="ml">Agent name</div><input type="text" id="edit-agent-name" placeholder="Agent name..."></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('edit-agent')">Cancel</button>
+      <button class="btn primary-photo" onclick="saveEditAgent()">Save</button>
+    </div>
   </div>
 </div>
 
@@ -627,6 +675,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+
+
+<!-- TBS FINANCIAL TARGETS MODAL -->
+<div class="mo" id="mo-tbs-targets">
+  <div class="md">
+    <div class="mt">Set financial targets</div>
+    <div class="section-sep">Fortnightly targets</div>
+    <div class="form-row">
+      <div><div class="ml">Payroll ($)</div><input type="number" id="ft-payroll" placeholder="3428" step="1" oninput="updateFTSummary()"></div>
+      <div><div class="ml">Tax provision ($)</div><input type="number" id="ft-tax" placeholder="1500" step="1" oninput="updateFTSummary()"></div>
+    </div>
+    <div><div class="ml">Running costs ($)</div><input type="number" id="ft-running" placeholder="1000" step="1" oninput="updateFTSummary()"></div>
+    <div style="background:var(--bg-secondary);border-radius:var(--radius-md);padding:10px 12px;font-size:12px;color:var(--text-secondary)" id="ft-summary"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('tbs-targets')">Cancel</button>
+      <button class="btn blue" onclick="saveTBSTargets()">Save targets</button>
+    </div>
+  </div>
+</div>
 
 <!-- TARGET MODAL -->
 <div class="mo" id="mo-target">
@@ -718,7 +785,8 @@ const PHOTO_STATUSES=[
   {id:'cancelled',label:'Cancelled',cls:'sp-cancelled'}
 ];
 const SHOOT_TYPES=['15 Photos','20 Photos','25 Photos','Floor Plan','Video with agent','Video walkthrough','Travel fee','Other'];
-const RECUR_LABELS={none:'One-off',daily:'Daily',weekdays:'Weekdays',weekly:'Weekly',fortnightly:'Fortnightly',monthly:'Monthly'};
+const RECUR_LABELS={none:'One-off',daily:'Daily (M-F)',weekly:'Weekly',fortnightly:'Fortnightly',monthly:'Monthly',custom:'Custom'};
+const DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const CAT_LABELS={ig:'Instagram',fb:'Facebook',short:'Daily Short',pod:'Podcast',ads:'Ads',other:'Other'};
 const CAT_EV={ig:'ev-ig',fb:'ev-fb',short:'ev-short',pod:'ev-pod',ads:'ev-other',other:'ev-other'};
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -729,13 +797,19 @@ function todayStr(){return new Date().toISOString().slice(0,10);}
 function tomorrowStr(){const d=new Date();d.setDate(d.getDate()+1);return d.toISOString().slice(0,10);}
 function addDays(ds,n){const d=new Date(ds);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
 function nextWeekSunday(){const d=new Date();d.setDate(d.getDate()+(7-d.getDay()));return d.toISOString().slice(0,10);}
-function nextOcc(ds,recur){
+function nextOcc(ds,recur,customDays){
   if(recur==='none')return null;
-  if(recur==='daily')return addDays(ds,1);
-  if(recur==='weekdays'){let d=new Date(ds);d.setDate(d.getDate()+1);while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()+1);return d.toISOString().slice(0,10);}
+  if(recur==='daily'){let d=new Date(ds);d.setDate(d.getDate()+1);while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()+1);return d.toISOString().slice(0,10);}
   if(recur==='weekly')return addDays(ds,7);
   if(recur==='fortnightly')return addDays(ds,14);
   if(recur==='monthly'){const d=new Date(ds);d.setMonth(d.getMonth()+1);return d.toISOString().slice(0,10);}
+  if(recur==='custom'&&customDays&&customDays.length){
+    let d=new Date(ds);d.setDate(d.getDate()+1);
+    for(let i=0;i<14;i++){
+      if(customDays.includes(d.getDay()))return d.toISOString().slice(0,10);
+      d.setDate(d.getDate()+1);
+    }
+  }
   return null;
 }
 function getDiff(ds){if(!ds)return null;const d=new Date(ds),n=new Date();n.setHours(0,0,0,0);return Math.round((d-n)/(1000*60*60*24));}
@@ -787,6 +861,12 @@ let STATE={
   ],
   editingPLId:null,
   revenueTarget:50000,
+  dashView:'month',
+  finTargets:{
+    payroll:3428,
+    tax:1500,
+    running:1000
+  },
   weekly:[
     {id:1,date:'2026-04-06',rev:1240,other:0,ads:380,shopify:79,cogs:310,othercost:0,notes:'Good week, Reels performing well'},
     {id:2,date:'2026-03-30',rev:980,other:0,ads:420,shopify:79,cogs:245,othercost:0,notes:'Ad spend too high, pull back'},
@@ -944,6 +1024,27 @@ function tickJubTask(id){
   renderJubism();saveState();
 }
 
+
+function toggleCustomDays(){
+  const val=document.getElementById('jt-recur').value;
+  document.getElementById('custom-days-wrap').style.display=val==='custom'?'':'none';
+}
+
+function getCustomDays(){
+  const checks=document.querySelectorAll('#custom-days-wrap input[type=checkbox]');
+  return Array.from(checks).filter(c=>c.checked).map(c=>parseInt(c.value));
+}
+
+function setCustomDays(days){
+  const checks=document.querySelectorAll('#custom-days-wrap input[type=checkbox]');
+  checks.forEach(c=>{c.checked=days&&days.includes(parseInt(c.value));});
+  // Update pill styling
+  checks.forEach(c=>{
+    const pill=c.closest('.day-pill');
+    if(pill) pill.style.background=c.checked?'var(--blue-light)':'';
+  });
+}
+
 function openJubPanel(id){
   const t=STATE.jubTasks.find(x=>x.id===id);if(!t)return;
   STATE.selectedPanelId=id;STATE.panelType='jubtask';
@@ -974,7 +1075,9 @@ function openEditJubTask(id){
   document.getElementById('jt-due').value=t.due||'';
   document.getElementById('jt-recur').value=t.recur||'none';
   document.getElementById('jt-brand').value=t.brand;
-  document.getElementById('jt-assignee').value=t.assignee;
+  document.getElementById('jt-assignee').value=t.assignee||'Gordon';
+  toggleCustomDays();
+  if(t.customDays)setTimeout(()=>setCustomDays(t.customDays),50);
   openModal('jubtask');
 }
 
@@ -993,13 +1096,17 @@ function openJubTaskModal(brandId){
   document.getElementById('jt-due').value=todayStr();
   document.getElementById('jt-recur').value='none';
   document.getElementById('jt-brand').value=brandId||'nt';
-  document.getElementById('jt-assignee').value='Gordon';
+  document.getElementById('jt-assignee').value='both';
+  document.getElementById('custom-days-wrap').style.display='none';
+  setCustomDays([]);
   openModal('jubtask');
 }
 
 function saveJubTask(){
   const name=document.getElementById('jt-name').value.trim();if(!name)return;
-  const task={title:name,brand:document.getElementById('jt-brand').value,assignee:document.getElementById('jt-assignee').value,due:document.getElementById('jt-due').value||todayStr(),recur:document.getElementById('jt-recur').value,notes:document.getElementById('jt-notes').value.trim(),done:false};
+  const recur=document.getElementById('jt-recur').value;
+  const customDays=recur==='custom'?getCustomDays():[];
+  const task={title:name,brand:document.getElementById('jt-brand').value,assignee:document.getElementById('jt-assignee').value,due:document.getElementById('jt-due').value||todayStr(),recur,customDays,notes:document.getElementById('jt-notes').value.trim(),done:false};
   if(STATE.editingJubId){const idx=STATE.jubTasks.findIndex(x=>x.id===STATE.editingJubId);if(idx>=0){task.id=STATE.editingJubId;STATE.jubTasks[idx]=task;}}
   else{task.id=NID++;STATE.jubTasks.push(task);}
   STATE.editingJubId=null;closeModal('jubtask');renderJubism();saveState();
@@ -1057,7 +1164,7 @@ function renderPhoto(){
           <td style="white-space:nowrap;color:var(--text-secondary)">${fmtTime(j.time)||'—'}</td>
           <td style="font-weight:500;min-width:160px">${j.title}</td>
           <td style="min-width:130px"><div style="display:flex;flex-wrap:wrap;gap:3px">${shoots||'<span style="color:var(--text-tertiary);font-size:11px">—</span>'}</div></td>
-          <td><span class="type-pill ${j.type==='re'?'tp-re':'tp-cv'}">${j.type==='re'?'Real Estate':'Commercial'}</span></td>
+          <td><span class="type-pill ${j.type==='re'?'tp-re':j.type==='jr'?'tp-jr':j.type==='other'?'tp-other':'tp-cv'}">${j.type==='re'?'Real Estate':j.type==='cv'?'Commercial':j.type==='jr'?'Jubism Retainer':'Other'}</span></td>
           <td style="color:var(--text-secondary)">${j.agent||'—'}</td>
           <td>${avHtml(j.assignee)}</td>
           <td><span class="status-pill ${s.cls}">${s.label}</span></td>
@@ -1083,7 +1190,7 @@ function openJobPanel(id){
   document.getElementById('panel-body').innerHTML=`
     <hr class="pdiv">
     <div class="pl">Date & time</div><div class="pv">${fmtDate(j.date)}${j.time?' at '+fmtTime(j.time):''}</div>
-    <div class="pl">Type</div><div class="pv">${j.type==='re'?'Real Estate':'Commercial / Video'}</div>
+    <div class="pl">Type</div><div class="pv">${j.type==='re'?'Real Estate':j.type==='cv'?'Commercial / Video':j.type==='jr'?'Jubism Retainer':'Other'}</div>
     <div class="pl">Shoot types</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px">${(j.shootTypes||[]).map(t=>`<span class="shoot-tag">${t}</span>`).join('')||'—'}</div>
     <div class="pl">Agent</div><div class="pv">${j.agent||'—'}</div>
     <div class="pl">Assignee</div><div class="pv" style="display:flex;align-items:center;gap:6px">${avHtml(j.assignee)}<span>${j.assignee}</span></div>
@@ -1163,8 +1270,31 @@ function populateAgentSelect(sel){
 
 function renderAgentList(){
   document.getElementById('agent-list').innerHTML=STATE.agents.length
-    ?STATE.agents.map((a,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg-secondary);border-radius:var(--radius-md)"><span style="flex:1;font-size:13px">${a}</span><button class="btn sm danger" onclick="removeAgent(${i})">Remove</button></div>`).join('')
-    :`<span style="font-size:12px;color:var(--text-secondary)">No agents yet</span>`;
+    ?STATE.agents.map((a,i)=>`
+      <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--bg-secondary);border-radius:var(--radius-md)">
+        <span style="flex:1;font-size:13px">${a}</span>
+        <button class="btn sm" onclick="openEditAgent(${i})">Edit</button>
+        <button class="btn sm danger" onclick="removeAgent(${i})">Remove</button>
+      </div>`).join('')
+    :`<span style="font-size:12px;color:var(--text-secondary)">No agents yet — add one below</span>`;
+}
+
+var _editAgentIdx=null;
+function openEditAgent(i){
+  _editAgentIdx=i;
+  document.getElementById('edit-agent-name').value=STATE.agents[i]||'';;
+  openModal('edit-agent');
+}
+function saveEditAgent(){
+  const name=document.getElementById('edit-agent-name').value.trim();
+  if(!name)return;
+  if(_editAgentIdx!==null){
+    STATE.agents[_editAgentIdx]=name;
+    saveState();
+  }
+  closeModal('edit-agent');
+  renderAgentList();
+  // Update any jobs that used the old agent name
 }
 
 function addAgent(){
@@ -1910,219 +2040,250 @@ function showDashboard(){
 }
 
 function renderDashboard(){
-  const today=todayStr();
   const now=new Date();
   const hour=now.getHours();
   const realGreeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
   const dateStr=now.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  const monthName=now.toLocaleDateString('en-AU',{month:'long'});
+  const today=todayStr();
   const thisMonth=now.getMonth();
   const thisYear=now.getFullYear();
+  const targets=STATE.finTargets||{payroll:3428,tax:1500,running:1000};
+  const ftNeed=(targets.payroll||0)+(targets.tax||0)+(targets.running||0);
+  const monthNeed=ftNeed*2;
+  const yearNeed=ftNeed*26;
 
-  // ---- BRG ----
-  const mtdWeeks=STATE.weekly.filter(w=>{if(!w.date)return false;const d=new Date(w.date+'T00:00:00');return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;});
-  const mtdRev=mtdWeeks.reduce((s,w)=>s+parseFloat(w.rev||0)+parseFloat(w.other||0),0);
-  const mtdAds=mtdWeeks.reduce((s,w)=>s+parseFloat(w.ads||0),0);
-  const mtdCogs=mtdWeeks.reduce((s,w)=>s+parseFloat(w.cogs||0),0);
-  const mtdOther=mtdWeeks.reduce((s,w)=>s+parseFloat(w.shopify||0)+parseFloat(w.othercost||0),0);
-  const mtdProfit=mtdRev-(mtdAds+mtdCogs+mtdOther);
-  const mtdMargin=mtdRev>0?Math.round((mtdProfit/mtdRev)*100):0;
-  const brgToday=STATE.brgTasks.filter(t=>t.due<=today&&!t.done);
+  // --- INCOME CALCULATIONS ---
+  // Photography jobs - this month
+  const photoMonth=STATE.jobs.filter(j=>{
+    if(!j.date)return false;
+    const d=new Date(j.date+'T00:00:00');
+    return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;
+  });
+  const photoRevMonth=photoMonth.filter(j=>['invoice-sent','invoice-paid'].includes(j.status)).reduce((s,j)=>s+parseFloat(j.invoice||0),0);
+  const photoPaidMonth=photoMonth.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+parseFloat(j.invoice||0),0);
+  const photoCostMonth=photoMonth.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+parseFloat(j.cost||0),0);
+  const photoProfit=photoPaidMonth-photoCostMonth;
 
-  // ---- Photography ----
-  const photoMTD=STATE.jobs.filter(j=>{if(!j.date)return false;const d=new Date(j.date+'T00:00:00');return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;});
-  const photoInvoiced=photoMTD.filter(j=>['invoice-sent','invoice-paid'].includes(j.status)).reduce((s,j)=>s+parseFloat(j.invoice||0),0);
-  const photoPaid=photoMTD.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+parseFloat(j.invoice||0),0);
-  const photoProfit=photoMTD.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+(parseFloat(j.invoice||0)-parseFloat(j.cost||0)),0);
-  const photoOutstanding=STATE.jobs.filter(j=>j.status==='invoice-sent');
-  const photoActiveJobs=STATE.jobs.filter(j=>!['invoice-paid','cancelled'].includes(j.status));
+  // Photography YTD
+  const photoYTD=STATE.jobs.filter(j=>{
+    if(!j.date)return false;
+    const d=new Date(j.date+'T00:00:00');
+    return d.getFullYear()===thisYear;
+  });
+  const photoRevYTD=photoYTD.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+parseFloat(j.invoice||0),0);
+  const photoCostYTD=photoYTD.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+parseFloat(j.cost||0),0);
+  const photoProfitYTD=photoRevYTD-photoCostYTD;
 
-  // ---- Jubism ----
-  const jubToday=STATE.jubTasks.filter(t=>t.due<=today&&!t.done);
+  // Fortnightly photo (last 14 days)
+  const ftStart=new Date();ftStart.setDate(ftStart.getDate()-14);
+  const ftStartStr=ftStart.toISOString().slice(0,10);
+  const photoFT=STATE.jobs.filter(j=>j.date&&j.date>=ftStartStr&&['invoice-sent','invoice-paid'].includes(j.status));
+  const photoRevFT=photoFT.reduce((s,j)=>s+parseFloat(j.invoice||0),0);
 
-  // ---- Flippers ----
-  const flipProfit=STATE.flipItems.filter(i=>i.status==='shipped').reduce((s,i)=>s+(parseFloat(i.sale||0)-parseFloat(i.ship||0)-parseFloat(i.cost||0)),0);
+  // BRG month
+  const brgMonth=STATE.weekly.filter(w=>{
+    if(!w.date)return false;
+    const d=new Date(w.date+'T00:00:00');
+    return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;
+  });
+  const brgRevMonth=brgMonth.reduce((s,w)=>s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0),0);
+  const brgCostsMonth=brgMonth.reduce((s,w)=>s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0),0);
+  const brgProfitMonth=brgRevMonth-brgCostsMonth;
+
+  // BRG YTD
+  const brgYTD=STATE.weekly.filter(w=>w.date&&w.date.startsWith(String(thisYear)));
+  const brgRevYTD=brgYTD.reduce((s,w)=>s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0),0);
+  const brgCostsYTD=brgYTD.reduce((s,w)=>s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0),0);
+  const brgProfitYTD=brgRevYTD-brgCostsYTD;
+
+  // BRG FT
+  const brgRevFT=STATE.weekly.filter(w=>w.date&&w.date>=ftStartStr).reduce((s,w)=>s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0),0);
+
+  // Flippers profit (shipped items)
+  const flipProfitMonth=STATE.flipItems.filter(i=>{
+    if(i.status!=='shipped')return false;
+    // Use haul date as proxy since items don't have sold date
+    return true;
+  }).reduce((s,i)=>s+parseFloat(i.sale||0)-parseFloat(i.ship||0)-parseFloat(i.cost||0),0);
+  const flipProfitYTD=flipProfitMonth; // Same for now until we add sold dates
+
+  // FT Flippers (rough - use all shipped for now)
+  const flipRevFT=STATE.flipItems.filter(i=>i.status==='shipped').reduce((s,i)=>s+parseFloat(i.sale||0),0);
+  const flipCostFT=STATE.flipItems.filter(i=>i.status==='shipped').reduce((s,i)=>s+parseFloat(i.ship||0)+parseFloat(i.cost||0),0);
+  const flipProfitFT=flipRevFT-flipCostFT;
+
+  // TOTALS
+  const totalRevMonth=photoRevMonth+brgRevMonth;
+  const totalProfitMonth=photoProfit+brgProfitMonth+flipProfitMonth;
+  const totalRevYTD=photoRevYTD+brgRevYTD;
+  const totalProfitYTD=photoProfitYTD+brgProfitYTD+flipProfitYTD;
+  const totalRevFT=photoRevFT+brgRevFT;
+
+  // Progress percentages
+  function pct(val,target){return target>0?Math.min(Math.round((val/target)*100),100):0;}
+  function statusColor(p){return p>=100?'var(--green)':p>=75?'var(--amber)':'var(--red)';}
+  function progressBar(val,target,color){
+    const p=pct(val,target);
+    return '<div style="height:8px;background:var(--bg-tertiary);border-radius:99px;overflow:hidden;margin-top:6px"><div style="height:100%;width:'+p+'%;background:'+color+';border-radius:99px;transition:width 0.3s"></div></div>';
+  }
+  function targetCard(label,val,target,color){
+    const p=pct(val,target);
+    const icon=p>=100?'✅':p>=75?'🟡':'🔴';
+    return '<div class="dash-stat" style="gap:4px">'+
+      '<span class="dash-stat-label">'+label+'</span>'+
+      '<span class="dash-stat-val" style="color:'+color+'">$'+Math.round(val).toLocaleString()+'</span>'+
+      '<span style="font-size:10px;color:var(--text-tertiary)">of $'+Math.round(target).toLocaleString()+' '+icon+'</span>'+
+      progressBar(val,target,color)+
+    '</div>';
+  }
+
+  function incomeRow(label,val,color){
+    return '<div class="fin-row"><span class="fin-label">'+label+'</span><span class="fin-val" style="color:'+color+'">${'+Math.round(val).toLocaleString()+'}</span></div>';
+  }
+
+  // Tasks today
+  const jubToday=STATE.jubTasks.filter(t=>t.due&&t.due<=today&&!t._pendingDelete);
+  const brgToday=STATE.brgTasks.filter(t=>t.due&&t.due<=today&&!t.done);
   const toShip=STATE.flipItems.filter(i=>i.status==='sold');
-  const totalListed=STATE.flipItems.filter(i=>i.status==='listed').length;
-  const totalStock=STATE.flipItems.filter(i=>i.status==='stock').length;
-
-  // ---- Overdue ----
-  const jubOverdue=STATE.jubTasks.filter(t=>t.due<today&&!t.done);
-  const photoOverdue=STATE.jobs.filter(j=>j.date<today&&j.status==='booked');
-  const brgOverdue=STATE.brgTasks.filter(t=>t.due<today&&!t.done);
+  const photoActive=STATE.jobs.filter(j=>!['invoice-paid','cancelled'].includes(j.status));
   const allOverdue=[
-    ...jubOverdue.map(t=>({title:t.title,biz:'Jubism Work',bizColor:'#378ADD',meta:JUB_BRANDS.find(b=>b.id===t.brand)?.name||''})),
-    ...photoOverdue.map(j=>({title:j.title,biz:'Photography',bizColor:'#1D9E75',meta:'Shoot overdue'})),
-    ...brgOverdue.map(t=>({title:t.name,biz:'BackRoom Gear',bizColor:'#EF9F27',meta:CAT_LABELS[t.cat]||t.cat}))
+    ...STATE.jubTasks.filter(t=>t.due&&t.due<today&&!t._pendingDelete).map(t=>({title:t.title,biz:'Jubism',color:'#378ADD'})),
+    ...STATE.jobs.filter(j=>j.date&&j.date<today&&j.status==='booked').map(j=>({title:j.title,biz:'Photography',color:'#1D9E75'})),
+    ...STATE.brgTasks.filter(t=>t.due&&t.due<today&&!t.done).map(t=>({title:t.name,biz:'BackRoom Gear',color:'#EF9F27'}))
   ];
 
-  function bizRow(color, label, bizId, leftHtml, rightHtml){
-    return`<div style="border-left:3px solid ${color};padding-left:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div class="dash-section-label" style="color:${color};margin:0">${label}</div>
-        <span class="dash-go" onclick="switchBiz('${bizId}')">Open →</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        ${leftHtml}
-        ${rightHtml}
-      </div>
-    </div>`;
+  var html='<div class="dash-wrap">';
+
+  // GREETING
+  html+='<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px">';
+  html+='<div><div class="dash-greeting">'+realGreeting+', Gordon 👋</div><div class="dash-date">'+dateStr+'</div></div>';
+  html+='<button class="btn sm" onclick="openTBSTargets()" style="margin-top:4px">⚙️ Set targets</button>';
+  html+='</div>';
+
+  // VIEW TOGGLE
+  html+='<div style="display:flex;gap:4px;border-bottom:1px solid var(--border-light);padding-bottom:12px">';
+  html+='<button class="btn sm'+(STATE.dashView==='ft'?' active-toggle':'')+'" onclick="setDashView(&quot;ft&quot;)">Fortnightly</button>';
+  html+='<button class="btn sm'+(STATE.dashView==='month'?' active-toggle':'')+'" onclick="setDashView(&quot;month&quot;)">Monthly</button>';
+  html+='<button class="btn sm'+(STATE.dashView==='year'?' active-toggle':'')+'" onclick="setDashView(&quot;year&quot;)">Yearly</button>';
+  html+='</div>';
+
+  const view=STATE.dashView||'month';
+  const viewRev=view==='ft'?totalRevFT:view==='month'?totalRevMonth:totalRevYTD;
+  const viewProfit=view==='ft'?0:view==='month'?totalProfitMonth:totalProfitYTD;
+  const viewNeed=view==='ft'?ftNeed:view==='month'?monthNeed:yearNeed;
+  const viewPayroll=view==='ft'?targets.payroll:view==='month'?targets.payroll*2:targets.payroll*26;
+  const viewTax=view==='ft'?targets.tax:view==='month'?targets.tax*2:targets.tax*26;
+  const viewRunning=view==='ft'?targets.running:view==='month'?targets.running*2:targets.running*26;
+  const viewLabel=view==='ft'?'This fortnight':view==='month'?'This month':'This year';
+  const viewPhotoRev=view==='ft'?photoRevFT:view==='month'?photoRevMonth:photoRevYTD;
+  const viewBRGRev=view==='ft'?brgRevFT:view==='month'?brgRevMonth:brgRevYTD;
+  const viewFlipProfit=view==='ft'?flipProfitFT:flipProfitMonth;
+
+  // COMMAND CENTRE
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
+
+  // Left: Income breakdown
+  html+='<div class="dash-card" style="border-top:3px solid var(--blue)">';
+  html+='<div class="fin-section-title" style="margin-bottom:10px">Income — '+viewLabel+'</div>';
+  html+='<div style="display:flex;flex-direction:column;gap:2px">';
+  html+=incomeRow('Photography / Jubism','$'+Math.round(viewPhotoRev),'var(--green)');
+  html+=incomeRow('BackRoom Gear','$'+Math.round(viewBRGRev),'var(--amber)');
+  html+=incomeRow('Two Bear Flippers','$'+Math.round(viewFlipProfit),'var(--orange)');
+  html+='<hr class="fin-divider" style="margin:6px 0">';
+  html+='<div class="fin-row"><span class="fin-label" style="font-weight:500">Total revenue</span><span class="fin-val" style="color:var(--blue);font-size:15px">$'+Math.round(viewRev).toLocaleString()+'</span></div>';
+  html+='</div>';
+  html+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-light)">';
+  html+=progressBar(viewRev,viewNeed,statusColor(pct(viewRev,viewNeed)));
+  html+='<div style="display:flex;justify-content:space-between;margin-top:4px"><span style="font-size:10px;color:var(--text-tertiary)">$0</span><span style="font-size:10px;color:var(--text-tertiary)">Target: $'+Math.round(viewNeed).toLocaleString()+'</span></div>';
+  html+='</div></div>';
+
+  // Right: Target tracker
+  html+='<div class="dash-card" style="border-top:3px solid var(--green)">';
+  html+='<div class="fin-section-title" style="margin-bottom:10px">Targets — '+viewLabel+'</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  html+=targetCard('Payroll',Math.min(viewRev,viewPayroll),viewPayroll,statusColor(pct(viewRev,viewPayroll)));
+  html+=targetCard('Tax provision',Math.max(0,viewRev-viewPayroll),viewTax,statusColor(pct(Math.max(0,viewRev-viewPayroll),viewTax)));
+  html+=targetCard('Running costs',Math.max(0,viewRev-viewPayroll-viewTax),viewRunning,statusColor(pct(Math.max(0,viewRev-viewPayroll-viewTax),viewRunning)));
+  const cream=Math.max(0,viewRev-viewNeed);
+  html+='<div class="dash-stat"><span class="dash-stat-label">'+( cream>0?'🟢 Cream':'Remaining to cover'  )+'</span><span class="dash-stat-val" style="color:'+(cream>0?'var(--green)':'var(--red)')+'">$'+Math.round(cream>0?cream:Math.max(0,viewNeed-viewRev)).toLocaleString()+'</span></div>';
+  html+='</div></div>';
+
+  html+='</div>'; // end 2-col grid
+
+  // BUSINESS STREAM CARDS
+  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">';
+
+  // Photography
+  html+='<div class="dash-card" style="border-top:2px solid #1D9E75">';
+  html+='<div class="dash-card-header"><span class="dash-card-title" style="color:#1D9E75">Photography</span><span class="dash-go" onclick="switchBiz(&quot;photo&quot;)">Go →</span></div>';
+  html+=incomeRow('Invoiced this month','$'+Math.round(photoRevMonth),'var(--blue)');
+  html+=incomeRow('Paid this month','$'+Math.round(photoPaidMonth),'var(--green)');
+  html+='<div class="fin-row"><span class="fin-label">Active jobs</span><span class="fin-val">'+photoActive.length+'</span></div>';
+  if(photoActive.filter(j=>j.status==='invoice-sent').length>0){
+    html+='<div style="font-size:11px;color:var(--amber);margin-top:4px">⚠️ '+photoActive.filter(j=>j.status==='invoice-sent').length+' unpaid invoice'+(photoActive.filter(j=>j.status==='invoice-sent').length>1?'s':'')+'</div>';
   }
+  html+='</div>';
 
-  function taskCard(tasks, emptyMsg, color, recur=true){
-    return`<div class="dash-card" style="border-top:2px solid ${color}">
-      <div class="dash-card-header">
-        <span class="dash-card-title">Today's tasks</span>
-        <span class="dash-card-count">${tasks.length} due</span>
-      </div>
-      ${tasks.length?tasks.slice(0,6).map(t=>`
-        <div class="dash-item">
-          <div class="dash-item-dot" style="background:${color}"></div>
-          <div style="flex:1;min-width:0">
-            <div class="dash-item-title">${t.title||t.name}</div>
-            <div class="dash-item-meta">${t.assignee}${t.brand?(' · '+(JUB_BRANDS.find(b=>b.id===t.brand)?.name||'')):(t.cat?' · '+CAT_LABELS[t.cat]:'')}</div>
-          </div>
-          ${recur&&t.recur&&t.recur!=='none'?`<span class="dash-item-badge" style="background:${color}22;color:${color}">${RECUR_LABELS[t.recur]}</span>`:''}
-        </div>`).join('')+(tasks.length>6?`<div style="font-size:11px;color:var(--text-tertiary);padding-top:4px">+${tasks.length-6} more</div>`:'')
-      :`<div class="dash-empty">${emptyMsg}</div>`}
-    </div>`;
+  // BRG
+  html+='<div class="dash-card" style="border-top:2px solid #EF9F27">';
+  html+='<div class="dash-card-header"><span class="dash-card-title" style="color:#EF9F27">BackRoom Gear</span><span class="dash-go" onclick="switchBiz(&quot;backroom&quot;);setTimeout(function(){setBRGSection(&quot;financials&quot;);},80)">Go →</span></div>';
+  html+=incomeRow('Revenue this month','$'+Math.round(brgRevMonth),'var(--blue)');
+  html+=incomeRow('Profit this month','$'+Math.round(brgProfitMonth),brgProfitMonth>=0?'var(--green)':'var(--red)');
+  html+='<div class="fin-row"><span class="fin-label">Tasks due today</span><span class="fin-val">'+brgToday.length+'</span></div>';
+  html+='</div>';
+
+  // Flippers
+  const toShipCount=STATE.flipItems.filter(i=>i.status==='sold').length;
+  html+='<div class="dash-card" style="border-top:2px solid #D85A30">';
+  html+='<div class="dash-card-header"><span class="dash-card-title" style="color:#D85A30">Two Bear Flippers</span><span class="dash-go" onclick="switchBiz(&quot;flippers&quot;)">Go →</span></div>';
+  html+=incomeRow('Total profit (shipped)','$'+Math.round(flipProfitFT),flipProfitFT>=0?'var(--green)':'var(--red)');
+  html+='<div class="fin-row"><span class="fin-label">In stock</span><span class="fin-val">'+STATE.flipItems.filter(i=>i.status==='stock').length+'</span></div>';
+  if(toShipCount>0){
+    html+='<div style="font-size:11px;color:var(--amber);margin-top:4px">📦 '+toShipCount+' item'+(toShipCount>1?'s':'')+' sold — ready to ship</div>';
   }
+  html+='</div>';
 
-  // BRG financials card
-  const brgFinCard=`<div class="dash-card" style="border-top:2px solid #EF9F27">
-    <div class="dash-card-header">
-      <span class="dash-card-title">Financials — ${monthName}</span>
-      <span class="dash-go" onclick="switchBiz('backroom');setTimeout(()=>setBRGSection('financials'),80)">Details →</span>
-    </div>
-    <div class="dash-stat-row">
-      <div class="dash-stat"><span class="dash-stat-label">Revenue</span><span class="dash-stat-val" style="color:var(--blue)">$${mtdRev.toFixed(0)}</span></div>
-      <div class="dash-stat"><span class="dash-stat-label">Ad spend</span><span class="dash-stat-val" style="color:var(--amber)">$${mtdAds.toFixed(0)}</span></div>
-      <div class="dash-stat"><span class="dash-stat-label">COGS</span><span class="dash-stat-val" style="color:var(--amber)">$${mtdCogs.toFixed(0)}</span></div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px">
-      <div class="dash-stat"><span class="dash-stat-label">Profit</span><span class="dash-stat-val" style="color:${mtdProfit>=0?'var(--green)':'var(--red)'}">$${mtdProfit.toFixed(0)}</span></div>
-      <div class="dash-stat"><span class="dash-stat-label">Margin</span><span class="dash-stat-val" style="color:${mtdMargin>=0?'var(--green)':'var(--red)'}">${mtdMargin}%</span></div>
-    </div>
-    ${mtdWeeks.length===0?`<div class="dash-empty">No weeks entered for ${monthName} yet.</div>`:`<div style="font-size:11px;color:var(--text-secondary);margin-top:4px">${mtdWeeks.length} week${mtdWeeks.length!==1?'s':''} recorded</div>`}
-  </div>`;
+  html+='</div>'; // end 3-col
 
-  // Photo financials card
-  const photoFinCard=`<div class="dash-card" style="border-top:2px solid #1D9E75">
-    <div class="dash-card-header">
-      <span class="dash-card-title">Financials — ${monthName}</span>
-      <span class="dash-go" onclick="switchBiz('photo')">Details →</span>
-    </div>
-    <div class="dash-stat-row">
-      <div class="dash-stat"><span class="dash-stat-label">Invoiced</span><span class="dash-stat-val" style="color:var(--amber)">$${photoInvoiced.toFixed(0)}</span></div>
-      <div class="dash-stat"><span class="dash-stat-label">Paid</span><span class="dash-stat-val" style="color:var(--blue)">$${photoPaid.toFixed(0)}</span></div>
-      <div class="dash-stat"><span class="dash-stat-label">Profit</span><span class="dash-stat-val" style="color:var(--green)">$${photoProfit.toFixed(0)}</span></div>
-    </div>
-    ${photoOutstanding.length?`<div style="background:var(--amber-light);border-radius:var(--radius-md);padding:8px 10px;margin-top:6px">
-      <div style="font-size:11px;font-weight:500;color:var(--amber)">${photoOutstanding.length} outstanding invoice${photoOutstanding.length!==1?'s':''}</div>
-      ${photoOutstanding.slice(0,3).map(j=>`<div style="font-size:11px;color:var(--amber);margin-top:2px">· ${j.title} — $${parseFloat(j.invoice||0).toFixed(0)}</div>`).join('')}
-      ${photoOutstanding.length>3?`<div style="font-size:11px;color:var(--amber)">+${photoOutstanding.length-3} more</div>`:''}
-    </div>`:`<div style="font-size:12px;color:var(--green);padding:6px 0">✓ No outstanding invoices</div>`}
-    <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">${photoMTD.length} shoot${photoMTD.length!==1?'s':''} this month · ${photoActiveJobs.length} active</div>
-  </div>`;
+  // Nothing — pure financial dashboard
+  html+='</div>'; // end dash-wrap
 
-  // Photo active jobs card
-  const photoJobsCard=`<div class="dash-card" style="border-top:2px solid #1D9E75">
-    <div class="dash-card-header">
-      <span class="dash-card-title">Active jobs</span>
-      <span class="dash-card-count">${photoActiveJobs.length}</span>
-    </div>
-    ${photoActiveJobs.length?photoActiveJobs.slice(0,5).map(j=>{
-      const s=statusObj(j.status);
-      return`<div class="dash-item">
-        <div class="dash-item-dot" style="background:#1D9E75"></div>
-        <div style="flex:1;min-width:0">
-          <div class="dash-item-title">${j.title}</div>
-          <div class="dash-item-meta">${fmtDate(j.date)}${j.time?' at '+fmtTime(j.time):''} · ${j.assignee}</div>
-        </div>
-        <span class="dash-item-badge ${s.cls}">${s.label}</span>
-      </div>`;
-    }).join('')+(photoActiveJobs.length>5?`<div style="font-size:11px;color:var(--text-tertiary);padding-top:4px">+${photoActiveJobs.length-5} more</div>`:'')
-    :`<div class="dash-empty">No active jobs.</div>`}
-  </div>`;
-
-  // Flippers ship card
-  const flipShipCard=`<div class="dash-card" style="border-top:2px solid #D85A30">
-    <div class="dash-card-header">
-      <span class="dash-card-title">Ready to ship</span>
-      <span class="dash-card-count">${toShip.length} item${toShip.length!==1?'s':''}</span>
-    </div>
-    ${toShip.length?toShip.slice(0,5).map(i=>`
-      <div class="dash-item">
-        <div class="dash-item-dot" style="background:#D85A30"></div>
-        <div style="flex:1;min-width:0">
-          <div class="dash-item-title">${i.name}</div>
-          <div class="dash-item-meta">Sale: $${parseFloat(i.sale||0).toFixed(2)}</div>
-        </div>
-        <span style="font-size:10px;font-weight:500;background:#EAF3DE;color:#27500A;padding:2px 7px;border-radius:99px;flex-shrink:0;white-space:nowrap">${i.loc||'No location'}</span>
-      </div>`).join('')+(toShip.length>5?`<div style="font-size:11px;color:var(--text-tertiary);padding-top:4px">+${toShip.length-5} more</div>`:'')
-    :`<div class="dash-empty">✓ Nothing waiting to ship.</div>`}
-  </div>`;
-
-  // Flippers financials card
-  const flipFinCard=`<div class="dash-card" style="border-top:2px solid #D85A30">
-    <div class="dash-card-header">
-      <span class="dash-card-title">Inventory & profit</span>
-      <span class="dash-go" onclick="switchBiz('flippers')">Details →</span>
-    </div>
-    <div class="dash-stat-row">
-      <div class="dash-stat"><span class="dash-stat-label">In stock</span><span class="dash-stat-val">${totalStock}</span></div>
-      <div class="dash-stat"><span class="dash-stat-label">Listed</span><span class="dash-stat-val" style="color:var(--amber)">${totalListed}</span></div>
-      <div class="dash-stat"><span class="dash-stat-label">Profit</span><span class="dash-stat-val" style="color:var(--green)">$${flipProfit.toFixed(0)}</span></div>
-    </div>
-    <div style="margin-top:10px;border-top:1px solid var(--border-light);padding-top:10px">
-      <div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:6px">Haul recovery</div>
-      ${STATE.hauls.slice(0,4).map(h=>{
-        const st=haulStats(h.id);
-        const fc=st.inCream?'var(--green)':st.recoveryPct>50?'var(--amber)':'var(--orange)';
-        return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-          <div style="font-size:11px;color:var(--text-primary);width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0">${h.name}</div>
-          <div style="flex:1;height:5px;background:var(--bg-tertiary);border-radius:99px;overflow:hidden"><div style="height:100%;width:${st.recoveryPct}%;background:${fc};border-radius:99px"></div></div>
-          <span style="font-size:11px;font-weight:500;color:${fc};min-width:40px;text-align:right">${st.recoveryPct}%${st.inCream?' ✓':''}</span>
-        </div>`;
-      }).join('')}
-    </div>
-  </div>`;
-
-  let html=`<div class="dash-wrap">
-    <div>
-      <div class="dash-greeting">${realGreeting}, Gordon 👋</div>
-      <div class="dash-date">${dateStr}</div>
-    </div>
-
-    ${bizRow('#D85A30','Two Bear Flippers','flippers', flipShipCard, flipFinCard)}
-    ${bizRow('#1D9E75','Photography','photo', photoJobsCard, photoFinCard)}
-    ${bizRow('#EF9F27','BackRoom Gear','backroom', taskCard(brgToday,'No content tasks due today.','#EF9F27'), brgFinCard)}
-    ${bizRow('#378ADD','Jubism Work','jubism', taskCard(jubToday,'All caught up — no tasks due today.','#378ADD'), `<div class="dash-card" style="border-top:2px solid #378ADD;justify-content:center;align-items:center;background:var(--bg-secondary);border-style:dashed solid solid solid">
-      <div style="text-align:center;padding:16px 0">
-        <div style="font-size:11px;font-weight:500;color:var(--text-primary);margin-bottom:4px">${jubToday.length} task${jubToday.length!==1?'s':''} due today</div>
-        <div style="font-size:11px;color:var(--text-secondary)">${STATE.jubTasks.filter(t=>t.recur!=='none').length} recurring tasks across ${JUB_BRANDS.length} brands</div>
-        <div class="dash-go" style="margin-top:10px;display:inline-block" onclick="switchBiz('jubism')">Open Jubism →</div>
-      </div>
-    </div>`)}
-
-    ${allOverdue.length?`<div>
-      <div class="dash-section-label" style="margin-bottom:8px;color:var(--red)">⚠️ Overdue across all businesses (${allOverdue.length})</div>
-      <div class="dash-card" style="border-color:var(--red);border-width:1px">
-        ${allOverdue.map(item=>`
-          <div class="dash-item">
-            <div class="dash-item-dot" style="background:${item.bizColor}"></div>
-            <div style="flex:1;min-width:0">
-              <div class="dash-item-title">${item.title}</div>
-              <div class="dash-item-meta">${item.biz}${item.meta?' · '+item.meta:''}</div>
-            </div>
-            <span class="dash-item-badge" style="background:var(--red-light);color:var(--red)">Overdue</span>
-          </div>`).join('')}
-      </div>
-    </div>`:''}
-
-  </div>`;
   document.getElementById('main-content').innerHTML=html;
 }
+
+function setDashView(v){STATE.dashView=v;renderDashboard();}
+
+function openTBSTargets(){
+  const t=STATE.finTargets||{payroll:3428,tax:1500,running:1000};
+  document.getElementById('ft-payroll').value=t.payroll||'';
+  document.getElementById('ft-tax').value=t.tax||'';
+  document.getElementById('ft-running').value=t.running||'';
+  updateFTSummary();
+  openModal('tbs-targets');
+}
+
+function updateFTSummary(){
+  const p=parseFloat(document.getElementById('ft-payroll').value)||0;
+  const t=parseFloat(document.getElementById('ft-tax').value)||0;
+  const r=parseFloat(document.getElementById('ft-running').value)||0;
+  const total=p+t+r;
+  document.getElementById('ft-summary').innerHTML=
+    'Fortnightly need: <strong>$'+total.toLocaleString()+'</strong> &nbsp;·&nbsp; '+
+    'Monthly: <strong>$'+(total*2).toLocaleString()+'</strong> &nbsp;·&nbsp; '+
+    'Yearly: <strong>$'+(total*26).toLocaleString()+'</strong>';
+}
+
+function saveTBSTargets(){
+  STATE.finTargets={
+    payroll:parseFloat(document.getElementById('ft-payroll').value)||0,
+    tax:parseFloat(document.getElementById('ft-tax').value)||0,
+    running:parseFloat(document.getElementById('ft-running').value)||0
+  };
+  saveState();
+  closeModal('tbs-targets');
+  renderDashboard();
+}
+
 
 
 // ============================================================
