@@ -835,6 +835,7 @@ let STATE={
   editingJubId:null,
   // Photo
   photoFilter:'all',
+  showArchived:false,
   photoTypeFilter:'all',
   agents:[],
   selectedShootTypes:[],
@@ -861,6 +862,10 @@ let STATE={
   ],
   editingPLId:null,
   revenueTarget:50000,
+  jubTracker:{
+    fortnights:[],
+    currentFortnight:null
+  },
   dashView:'month',
   finTargets:{
     payroll:3428,
@@ -1053,12 +1058,13 @@ function openJubPanel(id){
   document.getElementById('panel-body').innerHTML=`
     <hr class="pdiv">
     <div class="pl">Brand</div><div class="pv">${brand?brand.name:''}</div>
-    <div class="pl">Assignee</div><div class="pv" style="display:flex;align-items:center;gap:6px">${avHtml(t.assignee)}<span>${t.assignee}</span></div>
-    <div class="pl">Due</div><div class="pv">${t.due||'No date'}</div>
-    <div class="pl">Recurrence</div><div class="pv">${RECUR_LABELS[t.recur]||'One-off'}</div>
-    ${t.notes?`<div class="pl">Notes</div><div class="pv" style="font-size:12px;white-space:pre-wrap">${t.notes}</div>`:''}
-    <div style="display:flex;gap:6px;margin-top:16px">
-      <button class="btn sm" style="flex:1" onclick="openEditJubTask(${id})">Edit</button>
+    <div class="pl">Assignee</div><div class="pv" style="display:flex;align-items:center;gap:6px">${avHtml(t.assignee)}<span>${t.assignee==='both'?'Gordon & Darren':t.assignee}</span></div>
+    <div class="pl">Due</div><div class="pv">${t.due?fmtDate(t.due):'No date'}</div>
+    <div class="pl">Recurrence</div><div class="pv">${t.recur==='custom'&&t.customDays&&t.customDays.length?t.customDays.map(d=>DAY_NAMES[d]).join(', '):RECUR_LABELS[t.recur]||'One-off'}</div>
+    <div class="pl">Notes</div>
+    <textarea id="panel-notes-${id}" style="width:100%;font-size:13px;padding:8px 10px;border-radius:var(--border-radius-md);border:1px solid var(--border-light);background:var(--bg-primary);color:var(--text-primary);font-family:inherit;resize:vertical;min-height:80px;margin-top:4px;outline:none" placeholder="Add notes about this task..." onchange="saveJubNotes(${id},this.value)">${t.notes||''}</textarea>
+    <div style="display:flex;gap:6px;margin-top:12px">
+      <button class="btn sm" style="flex:1" onclick="openEditJubTask(${id})">Edit task</button>
       <button class="btn sm danger" style="flex:1" onclick="deleteJubTask(${id})">Delete</button>
     </div>`;
   document.getElementById('detail-panel').classList.add('open');
@@ -1079,6 +1085,11 @@ function openEditJubTask(id){
   toggleCustomDays();
   if(t.customDays)setTimeout(()=>setCustomDays(t.customDays),50);
   openModal('jubtask');
+}
+
+function saveJubNotes(id,notes){
+  const t=STATE.jubTasks.find(x=>x.id===id);
+  if(t){t.notes=notes;saveState();}
 }
 
 function deleteJubTask(id){
@@ -1139,15 +1150,21 @@ function renderPhoto(){
       <span class="pill${STATE.photoTypeFilter==='all'?' active':''}" onclick="setPhotoTypeFilter('all')">All types</span>
       <span class="pill${STATE.photoTypeFilter==='re'?' active':''}" onclick="setPhotoTypeFilter('re')">Real Estate</span>
       <span class="pill${STATE.photoTypeFilter==='cv'?' active':''}" onclick="setPhotoTypeFilter('cv')">Commercial/Video</span>
+      <span style="flex:1"></span>
+      <button class="btn sm" id="arch-btn" onclick="toggleArchived()">Show archived</button>
     </div>`;
 
+  setTimeout(function(){
+    var btn=document.getElementById('arch-btn');
+    if(btn){btn.textContent=STATE.showArchived?'Hide archived':'Show archived';if(STATE.showArchived)btn.classList.add('active-toggle');else btn.classList.remove('active-toggle');}
+  },10);
   let jobs=STATE.jobs;
   if(STATE.photoFilter!=='all') jobs=jobs.filter(j=>j.status===STATE.photoFilter);
   if(STATE.photoTypeFilter!=='all') jobs=jobs.filter(j=>j.type===STATE.photoTypeFilter);
   jobs=[...jobs].sort((a,b)=>b.date>a.date?1:-1);
 
   if(!jobs.length){
-    document.getElementById('main-content').innerHTML=`<div class="empty"><span class="empty-t">No jobs found</span><span class="empty-s">Try a different filter or add a new job</span><button class="btn primary-photo" onclick="openJobModal()">+ New job</button></div>`;
+    document.getElementById('main-content').innerHTML='<div class="empty"><span class="empty-t">No jobs found</span><span class="empty-s">Try a different filter or add a new job</span><button class="btn primary-photo" onclick="openJobModal()">+ New job</button></div>';
     return;
   }
 
@@ -1175,6 +1192,11 @@ function renderPhoto(){
       }).join('')}
     </tbody>
   </table></div>`;
+}
+
+function toggleArchived(){
+  STATE.showArchived=!STATE.showArchived;
+  renderPhoto();
 }
 
 function setPhotoFilter(f){STATE.photoFilter=f;STATE.selectedPanelId=null;closePanel();renderPhoto();}
@@ -1208,6 +1230,7 @@ function openJobPanel(id){
     </div>
     <div style="display:flex;gap:6px;margin-top:16px">
       <button class="btn sm" style="flex:1" onclick="openJobModal(${id})">Edit</button>
+      <button class="btn sm" style="flex:1;color:var(--text-secondary)" onclick="archiveJob(${id})">${j.archived?'Unarchive':'Archive'}</button>
       <button class="btn sm danger" style="flex:1" onclick="deleteJob(${id})">Delete</button>
     </div>`;
   document.getElementById('detail-panel').classList.add('open');
@@ -1233,6 +1256,15 @@ function openJobModal(editId){
   populateAgentSelect(j?j.agent:'');
   renderShootChecks(j?j.shootTypes:[]);
   openModal('job');
+}
+
+function archiveJob(id){
+  const j=STATE.jobs.find(x=>x.id===id);
+  if(!j)return;
+  j.archived=!j.archived;
+  saveState();
+  closePanel();
+  renderPhoto();
 }
 
 function deleteJob(id){
@@ -1840,7 +1872,7 @@ function renderItemsPanel(){
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-bottom:1px solid var(--border-light);flex-wrap:wrap;background:var(--bg-primary)">
-      <input style="font-size:12px;padding:4px 9px;border-radius:var(--radius-md);border:1px solid var(--border-light);background:var(--bg-secondary);color:var(--text-primary);font-family:inherit;width:180px;outline:none" placeholder="Search items, SKU, location..." oninput="STATE.itemSearch=this.value.toLowerCase();renderItemsPanel()">
+      <input style="font-size:12px;padding:4px 9px;border-radius:var(--radius-md);border:1px solid var(--border-light);background:var(--bg-secondary);color:var(--text-primary);font-family:inherit;width:220px;outline:none" placeholder="Search items, title, SKU, location..." oninput="STATE.itemSearch=this.value.toLowerCase();renderItemsPanel()">
       <span class="pill${STATE.itemFilter==='all'?' active':''}" onclick="STATE.itemFilter='all';renderItemsPanel()">All</span>
       <span class="pill${STATE.itemFilter==='stock'?' active':''}" onclick="STATE.itemFilter='stock';renderItemsPanel()">In stock</span>
       <span class="pill${STATE.itemFilter==='listed'?' active':''}" onclick="STATE.itemFilter='listed';renderItemsPanel()">Listed</span>
@@ -2040,216 +2072,206 @@ function showDashboard(){
 }
 
 function renderDashboard(){
-  const now=new Date();
-  const hour=now.getHours();
-  const realGreeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
-  const dateStr=now.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  const today=todayStr();
-  const thisMonth=now.getMonth();
-  const thisYear=now.getFullYear();
-  const targets=STATE.finTargets||{payroll:3428,tax:1500,running:1000};
-  const ftNeed=(targets.payroll||0)+(targets.tax||0)+(targets.running||0);
-  const monthNeed=ftNeed*2;
-  const yearNeed=ftNeed*26;
+  var now=new Date();
+  var hour=now.getHours();
+  var realGreeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
+  var dateStr=now.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  var today=todayStr();
+  var thisMonth=now.getMonth();
+  var thisYear=now.getFullYear();
+  var targets=STATE.finTargets||{payroll:3428,tax:1500,running:1000};
+  var ftNeed=(targets.payroll||0)+(targets.tax||0)+(targets.running||0);
+  var monthNeed=ftNeed*2;
+  var yearNeed=ftNeed*26;
 
-  // --- INCOME CALCULATIONS ---
-  // Photography jobs - this month
-  const photoMonth=STATE.jobs.filter(j=>{
+  // Get current fortnight tracker
+  var ft=getOrCreateFortnight();
+  var jubEarned=(ft.gordonDays.length+ft.darrenDays.length)*350;
+
+  // Photography this month
+  var photoMonth=STATE.jobs.filter(function(j){
     if(!j.date)return false;
-    const d=new Date(j.date+'T00:00:00');
+    var d=new Date(j.date+'T00:00:00');
     return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;
   });
-  const photoRevMonth=photoMonth.filter(j=>['invoice-sent','invoice-paid'].includes(j.status)).reduce((s,j)=>s+parseFloat(j.invoice||0),0);
-  const photoPaidMonth=photoMonth.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+parseFloat(j.invoice||0),0);
-  const photoCostMonth=photoMonth.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+parseFloat(j.cost||0),0);
-  const photoProfit=photoPaidMonth-photoCostMonth;
+  var photoInvoicedMonth=photoMonth.filter(function(j){return['invoice-sent','invoice-paid'].includes(j.status);}).reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
+  var photoPaidMonth=photoMonth.filter(function(j){return j.status==='invoice-paid';}).reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
+  var photoCostMonth=photoMonth.filter(function(j){return j.status==='invoice-paid';}).reduce(function(s,j){return s+parseFloat(j.cost||0);},0);
+  var photoProfitMonth=photoPaidMonth-photoCostMonth;
+  var photoActiveJobs=STATE.jobs.filter(function(j){return!['invoice-paid','cancelled'].includes(j.status);});
+  var photoUnpaid=STATE.jobs.filter(function(j){return j.status==='invoice-sent';});
 
   // Photography YTD
-  const photoYTD=STATE.jobs.filter(j=>{
+  var photoYTD=STATE.jobs.filter(function(j){
     if(!j.date)return false;
-    const d=new Date(j.date+'T00:00:00');
+    var d=new Date(j.date+'T00:00:00');
     return d.getFullYear()===thisYear;
   });
-  const photoRevYTD=photoYTD.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+parseFloat(j.invoice||0),0);
-  const photoCostYTD=photoYTD.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+parseFloat(j.cost||0),0);
-  const photoProfitYTD=photoRevYTD-photoCostYTD;
+  var photoRevYTD=photoYTD.filter(function(j){return j.status==='invoice-paid';}).reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
+  var photoCostYTD=photoYTD.filter(function(j){return j.status==='invoice-paid';}).reduce(function(s,j){return s+parseFloat(j.cost||0);},0);
+  var photoProfitYTD=photoRevYTD-photoCostYTD;
+  var photoJobsYTD=photoYTD.length;
 
-  // Fortnightly photo (last 14 days)
-  const ftStart=new Date();ftStart.setDate(ftStart.getDate()-14);
-  const ftStartStr=ftStart.toISOString().slice(0,10);
-  const photoFT=STATE.jobs.filter(j=>j.date&&j.date>=ftStartStr&&['invoice-sent','invoice-paid'].includes(j.status));
-  const photoRevFT=photoFT.reduce((s,j)=>s+parseFloat(j.invoice||0),0);
+  // Fortnight targets - use jubism earned as income
+  // Plus any photography paid in this fortnight
+  var ftStart=ft.start;
+  var ftEnd=ft.end;
+  var photoFTPaid=STATE.jobs.filter(function(j){
+    return j.status==='invoice-paid'&&j.date&&j.date>=ftStart&&j.date<=ftEnd;
+  }).reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
+  var totalFTEarned=jubEarned+photoFTPaid;
+  var ftCream=Math.max(0,totalFTEarned-ftNeed);
+  var ftRemaining=Math.max(0,ftNeed-totalFTEarned);
 
-  // BRG month
-  const brgMonth=STATE.weekly.filter(w=>{
-    if(!w.date)return false;
-    const d=new Date(w.date+'T00:00:00');
-    return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;
-  });
-  const brgRevMonth=brgMonth.reduce((s,w)=>s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0),0);
-  const brgCostsMonth=brgMonth.reduce((s,w)=>s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0),0);
-  const brgProfitMonth=brgRevMonth-brgCostsMonth;
-
-  // BRG YTD
-  const brgYTD=STATE.weekly.filter(w=>w.date&&w.date.startsWith(String(thisYear)));
-  const brgRevYTD=brgYTD.reduce((s,w)=>s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0),0);
-  const brgCostsYTD=brgYTD.reduce((s,w)=>s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0),0);
-  const brgProfitYTD=brgRevYTD-brgCostsYTD;
-
-  // BRG FT
-  const brgRevFT=STATE.weekly.filter(w=>w.date&&w.date>=ftStartStr).reduce((s,w)=>s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0),0);
-
-  // Flippers profit (shipped items)
-  const flipProfitMonth=STATE.flipItems.filter(i=>{
-    if(i.status!=='shipped')return false;
-    // Use haul date as proxy since items don't have sold date
-    return true;
-  }).reduce((s,i)=>s+parseFloat(i.sale||0)-parseFloat(i.ship||0)-parseFloat(i.cost||0),0);
-  const flipProfitYTD=flipProfitMonth; // Same for now until we add sold dates
-
-  // FT Flippers (rough - use all shipped for now)
-  const flipRevFT=STATE.flipItems.filter(i=>i.status==='shipped').reduce((s,i)=>s+parseFloat(i.sale||0),0);
-  const flipCostFT=STATE.flipItems.filter(i=>i.status==='shipped').reduce((s,i)=>s+parseFloat(i.ship||0)+parseFloat(i.cost||0),0);
-  const flipProfitFT=flipRevFT-flipCostFT;
-
-  // TOTALS
-  const totalRevMonth=photoRevMonth+brgRevMonth;
-  const totalProfitMonth=photoProfit+brgProfitMonth+flipProfitMonth;
-  const totalRevYTD=photoRevYTD+brgRevYTD;
-  const totalProfitYTD=photoProfitYTD+brgProfitYTD+flipProfitYTD;
-  const totalRevFT=photoRevFT+brgRevFT;
-
-  // Progress percentages
   function pct(val,target){return target>0?Math.min(Math.round((val/target)*100),100):0;}
-  function statusColor(p){return p>=100?'var(--green)':p>=75?'var(--amber)':'var(--red)';}
-  function progressBar(val,target,color){
-    const p=pct(val,target);
-    return '<div style="height:8px;background:var(--bg-tertiary);border-radius:99px;overflow:hidden;margin-top:6px"><div style="height:100%;width:'+p+'%;background:'+color+';border-radius:99px;transition:width 0.3s"></div></div>';
+  function statusColor(p){return p>=100?'#0F6E56':p>=75?'#854F0B':'#A32D2D';}
+  function bar(val,target){
+    var p=pct(val,target);
+    var c=statusColor(p);
+    return'<div style="height:6px;background:var(--color-background-tertiary);border-radius:99px;overflow:hidden;margin-top:5px"><div style="height:100%;width:'+p+'%;background:'+c+';border-radius:99px;"></div></div>';
   }
-  function targetCard(label,val,target,color){
-    const p=pct(val,target);
-    const icon=p>=100?'✅':p>=75?'🟡':'🔴';
-    return '<div class="dash-stat" style="gap:4px">'+
-      '<span class="dash-stat-label">'+label+'</span>'+
-      '<span class="dash-stat-val" style="color:'+color+'">$'+Math.round(val).toLocaleString()+'</span>'+
-      '<span style="font-size:10px;color:var(--text-tertiary)">of $'+Math.round(target).toLocaleString()+' '+icon+'</span>'+
-      progressBar(val,target,color)+
+  function covered(val,target){
+    var p=pct(val,target);
+    return p>=100?'<span style="font-size:11px;color:#27500A">&#10003; Covered</span>':
+      '<span style="font-size:11px;color:#854F0B">$'+Math.round(Math.max(0,target-val)).toLocaleString()+' to go</span>';
+  }
+  function card(title,content,borderColor){
+    return'<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;border-top:3px solid '+borderColor+'">'+
+      '<div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">'+title+'</div>'+
+      content+'</div>';
+  }
+  function statCard(label,val,color){
+    return'<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px">'+
+      '<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:3px">'+label+'</div>'+
+      '<div style="font-size:18px;font-weight:500;color:'+(color||'var(--color-text-primary)')+'">'+val+'</div>'+
+    '</div>';
+  }
+  function row(label,val,color){
+    return'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px">'+
+      '<span style="color:var(--color-text-secondary)">'+label+'</span>'+
+      '<span style="font-weight:500;color:'+(color||'var(--color-text-primary)')+'">'+val+'</span>'+
     '</div>';
   }
 
-  function incomeRow(label,val,color){
-    return '<div class="fin-row"><span class="fin-label">'+label+'</span><span class="fin-val" style="color:'+color+'">${'+Math.round(val).toLocaleString()+'}</span></div>';
-  }
-
-  // Tasks today
-  const jubToday=STATE.jubTasks.filter(t=>t.due&&t.due<=today&&!t._pendingDelete);
-  const brgToday=STATE.brgTasks.filter(t=>t.due&&t.due<=today&&!t.done);
-  const toShip=STATE.flipItems.filter(i=>i.status==='sold');
-  const photoActive=STATE.jobs.filter(j=>!['invoice-paid','cancelled'].includes(j.status));
-  const allOverdue=[
-    ...STATE.jubTasks.filter(t=>t.due&&t.due<today&&!t._pendingDelete).map(t=>({title:t.title,biz:'Jubism',color:'#378ADD'})),
-    ...STATE.jobs.filter(j=>j.date&&j.date<today&&j.status==='booked').map(j=>({title:j.title,biz:'Photography',color:'#1D9E75'})),
-    ...STATE.brgTasks.filter(t=>t.due&&t.due<today&&!t.done).map(t=>({title:t.name,biz:'BackRoom Gear',color:'#EF9F27'}))
-  ];
-
-  var html='<div class="dash-wrap">';
-
-  // GREETING
-  html+='<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px">';
-  html+='<div><div class="dash-greeting">'+realGreeting+', Gordon 👋</div><div class="dash-date">'+dateStr+'</div></div>';
-  html+='<button class="btn sm" onclick="openTBSTargets()" style="margin-top:4px">⚙️ Set targets</button>';
-  html+='</div>';
-
-  // VIEW TOGGLE
-  html+='<div style="display:flex;gap:4px;border-bottom:1px solid var(--border-light);padding-bottom:12px">';
-  html+='<button class="btn sm'+(STATE.dashView==='ft'?' active-toggle':'')+'" onclick="setDashView(&quot;ft&quot;)">Fortnightly</button>';
-  html+='<button class="btn sm'+(STATE.dashView==='month'?' active-toggle':'')+'" onclick="setDashView(&quot;month&quot;)">Monthly</button>';
-  html+='<button class="btn sm'+(STATE.dashView==='year'?' active-toggle':'')+'" onclick="setDashView(&quot;year&quot;)">Yearly</button>';
-  html+='</div>';
-
-  const view=STATE.dashView||'month';
-  const viewRev=view==='ft'?totalRevFT:view==='month'?totalRevMonth:totalRevYTD;
-  const viewProfit=view==='ft'?0:view==='month'?totalProfitMonth:totalProfitYTD;
-  const viewNeed=view==='ft'?ftNeed:view==='month'?monthNeed:yearNeed;
-  const viewPayroll=view==='ft'?targets.payroll:view==='month'?targets.payroll*2:targets.payroll*26;
-  const viewTax=view==='ft'?targets.tax:view==='month'?targets.tax*2:targets.tax*26;
-  const viewRunning=view==='ft'?targets.running:view==='month'?targets.running*2:targets.running*26;
-  const viewLabel=view==='ft'?'This fortnight':view==='month'?'This month':'This year';
-  const viewPhotoRev=view==='ft'?photoRevFT:view==='month'?photoRevMonth:photoRevYTD;
-  const viewBRGRev=view==='ft'?brgRevFT:view==='month'?brgRevMonth:brgRevYTD;
-  const viewFlipProfit=view==='ft'?flipProfitFT:flipProfitMonth;
-
-  // COMMAND CENTRE
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
-
-  // Left: Income breakdown
-  html+='<div class="dash-card" style="border-top:3px solid var(--blue)">';
-  html+='<div class="fin-section-title" style="margin-bottom:10px">Income — '+viewLabel+'</div>';
-  html+='<div style="display:flex;flex-direction:column;gap:2px">';
-  html+=incomeRow('Photography / Jubism','$'+Math.round(viewPhotoRev),'var(--green)');
-  html+=incomeRow('BackRoom Gear','$'+Math.round(viewBRGRev),'var(--amber)');
-  html+=incomeRow('Two Bear Flippers','$'+Math.round(viewFlipProfit),'var(--orange)');
-  html+='<hr class="fin-divider" style="margin:6px 0">';
-  html+='<div class="fin-row"><span class="fin-label" style="font-weight:500">Total revenue</span><span class="fin-val" style="color:var(--blue);font-size:15px">$'+Math.round(viewRev).toLocaleString()+'</span></div>';
-  html+='</div>';
-  html+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-light)">';
-  html+=progressBar(viewRev,viewNeed,statusColor(pct(viewRev,viewNeed)));
-  html+='<div style="display:flex;justify-content:space-between;margin-top:4px"><span style="font-size:10px;color:var(--text-tertiary)">$0</span><span style="font-size:10px;color:var(--text-tertiary)">Target: $'+Math.round(viewNeed).toLocaleString()+'</span></div>';
-  html+='</div></div>';
-
-  // Right: Target tracker
-  html+='<div class="dash-card" style="border-top:3px solid var(--green)">';
-  html+='<div class="fin-section-title" style="margin-bottom:10px">Targets — '+viewLabel+'</div>';
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-  html+=targetCard('Payroll',Math.min(viewRev,viewPayroll),viewPayroll,statusColor(pct(viewRev,viewPayroll)));
-  html+=targetCard('Tax provision',Math.max(0,viewRev-viewPayroll),viewTax,statusColor(pct(Math.max(0,viewRev-viewPayroll),viewTax)));
-  html+=targetCard('Running costs',Math.max(0,viewRev-viewPayroll-viewTax),viewRunning,statusColor(pct(Math.max(0,viewRev-viewPayroll-viewTax),viewRunning)));
-  const cream=Math.max(0,viewRev-viewNeed);
-  html+='<div class="dash-stat"><span class="dash-stat-label">'+( cream>0?'🟢 Cream':'Remaining to cover'  )+'</span><span class="dash-stat-val" style="color:'+(cream>0?'var(--green)':'var(--red)')+'">$'+Math.round(cream>0?cream:Math.max(0,viewNeed-viewRev)).toLocaleString()+'</span></div>';
-  html+='</div></div>';
-
-  html+='</div>'; // end 2-col grid
-
-  // BUSINESS STREAM CARDS
-  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">';
-
-  // Photography
-  html+='<div class="dash-card" style="border-top:2px solid #1D9E75">';
-  html+='<div class="dash-card-header"><span class="dash-card-title" style="color:#1D9E75">Photography</span><span class="dash-go" onclick="switchBiz(&quot;photo&quot;)">Go →</span></div>';
-  html+=incomeRow('Invoiced this month','$'+Math.round(photoRevMonth),'var(--blue)');
-  html+=incomeRow('Paid this month','$'+Math.round(photoPaidMonth),'var(--green)');
-  html+='<div class="fin-row"><span class="fin-label">Active jobs</span><span class="fin-val">'+photoActive.length+'</span></div>';
-  if(photoActive.filter(j=>j.status==='invoice-sent').length>0){
-    html+='<div style="font-size:11px;color:var(--amber);margin-top:4px">⚠️ '+photoActive.filter(j=>j.status==='invoice-sent').length+' unpaid invoice'+(photoActive.filter(j=>j.status==='invoice-sent').length>1?'s':'')+'</div>';
-  }
-  html+='</div>';
-
-  // BRG
-  html+='<div class="dash-card" style="border-top:2px solid #EF9F27">';
-  html+='<div class="dash-card-header"><span class="dash-card-title" style="color:#EF9F27">BackRoom Gear</span><span class="dash-go" onclick="switchBiz(&quot;backroom&quot;);setTimeout(function(){setBRGSection(&quot;financials&quot;);},80)">Go →</span></div>';
-  html+=incomeRow('Revenue this month','$'+Math.round(brgRevMonth),'var(--blue)');
-  html+=incomeRow('Profit this month','$'+Math.round(brgProfitMonth),brgProfitMonth>=0?'var(--green)':'var(--red)');
-  html+='<div class="fin-row"><span class="fin-label">Tasks due today</span><span class="fin-val">'+brgToday.length+'</span></div>';
-  html+='</div>';
+  // BRG month
+  var brgMonth=STATE.weekly.filter(function(w){
+    if(!w.date)return false;
+    var d=new Date(w.date+'T00:00:00');
+    return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;
+  });
+  var brgRevMonth=brgMonth.reduce(function(s,w){return s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0);},0);
+  var brgCostsMonth=brgMonth.reduce(function(s,w){return s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
+  var brgProfitMonth=brgRevMonth-brgCostsMonth;
 
   // Flippers
-  const toShipCount=STATE.flipItems.filter(i=>i.status==='sold').length;
-  html+='<div class="dash-card" style="border-top:2px solid #D85A30">';
-  html+='<div class="dash-card-header"><span class="dash-card-title" style="color:#D85A30">Two Bear Flippers</span><span class="dash-go" onclick="switchBiz(&quot;flippers&quot;)">Go →</span></div>';
-  html+=incomeRow('Total profit (shipped)','$'+Math.round(flipProfitFT),flipProfitFT>=0?'var(--green)':'var(--red)');
-  html+='<div class="fin-row"><span class="fin-label">In stock</span><span class="fin-val">'+STATE.flipItems.filter(i=>i.status==='stock').length+'</span></div>';
-  if(toShipCount>0){
-    html+='<div style="font-size:11px;color:var(--amber);margin-top:4px">📦 '+toShipCount+' item'+(toShipCount>1?'s':'')+' sold — ready to ship</div>';
-  }
+  var flipInStock=STATE.flipItems.filter(function(i){return i.status==='stock';}).length;
+  var flipListed=STATE.flipItems.filter(function(i){return i.status==='listed';}).length;
+  var flipToShip=STATE.flipItems.filter(function(i){return i.status==='sold';}).length;
+
+  var html='<div style="padding:20px;display:flex;flex-direction:column;gap:16px">';
+
+  // GREETING
+  html+='<div style="display:flex;align-items:flex-start;justify-content:space-between">';
+  html+='<div><div style="font-size:20px;font-weight:500;color:var(--color-text-primary)">'+realGreeting+', Gordon</div>';
+  html+='<div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">'+dateStr+'</div></div>';
+  html+='<button onclick="openTBSTargets()" style="font-size:12px;padding:5px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;cursor:pointer;color:var(--color-text-primary);font-family:inherit">&#9881; Set targets</button>';
   html+='</div>';
 
-  html+='</div>'; // end 3-col
+  // INVOICE REMINDER BANNER
+  var dayOfWeek=now.getDay();
+  var daysUntilTue=dayOfWeek<=2?(2-dayOfWeek):(9-dayOfWeek);
+  var daysUntilFri=dayOfWeek<=5?(5-dayOfWeek):(12-dayOfWeek);
+  if(dayOfWeek===2){
+    html+='<div style="background:#E6F1FB;border:1px solid #B5D4F4;border-radius:var(--border-radius-md);padding:10px 14px;display:flex;align-items:center;gap:10px">';
+    html+='<span style="font-size:16px;width:16px;height:16px">&#128197;</span>';
+    html+='<div><div style="font-size:13px;font-weight:500;color:#0C447C">Invoice day — send Jubism invoice today</div>';
+    html+='<div style="font-size:11px;color:#185FA5">Total earned this fortnight: $'+jubEarned.toLocaleString()+'</div></div></div>';
+  } else if(dayOfWeek===5){
+    html+='<div style="background:#EAF3DE;border:1px solid #C0DD97;border-radius:var(--border-radius-md);padding:10px 14px;display:flex;align-items:center;gap:10px">';
+    html+='<span style="font-size:16px;width:16px;height:16px">&#128176;</span>';
+    html+='<div><div style="font-size:13px;font-weight:500;color:#27500A">Payday — Jubism payment expected today, run payroll</div>';
+    html+='<div style="font-size:11px;color:#3B6D11">Mark invoice as paid when received</div></div></div>';
+  } else if(dayOfWeek===1){
+    html+='<div style="background:#FAEEDA;border:1px solid #FAC775;border-radius:var(--border-radius-md);padding:10px 14px;display:flex;align-items:center;gap:10px">';
+    html+='<span style="font-size:16px;width:16px;height:16px">&#9888;</span>';
+    html+='<div><div style="font-size:13px;font-weight:500;color:#633806">Invoice tomorrow — send Jubism invoice Tuesday</div>';
+    html+='<div style="font-size:11px;color:#854F0B">Earned so far this fortnight: $'+jubEarned.toLocaleString()+'</div></div></div>';
+  }
 
-  // Nothing — pure financial dashboard
-  html+='</div>'; // end dash-wrap
+  // JUBISM TRACKER
+  html+=renderJubTracker();
+
+  // FORTNIGHTLY TARGETS
+  var ftContent='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  ftContent+='<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary);margin-bottom:4px"><span>Payroll</span><span style="font-weight:500">$'+targets.payroll.toLocaleString()+'</span></div>'+bar(totalFTEarned,targets.payroll)+covered(totalFTEarned,targets.payroll)+'</div>';
+  var afterPayroll=Math.max(0,totalFTEarned-targets.payroll);
+  ftContent+='<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary);margin-bottom:4px"><span>Tax provision</span><span style="font-weight:500">$'+targets.tax.toLocaleString()+'</span></div>'+bar(afterPayroll,targets.tax)+covered(afterPayroll,targets.tax)+'</div>';
+  var afterTax=Math.max(0,afterPayroll-targets.tax);
+  ftContent+='<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary);margin-bottom:4px"><span>Running costs</span><span style="font-weight:500">$'+targets.running.toLocaleString()+'</span></div>'+bar(afterTax,targets.running)+covered(afterTax,targets.running)+'</div>';
+  if(ftCream>0){
+    ftContent+='<div style="background:#EAF3DE;border-radius:var(--border-radius-md);padding:10px 12px"><div style="font-size:11px;color:#3B6D11;margin-bottom:3px">In the cream</div><div style="font-size:18px;font-weight:500;color:#0F6E56">$'+ftCream.toLocaleString()+'</div></div>';
+  } else {
+    ftContent+='<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:3px">Still needed</div><div style="font-size:18px;font-weight:500;color:#A32D2D">$'+ftRemaining.toLocaleString()+'</div></div>';
+  }
+  ftContent+='</div>';
+  ftContent+='<div style="margin-top:8px;padding-top:8px;border-top:0.5px solid var(--color-border-tertiary);display:flex;justify-content:space-between;align-items:center">';
+  ftContent+='<span style="font-size:12px;color:var(--color-text-secondary)">Total earned: <strong style="color:var(--color-text-primary)">$'+totalFTEarned.toLocaleString()+'</strong> of $'+ftNeed.toLocaleString()+' needed</span>';
+  ftContent+='</div>';
+  html+=card('Fortnightly targets',ftContent,'#0F6E56');
+
+  // MONTHLY
+  var monthContent='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">';
+  monthContent+=statCard('Photography revenue','$'+Math.round(photoInvoicedMonth).toLocaleString(),'#185FA5');
+  monthContent+=statCard('Paid this month','$'+Math.round(photoPaidMonth).toLocaleString(),'#0F6E56');
+  monthContent+=statCard('Jobs this month',photoMonth.length);
+  monthContent+='</div>';
+  monthContent+=row('Invoices paid','$'+Math.round(photoPaidMonth).toLocaleString(),'#0F6E56');
+  if(photoUnpaid.length>0){
+    monthContent+=row('Outstanding ('+photoUnpaid.length+' invoice'+(photoUnpaid.length>1?'s':'')+')',
+      '$'+Math.round(photoUnpaid.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0)).toLocaleString(),'#854F0B');
+  }
+  monthContent+=row('Profit this month','$'+Math.round(photoProfitMonth).toLocaleString(),'#0F6E56');
+  html+=card('Monthly summary — '+now.toLocaleDateString('en-AU',{month:'long'}),monthContent,'#185FA5');
+
+  // YEARLY
+  var yearContent='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">';
+  yearContent+=statCard('Revenue YTD','$'+Math.round(photoRevYTD).toLocaleString(),'#185FA5');
+  yearContent+=statCard('Profit YTD','$'+Math.round(photoProfitYTD).toLocaleString(),'#0F6E56');
+  yearContent+=statCard('Jobs done',photoJobsYTD);
+  yearContent+='</div>';
+  html+=card('Yearly — '+thisYear,yearContent,'var(--color-border-secondary)');
+
+  // DIVIDER + OTHER BUSINESSES
+  html+='<hr style="border:none;border-top:0.5px solid var(--color-border-tertiary)">';
+  html+='<div style="font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:0.06em">Other businesses</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+
+  // BRG
+  var brgContent=row('Revenue this month','$'+Math.round(brgRevMonth).toLocaleString());
+  brgContent+=row('Ad spend','$'+Math.round(brgMonth.reduce(function(s,w){return s+parseFloat(w.ads||0);},0)).toLocaleString(),'#854F0B');
+  brgContent+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px">';
+  brgContent+='<span style="color:var(--color-text-secondary)">Profit this month</span>';
+  brgContent+='<span style="font-weight:500;color:'+(brgProfitMonth>=0?'#0F6E56':'#A32D2D')+'">$'+Math.round(brgProfitMonth).toLocaleString()+'</span></div>';
+  html+=card('BackRoom Gear',brgContent,'#EF9F27');
+
+  // Flippers
+  var flipContent=row('In stock',flipInStock);
+  flipContent+=row('Listed',flipListed);
+  if(flipToShip>0){
+    flipContent+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px">';
+    flipContent+='<span style="color:var(--color-text-secondary)">Ready to ship</span>';
+    flipContent+='<span style="background:#FAEEDA;color:#633806;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500">'+flipToShip+' item'+(flipToShip>1?'s':'')+'</span></div>';
+  } else {
+    flipContent+=row('Ready to ship','None');
+  }
+  html+=card('Two Bear Flippers',flipContent,'#D85A30');
+
+  html+='</div>'; // end grid
+  html+='</div>'; // end dash wrap
 
   document.getElementById('main-content').innerHTML=html;
 }
+
 
 function setDashView(v){STATE.dashView=v;renderDashboard();}
 
@@ -2399,6 +2421,160 @@ function runImport(){
     },2000);
   },100);
 }
+
+
+// ============================================================
+// JUBISM FORTNIGHT TRACKER
+// ============================================================
+function getMonday(d){
+  var day=d.getDay(),diff=d.getDate()-(day===0?6:day-1);
+  return new Date(d.setDate(diff));
+}
+
+function ftKey(d){return d.toISOString().slice(0,10);}
+
+function getCurrentFortnight(){
+  var now=new Date();
+  var mon=getMonday(new Date());
+  // Find the start of the current fortnight (2-week block)
+  // Fortnights start on Mondays, 2 weeks apart
+  // Use a fixed reference date (Mon 14 Apr 2025) and count 2-week blocks
+  var ref=new Date('2025-04-14');
+  var diff=Math.floor((mon-ref)/(7*24*60*60*1000));
+  var ftNum=Math.floor(diff/2);
+  var ftStart=new Date(ref);
+  ftStart.setDate(ftStart.getDate()+ftNum*14);
+  var ftEnd=new Date(ftStart);
+  ftEnd.setDate(ftEnd.getDate()+13);
+  return{start:ftKey(ftStart),end:ftKey(ftEnd),key:ftKey(ftStart)};
+}
+
+function getOrCreateFortnight(){
+  var ft=getCurrentFortnight();
+  if(!STATE.jubTracker)STATE.jubTracker={fortnights:[]};
+  if(!STATE.jubTracker.fortnights)STATE.jubTracker.fortnights=[];
+  var existing=STATE.jubTracker.fortnights.find(function(f){return f.key===ft.key;});
+  if(!existing){
+    existing={key:ft.key,start:ft.start,end:ft.end,gordonDays:[],darrenDays:[],status:'active',invoiceAmount:0,paid:false};
+    STATE.jubTracker.fortnights.push(existing);
+    saveState();
+  }
+  return existing;
+}
+
+function getFortnightDays(ft){
+  var days=[];
+  var d=new Date(ft.start+'T00:00:00');
+  var end=new Date(ft.end+'T00:00:00');
+  while(d<=end){
+    var dow=d.getDay();
+    if(dow>=1&&dow<=5){days.push(d.toISOString().slice(0,10));}
+    d.setDate(d.getDate()+1);
+  }
+  return days;
+}
+
+function handleDayClick(el){
+  var person=el.getAttribute('data-person');
+  var date=el.getAttribute('data-date');
+  if(person&&date) toggleJubDay(person,date);
+}
+
+function toggleJubDay(person,dateStr){
+  var ft=getOrCreateFortnight();
+  var arr=person==='gordon'?ft.gordonDays:ft.darrenDays;
+  var idx=arr.indexOf(dateStr);
+  if(idx>=0){arr.splice(idx,1);}else{arr.push(dateStr);}
+  saveState();
+  renderDashboard();
+}
+
+function markJubInvoiced(){
+  var ft=getOrCreateFortnight();
+  var total=(ft.gordonDays.length+ft.darrenDays.length)*350;
+  ft.invoiceAmount=total;
+  ft.status='invoiced';
+  saveState();
+  renderDashboard();
+}
+
+function markJubPaid(){
+  var ft=getOrCreateFortnight();
+  ft.paid=true;
+  ft.status='paid';
+  saveState();
+  renderDashboard();
+}
+
+function renderJubTracker(){
+  var ft=getOrCreateFortnight();
+  var days=getFortnightDays(ft);
+  var today=todayStr();
+  var gordonEarned=ft.gordonDays.length*350;
+  var darrenEarned=ft.darrenDays.length*350;
+  var totalEarned=(ft.gordonDays.length+ft.darrenDays.length)*350;
+
+  // Week 1 and Week 2
+  var week1=days.slice(0,5);
+  var week2=days.slice(5,10);
+
+  function dayBtns(personDays,weekDays,person){
+    return weekDays.map(function(d){
+      var done=personDays.indexOf(d)>=0;
+      var isToday=d===today;
+      var isFuture=d>today;
+      var label=new Date(d+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short'}).slice(0,1);
+      var style='';
+      if(done) style='background:#E6F1FB;border-color:#185FA5;color:#0C447C;cursor:pointer;';
+      else if(isFuture) style='opacity:0.4;cursor:default;';
+      else style='cursor:pointer;';
+      if(isToday&&!done) style+='border-width:1.5px;border-color:var(--color-border-primary);color:var(--color-text-primary);';
+      var clickAttr=isFuture?'':'data-person="'+person+'" data-date="'+d+'" onclick="handleDayClick(this)"';
+      return'<div '+clickAttr+' style="width:28px;height:28px;border-radius:6px;border:0.5px solid var(--color-border-secondary);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;'+style+'">'+label+'</div>';
+    }).join('');
+  }
+
+  var statusBadge=ft.status==='paid'?'<span style="font-size:11px;background:#EAF3DE;color:#27500A;padding:2px 8px;border-radius:99px;">✅ Paid</span>':
+    ft.status==='invoiced'?'<span style="font-size:11px;background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:99px;">Invoice sent</span>':
+    '<span style="font-size:11px;background:#E6F1FB;color:#0C447C;padding:2px 8px;border-radius:99px;">Active</span>';
+
+  var invoiceBtn=ft.status==='active'?'<button onclick="markJubInvoiced()" style="font-size:11px;padding:3px 10px;border-radius:99px;border:0.5px solid var(--color-border-secondary);background:transparent;cursor:pointer;color:var(--color-text-primary);font-family:inherit">Mark invoiced</button>':
+    ft.status==='invoiced'?'<button onclick="markJubPaid()" style="font-size:11px;padding:3px 10px;border-radius:99px;border:0.5px solid #0F6E56;background:transparent;cursor:pointer;color:#0F6E56;font-family:inherit">Mark paid</button>':
+    '';
+
+  var html='<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;border-top:3px solid #185FA5">';
+  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+  html+='<div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em">Jubism work tracker</div>';
+  html+='<div style="display:flex;align-items:center;gap:8px">'+statusBadge+' '+invoiceBtn+'</div>';
+  html+='</div>';
+
+  // Gordon row
+  html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
+  html+='<div style="width:24px;height:24px;border-radius:50%;background:#CECBF6;color:#3C3489;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;flex-shrink:0">GO</div>';
+  html+='<div style="font-size:12px;font-weight:500;color:var(--color-text-primary);min-width:80px">Gordon <span style="font-weight:400;color:var(--color-text-secondary)">'+ft.gordonDays.length+' days · $'+gordonEarned+'</span></div>';
+  html+='<div style="display:flex;gap:4px">'+dayBtns(ft.gordonDays,week1,'gordon')+'</div>';
+  html+='<div style="width:1px;background:var(--color-border-tertiary);height:20px"></div>';
+  html+='<div style="display:flex;gap:4px">'+dayBtns(ft.gordonDays,week2,'gordon')+'</div>';
+  html+='</div>';
+
+  // Darren row
+  html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">';
+  html+='<div style="width:24px;height:24px;border-radius:50%;background:#9FE1CB;color:#085041;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;flex-shrink:0">DA</div>';
+  html+='<div style="font-size:12px;font-weight:500;color:var(--color-text-primary);min-width:80px">Darren <span style="font-weight:400;color:var(--color-text-secondary)">'+ft.darrenDays.length+' days · $'+darrenEarned+'</span></div>';
+  html+='<div style="display:flex;gap:4px">'+dayBtns(ft.darrenDays,week1,'darren')+'</div>';
+  html+='<div style="width:1px;background:var(--color-border-tertiary);height:20px"></div>';
+  html+='<div style="display:flex;gap:4px">'+dayBtns(ft.darrenDays,week2,'darren')+'</div>';
+  html+='</div>';
+
+  // Total
+  html+='<div style="border-top:0.5px solid var(--color-border-tertiary);padding-top:8px;display:flex;align-items:center;justify-content:space-between">';
+  html+='<div style="font-size:13px;font-weight:500;color:#185FA5">Earned this fortnight: $'+totalEarned.toLocaleString()+'</div>';
+  html+='<div style="font-size:11px;color:var(--color-text-secondary)">'+fmtDate(ft.start)+' – '+fmtDate(ft.end)+'</div>';
+  html+='</div>';
+  html+='</div>';
+  return html;
+}
+
 
 // ============================================================
 // DARK MODE
