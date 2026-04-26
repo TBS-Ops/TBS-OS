@@ -976,7 +976,7 @@ function renderJubism(){
       <span style="font-size:11px;color:var(--text-tertiary)">${new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}</span>
     </div>`;
 
-  let tasks=STATE.jubTasks;
+  let tasks=STATE.jubTasks.filter(t=>!t._pendingDelete);
   if(STATE.jubFilter==='today') tasks=tasks.filter(t=>t.due<=today);
   else if(STATE.jubFilter==='upcoming') tasks=tasks.filter(t=>t.due>today);
 
@@ -1022,11 +1022,59 @@ function setJubFilter(f){STATE.jubFilter=f;renderJubism();}
 function tickJubTask(id){
   const t=STATE.jubTasks.find(x=>x.id===id);if(!t)return;
   if(t.recur!=='none'){
-    const next=nextOcc(t.due,t.recur);
+    const next=nextOcc(t.due,t.recur,t.customDays);
     t.due=next;t.done=false;
-    showToast(`Rescheduled: ${t.title} → ${fmtDate(next)}`,'#185FA5');saveState();
-  } else {t.done=!t.done;}
-  renderJubism();saveState();
+    saveState();
+    showToast('↻ Rescheduled: '+t.title+' → '+fmtDate(next),'#185FA5');
+    renderJubism();
+  } else {
+    showCelebration();
+    t._pendingDelete=true;
+    renderJubism();
+    showUndoBar(t.title,function(){
+      t._pendingDelete=false;
+      renderJubism();
+    },function(){
+      STATE.jubTasks=STATE.jubTasks.filter(x=>x.id!==id);
+      saveState();
+      renderJubism();
+    });
+  }
+}
+
+const CELEBRATIONS=['🐾','🎉','✨','🐻','⭐','🙌','💪','🎊'];
+function showCelebration(){
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:72px;z-index:9999;pointer-events:none;animation:celebPop 0.6s ease-out forwards';
+  el.textContent=CELEBRATIONS[Math.floor(Math.random()*CELEBRATIONS.length)];
+  const style=document.createElement('style');
+  style.textContent='@keyframes celebPop{0%{opacity:0;transform:translate(-50%,-50%) scale(0.3)}40%{opacity:1;transform:translate(-50%,-50%) scale(1.4)}70%{transform:translate(-50%,-50%) scale(0.9)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}';
+  document.head.appendChild(style);
+  document.body.appendChild(el);
+  setTimeout(()=>{el.remove();style.remove();},1500);
+}
+
+function showUndoBar(title,onUndo,onConfirm){
+  let bar=document.getElementById('undo-bar');
+  if(bar){bar.remove();clearTimeout(window._undoTimer);}
+  bar=document.createElement('div');
+  bar.id='undo-bar';
+  bar.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:8px 16px;border-radius:99px;font-size:12px;z-index:999;display:flex;align-items:center;gap:10px;box-shadow:0 4px 12px rgba(0,0,0,0.3)';
+  bar.innerHTML='<span>✓ "'+title.substring(0,30)+(title.length>30?'...':'')+'" done</span><button onclick="undoTask()" style="background:#378ADD;color:#fff;border:none;border-radius:99px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit">Undo</button>';
+  document.body.appendChild(bar);
+  window._undoConfirm=onConfirm;
+  window._undoCancel=onUndo;
+  window._undoTimer=setTimeout(()=>{
+    bar.remove();
+    if(window._undoConfirm)window._undoConfirm();
+  },30000);
+}
+
+function undoTask(){
+  clearTimeout(window._undoTimer);
+  const bar=document.getElementById('undo-bar');
+  if(bar)bar.remove();
+  if(window._undoCancel)window._undoCancel();
 }
 
 
@@ -1161,6 +1209,7 @@ function renderPhoto(){
   let jobs=STATE.jobs;
   if(STATE.photoFilter!=='all') jobs=jobs.filter(j=>j.status===STATE.photoFilter);
   if(STATE.photoTypeFilter!=='all') jobs=jobs.filter(j=>j.type===STATE.photoTypeFilter);
+  if(!STATE.showArchived) jobs=jobs.filter(j=>!j.archived);
   jobs=[...jobs].sort((a,b)=>b.date>a.date?1:-1);
 
   if(!jobs.length){
@@ -1810,6 +1859,58 @@ function haulStats(haulId){
     total:items.length};
 }
 
+
+function searchAllItems(query){
+  if(!query||query.length<2){
+    // Clear global search results if any
+    var panel=document.getElementById('items-panel');
+    if(panel&&STATE.activeHaulId) renderItemsPanel();
+    else if(panel) panel.innerHTML='<div class="empty"><span class="empty-t">Select a haul</span><span class="empty-s">Or search for items above</span></div>';
+    return;
+  }
+  query=query.toLowerCase();
+  var results=STATE.flipItems.filter(function(i){
+    return i.name.toLowerCase().includes(query)||
+      (i.sku||'').toLowerCase().includes(query)||
+      (i.loc||'').toLowerCase().includes(query);
+  });
+  var panel=document.getElementById('items-panel');
+  if(!panel)return;
+  var haulsMap={};
+  STATE.hauls.forEach(function(h){haulsMap[h.id]=h.name;});
+  var html='<div class="items-header"><div style="flex:1;font-size:13px;font-weight:500">Search results — '+results.length+' item'+(results.length!==1?'s':'')+' found</div></div>';
+  if(!results.length){
+    html+='<div class="empty"><span class="empty-t">No items found</span><span class="empty-s">Try a different search</span></div>';
+  } else {
+    html+='<div class="items-body"><table class="item-table"><thead><tr><th>SKU</th><th>Item</th><th>Haul</th><th>Location</th><th>Cost</th><th>Status</th><th>Sale</th><th>Profit</th></tr></thead><tbody>';
+    results.slice(0,100).forEach(function(i){
+      var p=parseFloat(i.sale||0)-parseFloat(i.ship||0)-parseFloat(i.cost||0);
+      var showP=i.status==='sold'||i.status==='shipped';
+      var sbCls={stock:'sb-stock',listed:'sb-listed',sold:'sb-sold',shipped:'sb-shipped'}[i.status]||'sb-stock';
+      var sbLbl={stock:'In stock',listed:'Listed',sold:'Sold',shipped:'Shipped'}[i.status]||i.status;
+      html+='<tr class="item-row" onclick="selectHaulAndItem('+i.haulId+','+i.id+')">';
+      html+='<td style="color:var(--text-tertiary);font-size:11px">'+(i.sku||'—')+'</td>';
+      html+='<td style="font-weight:500">'+i.name+'</td>';
+      html+='<td style="font-size:11px;color:var(--text-secondary)">'+(haulsMap[i.haulId]||'Unknown')+'</td>';
+      html+='<td><span class="loc-badge">'+(i.loc||'—')+'</span></td>';
+      html+='<td>$'+parseFloat(i.cost||0).toFixed(2)+'</td>';
+      html+='<td><span class="status-badge '+sbCls+'">'+sbLbl+'</span></td>';
+      html+='<td>'+(i.sale?'$'+parseFloat(i.sale).toFixed(2):'—')+'</td>';
+      html+='<td class="'+(showP?(p>=0?'fin-profit':'fin-loss'):'')+'">'+( showP?(p>=0?'+':'')+'$'+Math.abs(p).toFixed(2):'—')+'</td>';
+      html+='</tr>';
+    });
+    html+='</tbody></table></div>';
+  }
+  panel.innerHTML=html;
+}
+
+function selectHaulAndItem(haulId,itemId){
+  STATE.activeHaulId=haulId;
+  renderHaulList();
+  renderItemsPanel();
+  setTimeout(function(){openItemPanel(itemId);},100);
+}
+
 function renderHaulList(){
   const q=(document.getElementById('haul-search')?document.getElementById('haul-search').value:'').toLowerCase();
   const hauls=STATE.hauls.filter(h=>!q||h.name.toLowerCase().includes(q)||h.source.toLowerCase().includes(q));
@@ -2084,11 +2185,11 @@ function renderDashboard(){
   var monthNeed=ftNeed*2;
   var yearNeed=ftNeed*26;
 
-  // Get current fortnight tracker
+  // Jubism tracker
   var ft=getOrCreateFortnight();
   var jubEarned=(ft.gordonDays.length+ft.darrenDays.length)*350;
 
-  // Photography this month
+  // Photography
   var photoMonth=STATE.jobs.filter(function(j){
     if(!j.date)return false;
     var d=new Date(j.date+'T00:00:00');
@@ -2098,176 +2199,193 @@ function renderDashboard(){
   var photoPaidMonth=photoMonth.filter(function(j){return j.status==='invoice-paid';}).reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
   var photoCostMonth=photoMonth.filter(function(j){return j.status==='invoice-paid';}).reduce(function(s,j){return s+parseFloat(j.cost||0);},0);
   var photoProfitMonth=photoPaidMonth-photoCostMonth;
-  var photoActiveJobs=STATE.jobs.filter(function(j){return!['invoice-paid','cancelled'].includes(j.status);});
   var photoUnpaid=STATE.jobs.filter(function(j){return j.status==='invoice-sent';});
+  var photoActiveJobs=STATE.jobs.filter(function(j){return!['invoice-paid','cancelled'].includes(j.status);});
 
   // Photography YTD
-  var photoYTD=STATE.jobs.filter(function(j){
-    if(!j.date)return false;
-    var d=new Date(j.date+'T00:00:00');
-    return d.getFullYear()===thisYear;
-  });
+  var photoYTD=STATE.jobs.filter(function(j){if(!j.date)return false;var d=new Date(j.date+'T00:00:00');return d.getFullYear()===thisYear;});
   var photoRevYTD=photoYTD.filter(function(j){return j.status==='invoice-paid';}).reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
   var photoCostYTD=photoYTD.filter(function(j){return j.status==='invoice-paid';}).reduce(function(s,j){return s+parseFloat(j.cost||0);},0);
   var photoProfitYTD=photoRevYTD-photoCostYTD;
-  var photoJobsYTD=photoYTD.length;
 
-  // Fortnight targets - use jubism earned as income
-  // Plus any photography paid in this fortnight
-  var ftStart=ft.start;
-  var ftEnd=ft.end;
+  // Fortnightly photo paid
   var photoFTPaid=STATE.jobs.filter(function(j){
-    return j.status==='invoice-paid'&&j.date&&j.date>=ftStart&&j.date<=ftEnd;
+    return j.status==='invoice-paid'&&j.date&&j.date>=ft.start&&j.date<=ft.end;
   }).reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
   var totalFTEarned=jubEarned+photoFTPaid;
   var ftCream=Math.max(0,totalFTEarned-ftNeed);
   var ftRemaining=Math.max(0,ftNeed-totalFTEarned);
 
-  function pct(val,target){return target>0?Math.min(Math.round((val/target)*100),100):0;}
-  function statusColor(p){return p>=100?'#0F6E56':p>=75?'#854F0B':'#A32D2D';}
-  function bar(val,target){
-    var p=pct(val,target);
-    var c=statusColor(p);
-    return'<div style="height:6px;background:var(--color-background-tertiary);border-radius:99px;overflow:hidden;margin-top:5px"><div style="height:100%;width:'+p+'%;background:'+c+';border-radius:99px;"></div></div>';
-  }
-  function covered(val,target){
-    var p=pct(val,target);
-    return p>=100?'<span style="font-size:11px;color:#27500A">&#10003; Covered</span>':
-      '<span style="font-size:11px;color:#854F0B">$'+Math.round(Math.max(0,target-val)).toLocaleString()+' to go</span>';
-  }
-  function card(title,content,borderColor){
-    return'<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;border-top:3px solid '+borderColor+'">'+
-      '<div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">'+title+'</div>'+
-      content+'</div>';
-  }
-  function statCard(label,val,color){
-    return'<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px">'+
-      '<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:3px">'+label+'</div>'+
-      '<div style="font-size:18px;font-weight:500;color:'+(color||'var(--color-text-primary)')+'">'+val+'</div>'+
-    '</div>';
-  }
-  function row(label,val,color){
-    return'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px">'+
-      '<span style="color:var(--color-text-secondary)">'+label+'</span>'+
-      '<span style="font-weight:500;color:'+(color||'var(--color-text-primary)')+'">'+val+'</span>'+
-    '</div>';
-  }
-
   // BRG month
-  var brgMonth=STATE.weekly.filter(function(w){
-    if(!w.date)return false;
-    var d=new Date(w.date+'T00:00:00');
-    return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;
-  });
+  var brgMonth=STATE.weekly.filter(function(w){if(!w.date)return false;var d=new Date(w.date+'T00:00:00');return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;});
   var brgRevMonth=brgMonth.reduce(function(s,w){return s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0);},0);
   var brgCostsMonth=brgMonth.reduce(function(s,w){return s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
   var brgProfitMonth=brgRevMonth-brgCostsMonth;
+  var brgAdsMonth=brgMonth.reduce(function(s,w){return s+parseFloat(w.ads||0);},0);
 
   // Flippers
   var flipInStock=STATE.flipItems.filter(function(i){return i.status==='stock';}).length;
   var flipListed=STATE.flipItems.filter(function(i){return i.status==='listed';}).length;
   var flipToShip=STATE.flipItems.filter(function(i){return i.status==='sold';}).length;
+  var flipProfitTotal=STATE.flipItems.filter(function(i){return i.status==='shipped';}).reduce(function(s,i){return s+(parseFloat(i.sale||0)-parseFloat(i.ship||0)-parseFloat(i.cost||0));},0);
+
+  // Targets progress
+  function pct(val,target){return target>0?Math.min(Math.round((val/target)*100),100):0;}
+  function statusColor(p){return p>=100?'#0F6E56':p>=75?'#854F0B':'#A32D2D';}
+  function bar(val,target){
+    var p=pct(val,target);var c=statusColor(p);
+    return '<div style="height:5px;background:var(--color-background-tertiary);border-radius:99px;overflow:hidden;margin-top:4px"><div style="height:100%;width:'+p+'%;background:'+c+';border-radius:99px"></div></div>';
+  }
+
+  // Stat card
+  function sc(label,val,color){
+    return '<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px">'+
+      '<div style="font-size:10px;color:var(--color-text-secondary);margin-bottom:3px">'+label+'</div>'+
+      '<div style="font-size:18px;font-weight:500;color:'+(color||'var(--color-text-primary)')+'">'+val+'</div>'+
+    '</div>';
+  }
+
+  // Row
+  function row(label,val,color){
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px">'+
+      '<span style="color:var(--color-text-secondary)">'+label+'</span>'+
+      '<span style="font-weight:500;color:'+(color||'var(--color-text-primary)')+'">'+val+'</span></div>';
+  }
+
+  // Card
+  function card(content,borderColor,extra){
+    return '<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;border-top:3px solid '+(borderColor||'var(--color-border-secondary)')+';'+(extra||'')+'">'+content+'</div>';
+  }
+  function cardTitle(t){return '<div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">'+t+'</div>';}
 
   var html='<div style="padding:20px;display:flex;flex-direction:column;gap:16px">';
 
   // GREETING
-  html+='<div style="display:flex;align-items:flex-start;justify-content:space-between">';
+  html+='<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px">';
   html+='<div><div style="font-size:20px;font-weight:500;color:var(--color-text-primary)">'+realGreeting+', Gordon</div>';
   html+='<div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">'+dateStr+'</div></div>';
   html+='<button onclick="openTBSTargets()" style="font-size:12px;padding:5px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;cursor:pointer;color:var(--color-text-primary);font-family:inherit">&#9881; Set targets</button>';
   html+='</div>';
 
   // INVOICE REMINDER BANNER
-  var dayOfWeek=now.getDay();
-  var daysUntilTue=dayOfWeek<=2?(2-dayOfWeek):(9-dayOfWeek);
-  var daysUntilFri=dayOfWeek<=5?(5-dayOfWeek):(12-dayOfWeek);
-  if(dayOfWeek===2){
-    html+='<div style="background:#E6F1FB;border:1px solid #B5D4F4;border-radius:var(--border-radius-md);padding:10px 14px;display:flex;align-items:center;gap:10px">';
-    html+='<span style="font-size:16px;width:16px;height:16px">&#128197;</span>';
-    html+='<div><div style="font-size:13px;font-weight:500;color:#0C447C">Invoice day — send Jubism invoice today</div>';
-    html+='<div style="font-size:11px;color:#185FA5">Total earned this fortnight: $'+jubEarned.toLocaleString()+'</div></div></div>';
-  } else if(dayOfWeek===5){
-    html+='<div style="background:#EAF3DE;border:1px solid #C0DD97;border-radius:var(--border-radius-md);padding:10px 14px;display:flex;align-items:center;gap:10px">';
-    html+='<span style="font-size:16px;width:16px;height:16px">&#128176;</span>';
-    html+='<div><div style="font-size:13px;font-weight:500;color:#27500A">Payday — Jubism payment expected today, run payroll</div>';
-    html+='<div style="font-size:11px;color:#3B6D11">Mark invoice as paid when received</div></div></div>';
-  } else if(dayOfWeek===1){
-    html+='<div style="background:#FAEEDA;border:1px solid #FAC775;border-radius:var(--border-radius-md);padding:10px 14px;display:flex;align-items:center;gap:10px">';
-    html+='<span style="font-size:16px;width:16px;height:16px">&#9888;</span>';
-    html+='<div><div style="font-size:13px;font-weight:500;color:#633806">Invoice tomorrow — send Jubism invoice Tuesday</div>';
-    html+='<div style="font-size:11px;color:#854F0B">Earned so far this fortnight: $'+jubEarned.toLocaleString()+'</div></div></div>';
+  var dow=now.getDay();
+  if(dow===2){
+    html+='<div style="background:var(--color-background-info);border:0.5px solid var(--color-border-info);border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;font-weight:500;color:var(--color-text-info)">&#128197; Invoice day — send Jubism invoice today &nbsp;·&nbsp; <span style="font-weight:400">Earned: $'+jubEarned.toLocaleString()+'</span></div>';
+  } else if(dow===5){
+    html+='<div style="background:var(--color-background-success);border:0.5px solid var(--color-border-success);border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;font-weight:500;color:var(--color-text-success)">&#128176; Payday — Jubism payment expected today, run payroll</div>';
+  } else if(dow===1){
+    html+='<div style="background:var(--color-background-warning);border:0.5px solid var(--color-border-warning);border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;font-weight:500;color:var(--color-text-warning)">&#9888; Invoice tomorrow — send Jubism invoice Tuesday &nbsp;·&nbsp; <span style="font-weight:400">Earned so far: $'+jubEarned.toLocaleString()+'</span></div>';
   }
 
   // JUBISM TRACKER
   html+=renderJubTracker();
 
-  // FORTNIGHTLY TARGETS
-  var ftContent='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
-  ftContent+='<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary);margin-bottom:4px"><span>Payroll</span><span style="font-weight:500">$'+targets.payroll.toLocaleString()+'</span></div>'+bar(totalFTEarned,targets.payroll)+covered(totalFTEarned,targets.payroll)+'</div>';
-  var afterPayroll=Math.max(0,totalFTEarned-targets.payroll);
-  ftContent+='<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary);margin-bottom:4px"><span>Tax provision</span><span style="font-weight:500">$'+targets.tax.toLocaleString()+'</span></div>'+bar(afterPayroll,targets.tax)+covered(afterPayroll,targets.tax)+'</div>';
-  var afterTax=Math.max(0,afterPayroll-targets.tax);
-  ftContent+='<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary);margin-bottom:4px"><span>Running costs</span><span style="font-weight:500">$'+targets.running.toLocaleString()+'</span></div>'+bar(afterTax,targets.running)+covered(afterTax,targets.running)+'</div>';
+  // TOP ROW: Income + Targets
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
+
+  // Income card
+  var incContent=cardTitle('Income — this fortnight');
+  incContent+=row('Photography / Jubism','$'+Math.round(totalFTEarned).toLocaleString(),'var(--color-text-success)');
+  incContent+=row('BackRoom Gear','$'+Math.round(brgRevMonth).toLocaleString(),'var(--color-text-warning)');
+  incContent+=row('Two Bear Flippers','$'+Math.round(flipProfitTotal).toLocaleString(),'var(--color-text-primary)');
+  incContent+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:13px;font-weight:500"><span>Total earned</span><span style="color:var(--color-text-info);font-size:17px">$'+Math.round(totalFTEarned).toLocaleString()+'</span></div>';
+  incContent+='<div style="height:6px;background:var(--color-background-tertiary);border-radius:99px;overflow:hidden"><div style="height:100%;width:'+pct(totalFTEarned,ftNeed)+'%;background:'+statusColor(pct(totalFTEarned,ftNeed))+';border-radius:99px"></div></div>';
+  incContent+='<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--color-text-tertiary)"><span>$0</span><span>Target: $'+ftNeed.toLocaleString()+'</span></div>';
+  html+=card(incContent,'var(--color-border-info)');
+
+  // Targets card
+  var tgtContent=cardTitle('Targets — this fortnight');
+  tgtContent+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  // Payroll
+  var afterPayroll=Math.max(0,totalFTEarned);
+  var pPayroll=pct(afterPayroll,targets.payroll);
+  tgtContent+='<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary)"><span>Payroll</span><span>$'+targets.payroll.toLocaleString()+'</span></div>'+bar(afterPayroll,targets.payroll)+'<div style="font-size:11px;margin-top:3px;color:'+statusColor(pPayroll)+'">'+(pPayroll>=100?'&#10003; Covered':'$'+Math.round(Math.max(0,targets.payroll-afterPayroll)).toLocaleString()+' to go')+'</div></div>';
+  // Tax
+  var afterTax=Math.max(0,totalFTEarned-targets.payroll);
+  var pTax=pct(afterTax,targets.tax);
+  tgtContent+='<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary)"><span>Tax provision</span><span>$'+targets.tax.toLocaleString()+'</span></div>'+bar(afterTax,targets.tax)+'<div style="font-size:11px;margin-top:3px;color:'+statusColor(pTax)+'">'+(pTax>=100?'&#10003; Covered':'$'+Math.round(Math.max(0,targets.tax-afterTax)).toLocaleString()+' to go')+'</div></div>';
+  // Running
+  var afterRunning=Math.max(0,totalFTEarned-targets.payroll-targets.tax);
+  var pRunning=pct(afterRunning,targets.running);
+  tgtContent+='<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary)"><span>Running costs</span><span>$'+targets.running.toLocaleString()+'</span></div>'+bar(afterRunning,targets.running)+'<div style="font-size:11px;margin-top:3px;color:'+statusColor(pRunning)+'">'+(pRunning>=100?'&#10003; Covered':'$'+Math.round(Math.max(0,targets.running-afterRunning)).toLocaleString()+' to go')+'</div></div>';
+  // Cream or remaining
   if(ftCream>0){
-    ftContent+='<div style="background:#EAF3DE;border-radius:var(--border-radius-md);padding:10px 12px"><div style="font-size:11px;color:#3B6D11;margin-bottom:3px">In the cream</div><div style="font-size:18px;font-weight:500;color:#0F6E56">$'+ftCream.toLocaleString()+'</div></div>';
+    tgtContent+='<div style="background:#EAF3DE;border-radius:var(--border-radius-md);padding:10px 12px"><div style="font-size:11px;color:#3B6D11;margin-bottom:2px">In the cream &#127808;</div><div style="font-size:18px;font-weight:500;color:#0F6E56">$'+ftCream.toLocaleString()+'</div></div>';
   } else {
-    ftContent+='<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:3px">Still needed</div><div style="font-size:18px;font-weight:500;color:#A32D2D">$'+ftRemaining.toLocaleString()+'</div></div>';
+    tgtContent+='<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:2px">Still needed</div><div style="font-size:18px;font-weight:500;color:#A32D2D">$'+ftRemaining.toLocaleString()+'</div></div>';
   }
-  ftContent+='</div>';
-  ftContent+='<div style="margin-top:8px;padding-top:8px;border-top:0.5px solid var(--color-border-tertiary);display:flex;justify-content:space-between;align-items:center">';
-  ftContent+='<span style="font-size:12px;color:var(--color-text-secondary)">Total earned: <strong style="color:var(--color-text-primary)">$'+totalFTEarned.toLocaleString()+'</strong> of $'+ftNeed.toLocaleString()+' needed</span>';
-  ftContent+='</div>';
-  html+=card('Fortnightly targets',ftContent,'#0F6E56');
+  tgtContent+='</div>';
+  html+=card(tgtContent,'#0F6E56');
+  html+='</div>'; // end top row
 
-  // MONTHLY
-  var monthContent='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">';
-  monthContent+=statCard('Photography revenue','$'+Math.round(photoInvoicedMonth).toLocaleString(),'#185FA5');
-  monthContent+=statCard('Paid this month','$'+Math.round(photoPaidMonth).toLocaleString(),'#0F6E56');
-  monthContent+=statCard('Jobs this month',photoMonth.length);
-  monthContent+='</div>';
-  monthContent+=row('Invoices paid','$'+Math.round(photoPaidMonth).toLocaleString(),'#0F6E56');
-  if(photoUnpaid.length>0){
-    monthContent+=row('Outstanding ('+photoUnpaid.length+' invoice'+(photoUnpaid.length>1?'s':'')+')',
-      '$'+Math.round(photoUnpaid.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0)).toLocaleString(),'#854F0B');
-  }
-  monthContent+=row('Profit this month','$'+Math.round(photoProfitMonth).toLocaleString(),'#0F6E56');
-  html+=card('Monthly summary — '+now.toLocaleDateString('en-AU',{month:'long'}),monthContent,'#185FA5');
+  // MIDDLE ROW: Photography + BRG + Flippers
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">';
 
-  // YEARLY
-  var yearContent='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">';
-  yearContent+=statCard('Revenue YTD','$'+Math.round(photoRevYTD).toLocaleString(),'#185FA5');
-  yearContent+=statCard('Profit YTD','$'+Math.round(photoProfitYTD).toLocaleString(),'#0F6E56');
-  yearContent+=statCard('Jobs done',photoJobsYTD);
-  yearContent+='</div>';
-  html+=card('Yearly — '+thisYear,yearContent,'var(--color-border-secondary)');
-
-  // DIVIDER + OTHER BUSINESSES
-  html+='<hr style="border:none;border-top:0.5px solid var(--color-border-tertiary)">';
-  html+='<div style="font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:0.06em">Other businesses</div>';
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+  // Photography
+  var photoContent=cardTitle('Photography');
+  photoContent+=sc('Revenue this month','$'+Math.round(photoInvoicedMonth).toLocaleString(),'var(--color-text-info)');
+  photoContent+='<div style="margin-top:10px">';
+  photoContent+=row('Paid this month','$'+Math.round(photoPaidMonth).toLocaleString(),'#0F6E56');
+  if(photoUnpaid.length>0) photoContent+=row(photoUnpaid.length+' outstanding invoice'+(photoUnpaid.length>1?'s':''),'$'+Math.round(photoUnpaid.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0)).toLocaleString(),'#854F0B');
+  photoContent+=row('Active jobs',photoActiveJobs.length,'var(--color-text-primary)');
+  photoContent+='</div>';
+  photoContent+='<div style="margin-top:8px"><span class="dash-go" onclick="switchBiz(&quot;photo&quot;)" style="font-size:11px;color:var(--color-text-info);cursor:pointer">Go to Photography →</span></div>';
+  html+=card(photoContent,'#1D9E75');
 
   // BRG
-  var brgContent=row('Revenue this month','$'+Math.round(brgRevMonth).toLocaleString());
-  brgContent+=row('Ad spend','$'+Math.round(brgMonth.reduce(function(s,w){return s+parseFloat(w.ads||0);},0)).toLocaleString(),'#854F0B');
-  brgContent+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px">';
-  brgContent+='<span style="color:var(--color-text-secondary)">Profit this month</span>';
-  brgContent+='<span style="font-weight:500;color:'+(brgProfitMonth>=0?'#0F6E56':'#A32D2D')+'">$'+Math.round(brgProfitMonth).toLocaleString()+'</span></div>';
-  html+=card('BackRoom Gear',brgContent,'#EF9F27');
+  var brgContent=cardTitle('BackRoom Gear');
+  brgContent+=sc('Revenue this month','$'+Math.round(brgRevMonth).toLocaleString(),'var(--color-text-info)');
+  brgContent+='<div style="margin-top:10px">';
+  brgContent+=row('Ad spend','$'+Math.round(brgAdsMonth).toLocaleString(),'#854F0B');
+  brgContent+=row('Profit this month','$'+Math.round(brgProfitMonth).toLocaleString(),brgProfitMonth>=0?'#0F6E56':'#A32D2D');
+  brgContent+='</div>';
+  brgContent+='<div style="margin-top:8px"><span onclick="switchBiz(&quot;backroom&quot;);setTimeout(function(){setBRGSection(&quot;financials&quot;);},80)" style="font-size:11px;color:var(--color-text-info);cursor:pointer">Go to BackRoom Gear →</span></div>';
+  html+=card(brgContent,'#EF9F27');
 
   // Flippers
-  var flipContent=row('In stock',flipInStock);
-  flipContent+=row('Listed',flipListed);
-  if(flipToShip>0){
-    flipContent+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px">';
-    flipContent+='<span style="color:var(--color-text-secondary)">Ready to ship</span>';
-    flipContent+='<span style="background:#FAEEDA;color:#633806;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500">'+flipToShip+' item'+(flipToShip>1?'s':'')+'</span></div>';
-  } else {
-    flipContent+=row('Ready to ship','None');
-  }
-  html+=card('Two Bear Flippers',flipContent,'#D85A30');
+  var flipContent=cardTitle('Two Bear Flippers');
+  flipContent+=sc('Total profit (shipped)','$'+Math.round(flipProfitTotal).toLocaleString(),flipProfitTotal>=0?'#0F6E56':'#A32D2D');
+  flipContent+='<div style="margin-top:10px">';
+  flipContent+=row('In stock',flipInStock,'var(--color-text-primary)');
+  flipContent+=row('Listed',flipListed,'var(--color-text-primary)');
+  if(flipToShip>0) flipContent+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px"><span style="color:var(--color-text-secondary)">Ready to ship</span><span style="background:#FAEEDA;color:#633806;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500">'+flipToShip+' item'+(flipToShip>1?'s':'')+'</span></div>';
+  flipContent+='</div>';
+  flipContent+='<div style="margin-top:8px"><span onclick="switchBiz(&quot;flippers&quot;)" style="font-size:11px;color:var(--color-text-info);cursor:pointer">Go to Flippers →</span></div>';
+  html+=card(flipContent,'#D85A30');
 
-  html+='</div>'; // end grid
-  html+='</div>'; // end dash wrap
+  html+='</div>'; // end middle row
+
+  // BOTTOM ROW: Monthly + Yearly side by side
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
+
+  // Monthly
+  var monContent=cardTitle('Monthly summary — '+now.toLocaleDateString('en-AU',{month:'long'}));
+  monContent+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">';
+  monContent+=sc('Photography revenue','$'+Math.round(photoInvoicedMonth).toLocaleString(),'var(--color-text-info)');
+  monContent+=sc('Paid this month','$'+Math.round(photoPaidMonth).toLocaleString(),'#0F6E56');
+  monContent+=sc('Jobs this month',photoMonth.length);
+  monContent+='</div>';
+  monContent+=row('Invoices paid','$'+Math.round(photoPaidMonth).toLocaleString(),'#0F6E56');
+  if(photoUnpaid.length>0) monContent+=row('Outstanding ('+photoUnpaid.length+')','$'+Math.round(photoUnpaid.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0)).toLocaleString(),'#854F0B');
+  monContent+=row('Profit this month','$'+Math.round(photoProfitMonth).toLocaleString(),'#0F6E56');
+  html+=card(monContent,'var(--color-border-info)');
+
+  // Yearly
+  var yrContent=cardTitle('Yearly — '+thisYear);
+  yrContent+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">';
+  yrContent+=sc('Revenue YTD','$'+Math.round(photoRevYTD).toLocaleString(),'var(--color-text-info)');
+  yrContent+=sc('Profit YTD','$'+Math.round(photoProfitYTD).toLocaleString(),'#0F6E56');
+  yrContent+=sc('Jobs done',photoYTD.length);
+  yrContent+='</div>';
+  yrContent+='<div style="margin-top:4px"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px">Progress to year target</div>';
+  var ftDone=Math.round((now-new Date(thisYear,0,1))/(14*24*60*60*1000));
+  var yrExpected=ftDone*ftNeed;
+  yrContent+='<div style="height:6px;background:var(--color-background-tertiary);border-radius:99px;overflow:hidden"><div style="height:100%;width:'+pct(photoRevYTD,yrExpected)+'%;background:'+statusColor(pct(photoRevYTD,yrExpected))+';border-radius:99px"></div></div>';
+  yrContent+='<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--color-text-tertiary)"><span>$'+Math.round(photoRevYTD).toLocaleString()+' earned</span><span>$'+Math.round(yrExpected).toLocaleString()+' expected by now</span></div></div>';
+  html+=card(yrContent,'var(--color-border-secondary)');
+
+  html+='</div>'; // end bottom row
+  html+='</div>'; // end wrap
 
   document.getElementById('main-content').innerHTML=html;
 }
