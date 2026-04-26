@@ -1545,7 +1545,7 @@ function renderBRGFinancials(){
   var yearStart=new Date(now.getFullYear(),0,1);
   var weeksElapsed=Math.max(1,Math.ceil((now-yearStart)/(7*24*60*60*1000)));
   var weeksRemaining=Math.max(0,52-weeksElapsed);
-  var ytd=allWeeks.filter(function(w){return w.date&&w.date.startsWith(String(now.getFullYear()));});
+  var ytd=allWeeks.filter(function(w){return isInFY(w.date);});
   var revYTD=ytd.reduce(function(s,w){return s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0);},0);
   var etsyRevYTD=ytd.reduce(function(s,w){return s+parseFloat(w.etsyRev||0);},0);
   var ordersYTD=ytd.reduce(function(s,w){return s+parseInt(w.orders||0)+parseInt(w.etsyOrders||0);},0);
@@ -1591,7 +1591,7 @@ function renderBRGFinancials(){
   html+='<div class="dash-card" style="border-top:3px solid var(--amber)">';
   html+='<div class="fin-section-title" style="margin-bottom:10px">Run rate</div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-  html+=sc('Revenue YTD','$'+revYTD.toFixed(0),'var(--blue)');
+  html+=sc(getFYLabel()+' Revenue','$'+revYTD.toFixed(0),'var(--blue)');
   html+=sc('Projected annual','$'+projectedAnnual.toFixed(0),'var(--blue)');
   html+=sc('Avg weekly','$'+avgWeeklyRev.toFixed(0),'var(--text-primary)');
   html+=sc('Gap to target','$'+gapToTarget.toFixed(0),'var(--red)');
@@ -2217,8 +2217,8 @@ function renderDashboard(){
   var photoUnpaid=STATE.jobs.filter(function(j){return j.status==='invoice-sent';});
   var photoActiveJobs=STATE.jobs.filter(function(j){return!['invoice-paid','cancelled'].includes(j.status);});
 
-  // Photography YTD
-  var photoYTD=STATE.jobs.filter(function(j){if(!j.date)return false;var d=new Date(j.date+'T00:00:00');return d.getFullYear()===thisYear;});
+  // Photography FY (Australian financial year)
+  var photoYTD=STATE.jobs.filter(function(j){return isInFY(j.date);});
   var photoRevYTD=photoYTD.filter(function(j){return j.status==='invoice-paid';}).reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
   var photoCostYTD=photoYTD.filter(function(j){return j.status==='invoice-paid';}).reduce(function(s,j){return s+parseFloat(j.cost||0);},0);
   var photoProfitYTD=photoRevYTD-photoCostYTD;
@@ -2269,7 +2269,8 @@ function renderDashboard(){
 
   // Card
   function card(content,borderColor,extra){
-    return '<div style="background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:14px 16px;border-top:3px solid '+(borderColor||'var(--color-border-secondary)')+';'+(extra||'')+'">'+content+'</div>';
+    var bc=borderColor||'var(--color-border-secondary)';
+    return '<div style="background:var(--color-background-primary);border:1px solid '+(borderColor||'rgba(255,255,255,0.12)')+';border-radius:var(--border-radius-lg);padding:14px 16px;border-top:3px solid '+bc+';'+(extra||'')+'">'+content+'</div>';
   }
   function cardTitle(t){return '<div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">'+t+'</div>';}
 
@@ -2300,7 +2301,8 @@ function renderDashboard(){
 
   // Income card
   var incContent=cardTitle('Income — this fortnight');
-  incContent+=row('Photography / Jubism','$'+Math.round(totalFTEarned).toLocaleString(),'var(--color-text-success)');
+  incContent+=row('Jubism earned','$'+Math.round(jubEarned).toLocaleString(),'var(--color-text-success)');
+  incContent+=row('Photography paid (month)','$'+Math.round(photoFTPaid).toLocaleString(),'var(--color-text-success)');
   incContent+=row('BackRoom Gear','$'+Math.round(brgRevMonth).toLocaleString(),'var(--color-text-warning)');
   incContent+=row('Two Bear Flippers','$'+Math.round(flipProfitTotal).toLocaleString(),'var(--color-text-primary)');
   incContent+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:13px;font-weight:500"><span>Total earned</span><span style="color:var(--color-text-info);font-size:17px">$'+Math.round(totalFTEarned).toLocaleString()+'</span></div>';
@@ -2348,13 +2350,17 @@ function renderDashboard(){
   html+=card(photoContent,'#1D9E75');
 
   // BRG
-  var brgContent=cardTitle('BackRoom Gear');
-  brgContent+=sc('Revenue this month','$'+Math.round(brgRevMonth).toLocaleString(),'var(--color-text-info)');
-  brgContent+='<div style="margin-top:10px">';
-  brgContent+=row('Ad spend','$'+Math.round(brgAdsMonth).toLocaleString(),'#854F0B');
-  brgContent+=row('Profit this month','$'+Math.round(brgProfitMonth).toLocaleString(),brgProfitMonth>=0?'#0F6E56':'#A32D2D');
+  var brgCogsMonth=brgMonth.reduce(function(s,w){return s+parseFloat(w.cogs||0);},0);
+  var brgContent=cardTitle('BackRoom Gear — '+now.toLocaleDateString('en-AU',{month:'long'}));
+  brgContent+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+  brgContent+=sc('Revenue','$'+Math.round(brgRevMonth).toLocaleString(),'var(--color-text-info)');
+  brgContent+=sc('Profit','$'+Math.round(brgProfitMonth).toLocaleString(),brgProfitMonth>=0?'#0F6E56':'#A32D2D');
   brgContent+='</div>';
-  brgContent+='<div style="margin-top:8px"><span onclick="switchBiz(&quot;backroom&quot;);setTimeout(function(){setBRGSection(&quot;financials&quot;);},80)" style="font-size:11px;color:var(--color-text-info);cursor:pointer">Go to BackRoom Gear →</span></div>';
+  brgContent+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+  brgContent+='<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:7px 10px"><div style="font-size:10px;color:var(--color-text-secondary);margin-bottom:2px">Ad spend</div><div style="font-size:13px;font-weight:500;color:#854F0B">$'+Math.round(brgAdsMonth).toLocaleString()+'</div></div>';
+  brgContent+='<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:7px 10px"><div style="font-size:10px;color:var(--color-text-secondary);margin-bottom:2px">COGS</div><div style="font-size:13px;font-weight:500;color:#854F0B">$'+Math.round(brgCogsMonth).toLocaleString()+'</div></div>';
+  brgContent+='</div>';
+  brgContent+='<div style="margin-top:4px"><span onclick="switchBiz(&quot;backroom&quot;);setTimeout(function(){setBRGSection(&quot;financials&quot;);},80)" style="font-size:11px;color:var(--color-text-info);cursor:pointer">Go to BackRoom Gear →</span></div>';
   html+=card(brgContent,'#EF9F27');
 
   // Flippers
@@ -2387,11 +2393,11 @@ function renderDashboard(){
   html+=card(monContent,'var(--color-border-info)');
 
   // Yearly - clean and simple
-  var yrContent=cardTitle('Year to date — '+thisYear);
+  var yrContent=cardTitle('Year to date — '+getFYLabel()+' (Aus FY)');
   yrContent+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
   yrContent+=sc('Revenue YTD','$'+Math.round(photoRevYTD).toLocaleString(),'var(--color-text-info)');
   yrContent+=sc('Profit YTD','$'+Math.round(photoProfitYTD).toLocaleString(),'#0F6E56');
-  yrContent+=sc('Jubism earned YTD','$'+Math.round(STATE.jubTracker&&STATE.jubTracker.fortnights?STATE.jubTracker.fortnights.filter(function(f){return f.key&&f.key.startsWith(String(thisYear));}).reduce(function(s,f){return s+(f.gordonDays.length+f.darrenDays.length)*350;},0):0).toLocaleString(),'var(--color-text-info)');
+  yrContent+=sc('Jubism earned YTD','$'+Math.round(STATE.jubTracker&&STATE.jubTracker.fortnights?STATE.jubTracker.fortnights.filter(function(f){return isInFY(f.key);}).reduce(function(s,f){return s+(f.gordonDays.length+f.darrenDays.length)*350;},0):0).toLocaleString(),'var(--color-text-info)');
   yrContent+=sc('Jobs done',photoYTD.length);
   yrContent+='</div>';
   html+=card(yrContent,'var(--color-border-secondary)');
@@ -2552,6 +2558,28 @@ function runImport(){
   },100);
 }
 
+
+
+function getAusFYStart(){
+  var now=new Date();
+  var fyYear=now.getMonth()>=6?now.getFullYear():now.getFullYear()-1;
+  return new Date(fyYear,6,1); // July 1
+}
+function getAusFYEnd(){
+  var start=getAusFYStart();
+  return new Date(start.getFullYear()+1,5,30); // June 30 next year
+}
+function getFYLabel(){
+  var start=getAusFYStart();
+  return 'FY'+String(start.getFullYear()).slice(2)+'/'+String(start.getFullYear()+1).slice(2);
+}
+function isInFY(dateStr){
+  if(!dateStr)return false;
+  var d=new Date(dateStr+'T00:00:00');
+  var start=getAusFYStart();
+  var end=getAusFYEnd();
+  return d>=start&&d<=end;
+}
 
 // ============================================================
 // JUBISM FORTNIGHT TRACKER
