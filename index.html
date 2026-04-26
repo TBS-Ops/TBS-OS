@@ -1182,12 +1182,26 @@ function renderPhoto(){
   const paid=allJobs.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+parseFloat(j.invoice||0),0);
   const totalProfit=allJobs.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+(parseFloat(j.invoice||0)-parseFloat(j.cost||0)),0);
 
+  // MTD calculations
+  const now_mtd=new Date();
+  const mtdJobs=STATE.jobs.filter(j=>{if(!j.date)return false;const d=new Date(j.date+'T00:00:00');return d.getMonth()===now_mtd.getMonth()&&d.getFullYear()===now_mtd.getFullYear();});
+  const invoicedMTD=mtdJobs.filter(j=>['invoice-sent','invoice-paid'].includes(j.status)).reduce((s,j)=>s+parseFloat(j.invoice||0),0);
+  const paidMTD=mtdJobs.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+parseFloat(j.invoice||0),0);
+  const profitMTD=mtdJobs.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+parseFloat(j.invoice||0)-parseFloat(j.cost||0),0);
+
   document.getElementById('subbar-wrap').innerHTML=`
-    <div class="summary-bar">
+    <div class="summary-bar" style="flex-wrap:wrap;gap:6px">
       <div class="stat-card"><span class="stat-label">Active jobs</span><span class="stat-val blue">${active}</span></div>
+      <div style="width:1px;background:var(--border-light);margin:0 4px;align-self:stretch"></div>
+      <div style="font-size:10px;font-weight:500;color:var(--text-tertiary);align-self:center;padding:0 2px">THIS MONTH</div>
+      <div class="stat-card"><span class="stat-label">Invoiced</span><span class="stat-val amber">$${invoicedMTD.toFixed(0)}</span></div>
+      <div class="stat-card"><span class="stat-label">Paid</span><span class="stat-val blue">$${paidMTD.toFixed(0)}</span></div>
+      <div class="stat-card"><span class="stat-label">Profit</span><span class="stat-val green">$${profitMTD.toFixed(0)}</span></div>
+      <div style="width:1px;background:var(--border-light);margin:0 4px;align-self:stretch"></div>
+      <div style="font-size:10px;font-weight:500;color:var(--text-tertiary);align-self:center;padding:0 2px">YEAR TO DATE</div>
       <div class="stat-card"><span class="stat-label">Invoiced</span><span class="stat-val amber">$${invoiced.toFixed(0)}</span></div>
       <div class="stat-card"><span class="stat-label">Paid</span><span class="stat-val blue">$${paid.toFixed(0)}</span></div>
-      <div class="stat-card"><span class="stat-label">Profit (paid)</span><span class="stat-val green">$${totalProfit.toFixed(0)}</span></div>
+      <div class="stat-card"><span class="stat-label">Profit</span><span class="stat-val green">$${totalProfit.toFixed(0)}</span></div>
       <div style="margin-left:auto"><button class="btn sm" onclick="openModal('agents')">Manage agents</button></div>
     </div>
     <div class="subbar" style="overflow-x:auto;flex-wrap:nowrap">
@@ -1824,6 +1838,7 @@ function renderFlippers(){
           <span style="font-size:11px;color:var(--text-tertiary)">${STATE.hauls.length}</span>
         </div>
         <div class="search-wrap"><input class="search-inp" id="haul-search" placeholder="Search hauls..." oninput="renderHaulList()"></div>
+        <div class="search-wrap" style="padding-top:0;border-top:none"><input class="search-inp" id="global-item-search" placeholder="Search all items..." oninput="searchAllItems(this.value)" style="font-size:11px"></div>
         <div class="haul-list" id="haul-list"></div>
       </div>
       <div class="items-panel" id="items-panel">
@@ -2254,7 +2269,7 @@ function renderDashboard(){
 
   // Card
   function card(content,borderColor,extra){
-    return '<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;border-top:3px solid '+(borderColor||'var(--color-border-secondary)')+';'+(extra||'')+'">'+content+'</div>';
+    return '<div style="background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:14px 16px;border-top:3px solid '+(borderColor||'var(--color-border-secondary)')+';'+(extra||'')+'">'+content+'</div>';
   }
   function cardTitle(t){return '<div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">'+t+'</div>';}
 
@@ -2355,33 +2370,30 @@ function renderDashboard(){
 
   html+='</div>'; // end middle row
 
-  // BOTTOM ROW: Monthly + Yearly side by side
+  // BOTTOM ROW: Monthly + Yearly
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
 
-  // Monthly
-  var monContent=cardTitle('Monthly summary — '+now.toLocaleDateString('en-AU',{month:'long'}));
-  monContent+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">';
-  monContent+=sc('Photography revenue','$'+Math.round(photoInvoicedMonth).toLocaleString(),'var(--color-text-info)');
-  monContent+=sc('Paid this month','$'+Math.round(photoPaidMonth).toLocaleString(),'#0F6E56');
-  monContent+=sc('Jobs this month',photoMonth.length);
+  // Monthly - clean and simple
+  var monContent=cardTitle('Monthly — '+now.toLocaleDateString('en-AU',{month:'long',year:'numeric'}));
+  monContent+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+  monContent+=sc('Revenue','$'+Math.round(photoInvoicedMonth).toLocaleString(),'var(--color-text-info)');
+  monContent+=sc('Paid','$'+Math.round(photoPaidMonth).toLocaleString(),'#0F6E56');
+  monContent+=sc('Profit','$'+Math.round(photoProfitMonth).toLocaleString(),'#0F6E56');
+  monContent+=sc('Jobs',photoMonth.length);
   monContent+='</div>';
-  monContent+=row('Invoices paid','$'+Math.round(photoPaidMonth).toLocaleString(),'#0F6E56');
-  if(photoUnpaid.length>0) monContent+=row('Outstanding ('+photoUnpaid.length+')','$'+Math.round(photoUnpaid.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0)).toLocaleString(),'#854F0B');
-  monContent+=row('Profit this month','$'+Math.round(photoProfitMonth).toLocaleString(),'#0F6E56');
+  if(photoUnpaid.length>0){
+    monContent+='<div style="background:var(--color-background-warning);border-radius:var(--border-radius-md);padding:8px 10px;font-size:12px;color:var(--color-text-warning)">&#9888; '+photoUnpaid.length+' unpaid invoice'+(photoUnpaid.length>1?'s':'')+' — $'+Math.round(photoUnpaid.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0)).toLocaleString()+'</div>';
+  }
   html+=card(monContent,'var(--color-border-info)');
 
-  // Yearly
-  var yrContent=cardTitle('Yearly — '+thisYear);
-  yrContent+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">';
+  // Yearly - clean and simple
+  var yrContent=cardTitle('Year to date — '+thisYear);
+  yrContent+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
   yrContent+=sc('Revenue YTD','$'+Math.round(photoRevYTD).toLocaleString(),'var(--color-text-info)');
   yrContent+=sc('Profit YTD','$'+Math.round(photoProfitYTD).toLocaleString(),'#0F6E56');
+  yrContent+=sc('Jubism earned YTD','$'+Math.round(STATE.jubTracker&&STATE.jubTracker.fortnights?STATE.jubTracker.fortnights.filter(function(f){return f.key&&f.key.startsWith(String(thisYear));}).reduce(function(s,f){return s+(f.gordonDays.length+f.darrenDays.length)*350;},0):0).toLocaleString(),'var(--color-text-info)');
   yrContent+=sc('Jobs done',photoYTD.length);
   yrContent+='</div>';
-  yrContent+='<div style="margin-top:4px"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px">Progress to year target</div>';
-  var ftDone=Math.round((now-new Date(thisYear,0,1))/(14*24*60*60*1000));
-  var yrExpected=ftDone*ftNeed;
-  yrContent+='<div style="height:6px;background:var(--color-background-tertiary);border-radius:99px;overflow:hidden"><div style="height:100%;width:'+pct(photoRevYTD,yrExpected)+'%;background:'+statusColor(pct(photoRevYTD,yrExpected))+';border-radius:99px"></div></div>';
-  yrContent+='<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--color-text-tertiary)"><span>$'+Math.round(photoRevYTD).toLocaleString()+' earned</span><span>$'+Math.round(yrExpected).toLocaleString()+' expected by now</span></div></div>';
   html+=card(yrContent,'var(--color-border-secondary)');
 
   html+='</div>'; // end bottom row
@@ -2636,12 +2648,14 @@ function renderJubTracker(){
   var week1=days.slice(0,5);
   var week2=days.slice(5,10);
 
+  var DAY_LABELS_FT=['M','T','W','T','F'];
+
   function dayBtns(personDays,weekDays,person){
-    return weekDays.map(function(d){
+    return weekDays.map(function(d,idx){
       var done=personDays.indexOf(d)>=0;
       var isToday=d===today;
       var isFuture=d>today;
-      var label=new Date(d+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short'}).slice(0,1);
+      var label=DAY_LABELS_FT[idx]||'?';
       var style='';
       if(done) style='background:#E6F1FB;border-color:#185FA5;color:#0C447C;cursor:pointer;';
       else if(isFuture) style='opacity:0.4;cursor:default;';
@@ -2660,7 +2674,7 @@ function renderJubTracker(){
     ft.status==='invoiced'?'<button onclick="markJubPaid()" style="font-size:11px;padding:3px 10px;border-radius:99px;border:0.5px solid #0F6E56;background:transparent;cursor:pointer;color:#0F6E56;font-family:inherit">Mark paid</button>':
     '';
 
-  var html='<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;border-top:3px solid #185FA5">';
+  var html='<div style="background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:14px 16px;border-top:3px solid #185FA5">';
   html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
   html+='<div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em">Jubism work tracker</div>';
   html+='<div style="display:flex;align-items:center;gap:8px">'+statusBadge+' '+invoiceBtn+'</div>';
