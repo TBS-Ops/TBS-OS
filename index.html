@@ -1136,7 +1136,7 @@ function openJubPanel(id){
       <button class="btn sm" style="flex:1;color:var(--amber);border-color:var(--amber)" onclick="toggleJubPriority(${id})">${t.priority?'▲ High':'▽ Normal'}</button>
       <button class="btn sm danger" style="flex:1" onclick="deleteJubTask(${id})">Delete</button>
     </div>`;
-  document.getElementById('detail-panel').classList.add('open');document.getElementById('panel-overlay').classList.add('open');
+  document.getElementById('detail-panel').classList.add('open');
   renderJubism();
 }
 
@@ -1329,7 +1329,7 @@ function openJobPanel(id){
       <button class="btn sm" style="flex:1;color:var(--text-secondary)" onclick="archiveJob(${id})">${j.archived?'Unarchive':'Archive'}</button>
       <button class="btn sm danger" style="flex:1" onclick="deleteJob(${id})">Delete</button>
     </div>`;
-  document.getElementById('detail-panel').classList.add('open');document.getElementById('panel-overlay').classList.add('open');
+  document.getElementById('detail-panel').classList.add('open');
   renderPhoto();
 }
 
@@ -1737,7 +1737,7 @@ function openBRGPanel(id){
       <button class="btn sm" style="flex:1" onclick="openEditBRGTask(${id})">Edit</button>
       <button class="btn sm danger" style="flex:1" onclick="deleteBRGTask(${id})">Delete</button>
     </div>`;
-  document.getElementById('detail-panel').classList.add('open');document.getElementById('panel-overlay').classList.add('open');
+  document.getElementById('detail-panel').classList.add('open');
 }
 
 function openEditBRGTask(id){
@@ -2084,7 +2084,7 @@ function openItemPanel(id){
       <button class="btn sm" style="flex:1" onclick="openEditItem(${id})">Edit</button>
       <button class="btn sm danger" style="flex:1" onclick="deleteItem(${id})">Delete</button>
     </div>`;
-  document.getElementById('detail-panel').classList.add('open');document.getElementById('panel-overlay').classList.add('open');
+  document.getElementById('detail-panel').classList.add('open');
   renderItemsPanel();
 }
 
@@ -2186,7 +2186,7 @@ function deleteItem(id){
 // ============================================================
 function closePanel(){
   STATE.selectedPanelId=null;STATE.panelType=null;STATE.selectedItemId=null;
-  document.getElementById('detail-panel').classList.remove('open');document.getElementById('panel-overlay').classList.remove('open');
+  document.getElementById('detail-panel').classList.remove('open');
 }
 
 function openModal(type){
