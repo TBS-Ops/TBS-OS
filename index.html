@@ -331,6 +331,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 @keyframes celebratePop{0%{opacity:0;transform:translate(-50%,-50%) scale(0.3)}40%{opacity:1;transform:translate(-50%,-50%) scale(1.3)}70%{transform:translate(-50%,-50%) scale(0.9)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 .task-fade{animation:fadeOut 30s forwards}
 @keyframes fadeOut{0%{opacity:1}85%{opacity:1}100%{opacity:0;height:0;margin:0;padding:0;border:none}}
+.add-task-btn-sm{background:transparent;border:none;color:var(--text-tertiary);font-size:16px;cursor:pointer;padding:0 4px;line-height:1;margin-left:auto}
+.add-task-btn-sm:hover{color:var(--blue)}
 .task-notes-preview{font-size:11px;color:var(--text-secondary);margin-top:3px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .undo-bar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:8px 16px;border-radius:99px;font-size:12px;z-index:999;display:flex;align-items:center;gap:10px}
 .undo-btn{background:var(--blue);color:#fff;border:none;border-radius:99px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit}
@@ -449,6 +451,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         if (data.weekly) STATE.weekly = data.weekly;
         if (data.hauls) STATE.hauls = data.hauls;
         if (data.flipItems) STATE.flipItems = data.flipItems;
+        if (data.jubTracker) STATE.jubTracker = data.jubTracker;
+        if (data.finTargets) STATE.finTargets = data.finTargets;
+        if (data.revenueTarget) STATE.revenueTarget = data.revenueTarget;
         render();
         showSyncBadge('↻ Synced with Darren');
       });
@@ -508,6 +513,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <option value="Gordon">Gordon</option>
         <option value="Darren">Darren</option>
       </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+        <input type="checkbox" id="jt-priority" style="width:16px;height:16px;accent-color:var(--amber)">
+        <span style="color:var(--amber);font-weight:500">▲ High priority</span>
+      </label>
     </div>
     <div><div class="ml">Due date</div><input type="date" id="jt-due"></div>
     <div><div class="ml">Recurrence</div>
@@ -969,43 +980,52 @@ function renderJubism(){
   const today=todayStr();
   document.getElementById('subbar-wrap').innerHTML=`
     <div class="subbar">
-      <button class="btn sm${STATE.jubFilter==='today'?' active-toggle':''}" onclick="setJubFilter('today')">Today</button>
-      <button class="btn sm${STATE.jubFilter==='upcoming'?' active-toggle':''}" onclick="setJubFilter('upcoming')">Upcoming</button>
-      <button class="btn sm${STATE.jubFilter==='all'?' active-toggle':''}" onclick="setJubFilter('all')">All</button>
+      <span style="font-size:12px;color:var(--text-secondary)">${new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}</span>
       <span style="flex:1"></span>
-      <span style="font-size:11px;color:var(--text-tertiary)">${new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}</span>
+      <button class="btn sm primary-jub" onclick="openJubTaskModal()">+ Add task</button>
     </div>`;
 
   let tasks=STATE.jubTasks.filter(t=>!t._pendingDelete);
-  if(STATE.jubFilter==='today') tasks=tasks.filter(t=>t.due<=today);
-  else if(STATE.jubFilter==='upcoming') tasks=tasks.filter(t=>t.due>today);
 
-  document.getElementById('main-content').innerHTML=`<div class="jub-board">
-    ${JUB_BRANDS.map(brand=>{
-      const bt=tasks.filter(t=>t.brand===brand.id);
-      return`<div class="jub-col">
-        <div class="jub-col-header">
-          <span class="jub-col-title">${brand.name}</span>
-          <span class="jub-col-count">${bt.length}</span>
-        </div>
-        <div class="jub-col-body">
-          ${bt.map(t=>`
-            <div class="task-row" onclick="openJubPanel(${t.id})">
-              <div class="task-cb${t.done?' checked':''}" onclick="event.stopPropagation();tickJubTask(${t.id})"></div>
-              <div class="task-info">
-                <div class="task-title${t.done?' struck':''}">${t.title}</div>
-                <div class="task-meta">
-                  ${jubDueLbl(t.due)}
-                  ${t.recur!=='none'?`<span class="recur-badge">${RECUR_LABELS[t.recur]}</span>`:''}
-                  ${avHtml(t.assignee)}
-                </div>
-              </div>
-            </div>`).join('')}
-        </div>
-        <button class="add-task-btn" onclick="openJubTaskModal('${brand.id}')">+ Add task</button>
-      </div>`;
-    }).join('')}
-  </div>`;
+  document.getElementById('main-content').innerHTML='<div class="jub-board">'+
+    JUB_BRANDS.map(function(brand){
+      var bt=tasks.filter(function(t){return t.brand===brand.id;});
+      // Sort: high priority first, then by due date
+      bt.sort(function(a,b){
+        if(a.priority&&!b.priority)return -1;
+        if(!a.priority&&b.priority)return 1;
+        if(!a.due&&!b.due)return 0;
+        if(!a.due)return 1;
+        if(!b.due)return -1;
+        return a.due>b.due?1:-1;
+      });
+      return '<div class="jub-col">'+
+        '<div class="jub-col-header">'+
+          '<span class="jub-col-title">'+brand.name+'</span>'+
+          '<span class="jub-col-count">'+bt.length+'</span>'+
+          '<button class="add-task-btn-sm" onclick="openJubTaskModal(&quot;'+brand.id+'&quot;)">+</button>'+
+        '</div>'+
+        '<div class="jub-col-body">'+
+          bt.map(function(t){
+            var priorityStyle=t.priority?'border-left:3px solid var(--amber);':'';
+            var priorityIcon=t.priority?'<span style="color:var(--amber);font-size:10px;margin-right:2px">▲</span>':'';
+            return '<div class="task-row" style="'+priorityStyle+'" onclick="openJubPanel('+t.id+')">'+
+              '<div class="task-cb" onclick="event.stopPropagation();tickJubTask('+t.id+')"></div>'+
+              '<div class="task-info">'+
+                '<div class="task-title">'+priorityIcon+t.title+'</div>'+
+                (t.notes?'<div class="task-notes-preview">'+t.notes+'</div>':'')+
+                '<div class="task-meta">'+
+                  jubDueLbl(t.due)+
+                  (t.recur&&t.recur!=='none'?'<span class="recur-badge">'+(t.recur==='custom'&&t.customDays&&t.customDays.length?t.customDays.map(function(d){return DAY_NAMES[d];}).join(', '):RECUR_LABELS[t.recur]||t.recur)+'</span>':'')+
+                  (t.assignee==='both'?avHtml('Gordon')+avHtml('Darren'):avHtml(t.assignee||'Gordon'))+
+                '</div>'+
+              '</div>'+
+            '</div>';
+          }).join('')+
+        '</div>'+
+      '</div>';
+    }).join('')+
+  '</div>';
 }
 
 function jubDueLbl(ds){
@@ -1111,11 +1131,12 @@ function openJubPanel(id){
     <div class="pl">Recurrence</div><div class="pv">${t.recur==='custom'&&t.customDays&&t.customDays.length?t.customDays.map(d=>DAY_NAMES[d]).join(', '):RECUR_LABELS[t.recur]||'One-off'}</div>
     <div class="pl">Notes</div>
     <textarea id="panel-notes-${id}" style="width:100%;font-size:13px;padding:8px 10px;border-radius:var(--border-radius-md);border:1px solid var(--border-light);background:var(--bg-primary);color:var(--text-primary);font-family:inherit;resize:vertical;min-height:80px;margin-top:4px;outline:none" placeholder="Add notes about this task..." onchange="saveJubNotes(${id},this.value)">${t.notes||''}</textarea>
-    <div style="display:flex;gap:6px;margin-top:12px">
+    <div style="display:flex;gap:6px;margin-top:12px;align-items:center">
       <button class="btn sm" style="flex:1" onclick="openEditJubTask(${id})">Edit task</button>
+      <button class="btn sm" style="flex:1;color:var(--amber);border-color:var(--amber)" onclick="toggleJubPriority(${id})">${t.priority?'▲ High':'▽ Normal'}</button>
       <button class="btn sm danger" style="flex:1" onclick="deleteJubTask(${id})">Delete</button>
     </div>`;
-  document.getElementById('detail-panel').classList.add('open');
+  document.getElementById('detail-panel').classList.add('open');document.getElementById('panel-overlay').classList.add('open');
   renderJubism();
 }
 
@@ -1130,9 +1151,19 @@ function openEditJubTask(id){
   document.getElementById('jt-recur').value=t.recur||'none';
   document.getElementById('jt-brand').value=t.brand;
   document.getElementById('jt-assignee').value=t.assignee||'Gordon';
+  document.getElementById('jt-priority').checked=t.priority||false;
   toggleCustomDays();
   if(t.customDays)setTimeout(()=>setCustomDays(t.customDays),50);
   openModal('jubtask');
+}
+
+function toggleJubPriority(id){
+  const t=STATE.jubTasks.find(x=>x.id===id);
+  if(!t)return;
+  t.priority=!t.priority;
+  saveState();
+  openJubPanel(id);
+  renderJubism();
 }
 
 function saveJubNotes(id,notes){
@@ -1156,6 +1187,7 @@ function openJubTaskModal(brandId){
   document.getElementById('jt-recur').value='none';
   document.getElementById('jt-brand').value=brandId||'nt';
   document.getElementById('jt-assignee').value='both';
+  document.getElementById('jt-priority').checked=false;
   document.getElementById('custom-days-wrap').style.display='none';
   setCustomDays([]);
   openModal('jubtask');
@@ -1165,7 +1197,7 @@ function saveJubTask(){
   const name=document.getElementById('jt-name').value.trim();if(!name)return;
   const recur=document.getElementById('jt-recur').value;
   const customDays=recur==='custom'?getCustomDays():[];
-  const task={title:name,brand:document.getElementById('jt-brand').value,assignee:document.getElementById('jt-assignee').value,due:document.getElementById('jt-due').value||todayStr(),recur,customDays,notes:document.getElementById('jt-notes').value.trim(),done:false};
+  const task={title:name,brand:document.getElementById('jt-brand').value,assignee:document.getElementById('jt-assignee').value,due:document.getElementById('jt-due').value||todayStr(),recur,customDays,notes:document.getElementById('jt-notes').value.trim(),priority:document.getElementById('jt-priority').checked,done:false};
   if(STATE.editingJubId){const idx=STATE.jubTasks.findIndex(x=>x.id===STATE.editingJubId);if(idx>=0){task.id=STATE.editingJubId;STATE.jubTasks[idx]=task;}}
   else{task.id=NID++;STATE.jubTasks.push(task);}
   STATE.editingJubId=null;closeModal('jubtask');renderJubism();saveState();
@@ -1202,7 +1234,7 @@ function renderPhoto(){
       <div class="stat-card"><span class="stat-label">Invoiced</span><span class="stat-val amber">$${invoiced.toFixed(0)}</span></div>
       <div class="stat-card"><span class="stat-label">Paid</span><span class="stat-val blue">$${paid.toFixed(0)}</span></div>
       <div class="stat-card"><span class="stat-label">Profit</span><span class="stat-val green">$${totalProfit.toFixed(0)}</span></div>
-      <div style="margin-left:auto"><button class="btn sm" onclick="openModal('agents')">Manage agents</button></div>
+      <div style="margin-left:auto"><button class="btn sm" onclick="openModal(&quot;agents&quot;)">Manage agents</button></div>
     </div>
     <div class="subbar" style="overflow-x:auto;flex-wrap:nowrap">
       <span style="font-size:11px;color:var(--text-secondary);white-space:nowrap">Status:</span>
@@ -1272,6 +1304,7 @@ function openJobPanel(id){
   const p=parseFloat(j.invoice||0)-parseFloat(j.cost||0);
   const showFin=['invoice-sent','invoice-paid'].includes(j.status);
   document.getElementById('panel-title').textContent=j.title;
+  const mapsUrl=j.address?'maps://maps.apple.com/?q='+encodeURIComponent(j.address):'';
   document.getElementById('panel-body').innerHTML=`
     <hr class="pdiv">
     <div class="pl">Date & time</div><div class="pv">${fmtDate(j.date)}${j.time?' at '+fmtTime(j.time):''}</div>
@@ -1296,7 +1329,7 @@ function openJobPanel(id){
       <button class="btn sm" style="flex:1;color:var(--text-secondary)" onclick="archiveJob(${id})">${j.archived?'Unarchive':'Archive'}</button>
       <button class="btn sm danger" style="flex:1" onclick="deleteJob(${id})">Delete</button>
     </div>`;
-  document.getElementById('detail-panel').classList.add('open');
+  document.getElementById('detail-panel').classList.add('open');document.getElementById('panel-overlay').classList.add('open');
   renderPhoto();
 }
 
@@ -1704,7 +1737,7 @@ function openBRGPanel(id){
       <button class="btn sm" style="flex:1" onclick="openEditBRGTask(${id})">Edit</button>
       <button class="btn sm danger" style="flex:1" onclick="deleteBRGTask(${id})">Delete</button>
     </div>`;
-  document.getElementById('detail-panel').classList.add('open');
+  document.getElementById('detail-panel').classList.add('open');document.getElementById('panel-overlay').classList.add('open');
 }
 
 function openEditBRGTask(id){
@@ -2051,7 +2084,7 @@ function openItemPanel(id){
       <button class="btn sm" style="flex:1" onclick="openEditItem(${id})">Edit</button>
       <button class="btn sm danger" style="flex:1" onclick="deleteItem(${id})">Delete</button>
     </div>`;
-  document.getElementById('detail-panel').classList.add('open');
+  document.getElementById('detail-panel').classList.add('open');document.getElementById('panel-overlay').classList.add('open');
   renderItemsPanel();
 }
 
@@ -2153,7 +2186,7 @@ function deleteItem(id){
 // ============================================================
 function closePanel(){
   STATE.selectedPanelId=null;STATE.panelType=null;STATE.selectedItemId=null;
-  document.getElementById('detail-panel').classList.remove('open');
+  document.getElementById('detail-panel').classList.remove('open');document.getElementById('panel-overlay').classList.remove('open');
 }
 
 function openModal(type){
@@ -2303,8 +2336,8 @@ function renderDashboard(){
   var incContent=cardTitle('Income — this fortnight');
   incContent+=row('Jubism earned','$'+Math.round(jubEarned).toLocaleString(),'var(--color-text-success)');
   incContent+=row('Photography paid (month)','$'+Math.round(photoFTPaid).toLocaleString(),'var(--color-text-success)');
-  incContent+=row('BackRoom Gear','$'+Math.round(brgRevMonth).toLocaleString(),'var(--color-text-warning)');
-  incContent+=row('Two Bear Flippers','$'+Math.round(flipProfitTotal).toLocaleString(),'var(--color-text-primary)');
+  incContent+=row('BackRoom Gear profit','$'+Math.round(brgProfitMonth).toLocaleString(),brgProfitMonth>=0?'var(--color-text-success)':'var(--color-text-danger)');
+  incContent+=row('Two Bear Flippers profit','$'+Math.round(flipProfitTotal).toLocaleString(),flipProfitTotal>=0?'var(--color-text-success)':'var(--color-text-danger)');
   incContent+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:13px;font-weight:500"><span>Total earned</span><span style="color:var(--color-text-info);font-size:17px">$'+Math.round(totalFTEarned).toLocaleString()+'</span></div>';
   incContent+='<div style="height:6px;background:var(--color-background-tertiary);border-radius:99px;overflow:hidden"><div style="height:100%;width:'+pct(totalFTEarned,ftNeed)+'%;background:'+statusColor(pct(totalFTEarned,ftNeed))+';border-radius:99px"></div></div>';
   incContent+='<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--color-text-tertiary)"><span>$0</span><span>Target: $'+ftNeed.toLocaleString()+'</span></div>';
