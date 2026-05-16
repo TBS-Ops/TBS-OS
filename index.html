@@ -492,6 +492,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="biz-tabs" id="biz-tabs"></div>
   <button class="dark-toggle" id="dark-toggle" onclick="toggleDark()"><span id="dark-icon">🌙</span><span id="dark-label">Dark</span></button>
   <button class="btn" id="main-cta" style="display:none" onclick="mainCTA()">+ New task</button>
+  <span id="sync-badge" style="font-size:10px;color:var(--text-tertiary);opacity:0;transition:opacity 0.3s;margin-left:8px"></span>
 </div>
 <div id="section-bar-wrap"></div>
 <div id="subbar-wrap"></div>
@@ -960,7 +961,7 @@ let NID=200;
 function render(){
   renderTabs();
   const biz=STATE.activeBiz;
-  if(!biz) renderDashboard();
+  if(!biz){try{renderDashboard();}catch(e){console.error('Dashboard error:',e);document.getElementById('main-content').innerHTML='<div style="padding:20px;color:red">Dashboard error: '+e.message+'</div>';}}
   else if(biz==='jubism') renderJubism();
   else if(biz==='photo') renderPhoto();
   else if(biz==='backroom') renderBRG();
@@ -2465,38 +2466,7 @@ function saveIncomeTargets(){
   renderDashboard();
 }
 
-function getJubismThisMonth(month,year){
-  var rec=getFinRecords();
-  if(!rec.jubismPayments) return 0;
-  return rec.jubismPayments.filter(function(p){
-    if(!p.date) return false;
-    var d=new Date(p.date+'T00:00:00');
-    return d.getMonth()===month&&d.getFullYear()===year;
-  }).reduce(function(s,p){return s+parseFloat(p.amount||0);},0);
-}
 
-function getJubismThisQuarter(year){
-  var now=new Date();
-  var q=Math.floor(now.getMonth()/3);
-  var rec=getFinRecords();
-  if(!rec.jubismPayments) return 0;
-  return rec.jubismPayments.filter(function(p){
-    if(!p.date) return false;
-    var d=new Date(p.date+'T00:00:00');
-    return d.getFullYear()===year&&Math.floor(d.getMonth()/3)===q;
-  }).reduce(function(s,p){return s+parseFloat(p.amount||0);},0);
-}
-
-function getJubismFY(){
-  var rec=getFinRecords();
-  if(!rec.jubismPayments) return 0;
-  return rec.jubismPayments.filter(function(p){return isInFY(p.date);}).reduce(function(s,p){return s+parseFloat(p.amount||0);},0);
-}
-
-
-// ============================================================
-// AUSTRALIAN FINANCIAL YEAR HELPERS
-// ============================================================
 function getAusFYStart(){
   var now=new Date();
   var fyYear=now.getMonth()>=6?now.getFullYear():now.getFullYear()-1;
@@ -2700,25 +2670,6 @@ function saveJubPayment(){
   STATE.finRecords=rec;
   saveState();
   closeModal('jub-payment');
-  renderDashboard();
-}
-
-function openIncomeTargets(){
-  var t=getFinTargets();
-  document.getElementById('it-monthly').value=t.monthlyGoal||12000;
-  document.getElementById('it-quarterly').value=t.quarterlyGoal||36000;
-  document.getElementById('it-yearly').value=t.yearlyGoal||150000;
-  openModal('income-targets');
-}
-
-function saveIncomeTargets(){
-  var t=getFinTargets();
-  t.monthlyGoal=parseFloat(document.getElementById('it-monthly').value)||12000;
-  t.quarterlyGoal=parseFloat(document.getElementById('it-quarterly').value)||36000;
-  t.yearlyGoal=parseFloat(document.getElementById('it-yearly').value)||150000;
-  STATE.finTargets=t;
-  saveState();
-  closeModal('income-targets');
   renderDashboard();
 }
 
