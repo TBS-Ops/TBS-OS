@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="TBS OS">
@@ -846,6 +846,14 @@ function getDiff(ds){if(!ds)return null;const d=new Date(ds),n=new Date();n.setH
 function fmtDate(ds){if(!ds)return'—';const d=new Date(ds+'T00:00:00');return d.getDate()+' '+MONTHS[d.getMonth()];}
 function fmtTime(ts){if(!ts)return'';const p=ts.split(':');return p[0]+':'+p[1];}
 function fmt$(n){return n?'$'+parseFloat(n).toFixed(2):'—';}
+function showSyncBadge(msg){
+  var el=document.getElementById('sync-badge');
+  if(!el)return;
+  el.textContent=msg;
+  el.style.opacity='1';
+  setTimeout(function(){el.style.opacity='0';},3000);
+}
+
 function fmt(n){return'$'+(Math.round(n)||0).toLocaleString();}
 function avHtml(name){return`<div class="av ${name==='Gordon'?'g':'d'}">${name.slice(0,2).toUpperCase()}</div>`;}
 function statusObj(id){return PHOTO_STATUSES.find(s=>s.id===id)||PHOTO_STATUSES[0];}
@@ -2517,7 +2525,7 @@ function setDark(dark){
 <script>
 if('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
+    navigator.serviceWorker.register('./sw.js')
       .then(reg => console.log('SW registered'))
       .catch(err => console.log('SW error:', err));
   });
