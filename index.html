@@ -2493,6 +2493,264 @@ function getJubismFY(){
   return rec.jubismPayments.filter(function(p){return isInFY(p.date);}).reduce(function(s,p){return s+parseFloat(p.amount||0);},0);
 }
 
+
+// ============================================================
+// AUSTRALIAN FINANCIAL YEAR HELPERS
+// ============================================================
+function getAusFYStart(){
+  var now=new Date();
+  var fyYear=now.getMonth()>=6?now.getFullYear():now.getFullYear()-1;
+  return new Date(fyYear,6,1);
+}
+function getAusFYEnd(){
+  var start=getAusFYStart();
+  return new Date(start.getFullYear()+1,5,30);
+}
+function getFYLabel(){
+  var start=getAusFYStart();
+  return 'FY'+String(start.getFullYear()).slice(2)+'/'+String(start.getFullYear()+1).slice(2);
+}
+function isInFY(dateStr){
+  if(!dateStr)return false;
+  var d=new Date(dateStr+'T00:00:00');
+  var start=getAusFYStart();
+  var end=getAusFYEnd();
+  return d>=start&&d<=end;
+}
+
+// ============================================================
+// JUBISM FORTNIGHT TRACKER
+// ============================================================
+function getMonday(d){
+  var day=d.getDay(),diff=d.getDate()-(day===0?6:day-1);
+  return new Date(d.setDate(diff));
+}
+
+function ftKey(d){return d.toISOString().slice(0,10);}
+
+function getCurrentFortnight(){
+  var now=new Date();
+  var mon=getMonday(new Date());
+  var ref=new Date('2025-04-14');
+  var diff=Math.floor((mon-ref)/(7*24*60*60*1000));
+  var ftNum=Math.floor(diff/2);
+  var ftStart=new Date(ref);
+  ftStart.setDate(ftStart.getDate()+ftNum*14);
+  var ftEnd=new Date(ftStart);
+  ftEnd.setDate(ftEnd.getDate()+13);
+  return{start:ftKey(ftStart),end:ftKey(ftEnd),key:ftKey(ftStart)};
+}
+
+function getOrCreateFortnight(){
+  var ft=getCurrentFortnight();
+  if(!STATE.jubTracker)STATE.jubTracker={fortnights:[]};
+  if(!STATE.jubTracker.fortnights)STATE.jubTracker.fortnights=[];
+  var existing=STATE.jubTracker.fortnights.find(function(f){return f.key===ft.key;});
+  if(!existing){
+    existing={key:ft.key,start:ft.start,end:ft.end,gordonDays:[],darrenDays:[],status:'active',invoiceAmount:0,paid:false};
+    STATE.jubTracker.fortnights.push(existing);
+    saveState();
+  }
+  return existing;
+}
+
+function getFortnightDays(ft){
+  var days=[];
+  var d=new Date(ft.start+'T00:00:00');
+  var end=new Date(ft.end+'T00:00:00');
+  while(d<=end){
+    var dow=d.getDay();
+    if(dow>=1&&dow<=5){days.push(d.toISOString().slice(0,10));}
+    d.setDate(d.getDate()+1);
+  }
+  return days;
+}
+
+function handleDayClick(el){
+  var person=el.getAttribute('data-person');
+  var date=el.getAttribute('data-date');
+  if(person&&date) toggleJubDay(person,date);
+}
+
+function toggleJubDay(person,dateStr){
+  var ft=getOrCreateFortnight();
+  var arr=person==='gordon'?ft.gordonDays:ft.darrenDays;
+  var idx=arr.indexOf(dateStr);
+  if(idx>=0){arr.splice(idx,1);}else{arr.push(dateStr);}
+  saveState();
+  renderDashboard();
+}
+
+function markJubInvoiced(){
+  var ft=getOrCreateFortnight();
+  var total=(ft.gordonDays.length+ft.darrenDays.length)*350;
+  ft.invoiceAmount=total;
+  ft.status='invoiced';
+  saveState();
+  renderDashboard();
+}
+
+function markJubPaid(){
+  var ft=getOrCreateFortnight();
+  ft.paid=true;
+  ft.status='paid';
+  saveState();
+  renderDashboard();
+}
+
+function renderJubTracker(innerOnly){
+  var ft=getOrCreateFortnight();
+  var days=getFortnightDays(ft);
+  var today=todayStr();
+  var gordonEarned=ft.gordonDays.length*350;
+  var darrenEarned=ft.darrenDays.length*350;
+  var totalEarned=(ft.gordonDays.length+ft.darrenDays.length)*350;
+  var week1=days.slice(0,5);
+  var week2=days.slice(5,10);
+  var DAY_LABELS_FT=['M','T','W','T','F'];
+
+  function dayBtns(personDays,weekDays,person){
+    return weekDays.map(function(d,idx){
+      var done=personDays.indexOf(d)>=0;
+      var isToday=d===today;
+      var isFuture=d>today;
+      var label=DAY_LABELS_FT[idx]||'?';
+      var style='';
+      if(done) style='background:#E6F1FB;border-color:#185FA5;color:#0C447C;cursor:pointer;';
+      else if(isFuture) style='opacity:0.35;cursor:default;';
+      else style='cursor:pointer;';
+      if(isToday&&!done) style+='border-width:2px;border-color:var(--text-primary);';
+      var clickAttr=isFuture?'':'data-person="'+person+'" data-date="'+d+'" onclick="handleDayClick(this)"';
+      return '<div '+clickAttr+' style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border-light);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;'+style+'">'+label+'</div>';
+    }).join('');
+  }
+
+  var statusBadge=ft.status==='paid'?'<span style="font-size:11px;background:#EAF3DE;color:#27500A;padding:2px 8px;border-radius:99px;">✅ Paid</span>':
+    ft.status==='invoiced'?'<span style="font-size:11px;background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:99px;">Invoice sent</span>':
+    '<span style="font-size:11px;background:#E6F1FB;color:#0C447C;padding:2px 8px;border-radius:99px;">Active</span>';
+
+  var invoiceBtn=ft.status==='active'?'<button onclick="markJubInvoiced()" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit">Mark invoiced</button>':
+    ft.status==='invoiced'?'<button onclick="markJubPaid()" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid #0F6E56;background:transparent;cursor:pointer;color:#0F6E56;font-family:inherit">Mark paid</button>':'';
+
+  var html='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:14px 16px;border-top:3px solid #185FA5">';
+  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+  html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em">Jubism work tracker</div>';
+  html+='<div style="display:flex;align-items:center;gap:8px">'+statusBadge+' '+invoiceBtn+'</div>';
+  html+='</div>';
+
+  html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
+  html+='<div style="width:24px;height:24px;border-radius:50%;background:#CECBF6;color:#3C3489;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;flex-shrink:0">GO</div>';
+  html+='<div style="font-size:12px;font-weight:500;min-width:120px">Gordon <span style="font-weight:400;color:var(--text-secondary)">'+ft.gordonDays.length+' days · $'+gordonEarned.toLocaleString()+'</span></div>';
+  html+='<div style="display:flex;gap:4px">'+dayBtns(ft.gordonDays,week1,'gordon')+'</div>';
+  html+='<div style="width:1px;background:var(--border-light);height:20px;margin:0 4px"></div>';
+  html+='<div style="display:flex;gap:4px">'+dayBtns(ft.gordonDays,week2,'gordon')+'</div>';
+  html+='</div>';
+
+  html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">';
+  html+='<div style="width:24px;height:24px;border-radius:50%;background:#9FE1CB;color:#085041;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;flex-shrink:0">DA</div>';
+  html+='<div style="font-size:12px;font-weight:500;min-width:120px">Darren <span style="font-weight:400;color:var(--text-secondary)">'+ft.darrenDays.length+' days · $'+darrenEarned.toLocaleString()+'</span></div>';
+  html+='<div style="display:flex;gap:4px">'+dayBtns(ft.darrenDays,week1,'darren')+'</div>';
+  html+='<div style="width:1px;background:var(--border-light);height:20px;margin:0 4px"></div>';
+  html+='<div style="display:flex;gap:4px">'+dayBtns(ft.darrenDays,week2,'darren')+'</div>';
+  html+='</div>';
+
+  html+='<div style="border-top:1px solid var(--border-light);padding-top:8px;display:flex;align-items:center;justify-content:space-between">';
+  html+='<div style="font-size:13px;font-weight:500;color:#185FA5">Earned this fortnight: $'+totalEarned.toLocaleString()+'</div>';
+  html+='<div style="font-size:11px;color:var(--text-secondary)">'+fmtDate(ft.start)+' – '+fmtDate(ft.end)+'</div>';
+  html+='</div>';
+  html+='</div>';
+  return html;
+}
+
+// ============================================================
+// FINANCE HELPERS
+// ============================================================
+function getFinTargets(){
+  return STATE.finTargets||{payroll:3428,super:500,taxContrib:1250,holidayGoal:5178,taxMonthly:2500,operatingMonthly:2500,monthlyGoal:12000,quarterlyGoal:36000,yearlyGoal:150000};
+}
+
+function getFinRecords(){
+  if(!STATE.finRecords) STATE.finRecords={fortnights:[],taxDeposits:[],holidayDeposits:[],operatingDeposits:[],jubismPayments:[]};
+  if(!STATE.finRecords.jubismPayments) STATE.finRecords.jubismPayments=[];
+  if(!STATE.finRecords.taxDeposits) STATE.finRecords.taxDeposits=[];
+  if(!STATE.finRecords.holidayDeposits) STATE.finRecords.holidayDeposits=[];
+  return STATE.finRecords;
+}
+
+// ============================================================
+// JUBISM INCOME & INCOME TARGETS
+// ============================================================
+function openJubPaymentModal(){
+  var ft=getOrCreateFortnight();
+  var jubEarned=(ft.gordonDays.length+ft.darrenDays.length)*350;
+  var hint=document.getElementById('jub-payment-hint');
+  if(hint) hint.textContent='Day tracker: $'+jubEarned.toLocaleString()+' (Gordon '+ft.gordonDays.length+' days + Darren '+ft.darrenDays.length+' days). Edit if invoice differs.';
+  document.getElementById('jub-payment-amount').value=jubEarned||'';
+  document.getElementById('jub-payment-date').value=todayStr();
+  document.getElementById('jub-payment-notes').value='';
+  openModal('jub-payment');
+}
+
+function saveJubPayment(){
+  var amt=parseFloat(document.getElementById('jub-payment-amount').value);
+  if(!amt)return;
+  var rec=getFinRecords();
+  if(!rec.jubismPayments) rec.jubismPayments=[];
+  rec.jubismPayments.push({id:NID++,date:document.getElementById('jub-payment-date').value,amount:amt,notes:document.getElementById('jub-payment-notes').value.trim()});
+  STATE.finRecords=rec;
+  saveState();
+  closeModal('jub-payment');
+  renderDashboard();
+}
+
+function openIncomeTargets(){
+  var t=getFinTargets();
+  document.getElementById('it-monthly').value=t.monthlyGoal||12000;
+  document.getElementById('it-quarterly').value=t.quarterlyGoal||36000;
+  document.getElementById('it-yearly').value=t.yearlyGoal||150000;
+  openModal('income-targets');
+}
+
+function saveIncomeTargets(){
+  var t=getFinTargets();
+  t.monthlyGoal=parseFloat(document.getElementById('it-monthly').value)||12000;
+  t.quarterlyGoal=parseFloat(document.getElementById('it-quarterly').value)||36000;
+  t.yearlyGoal=parseFloat(document.getElementById('it-yearly').value)||150000;
+  STATE.finTargets=t;
+  saveState();
+  closeModal('income-targets');
+  renderDashboard();
+}
+
+function getJubismThisMonth(month,year){
+  var rec=getFinRecords();
+  if(!rec.jubismPayments) return 0;
+  return rec.jubismPayments.filter(function(p){
+    if(!p.date)return false;
+    var d=new Date(p.date+'T00:00:00');
+    return d.getMonth()===month&&d.getFullYear()===year;
+  }).reduce(function(s,p){return s+parseFloat(p.amount||0);},0);
+}
+
+function getJubismThisQuarter(year){
+  var now=new Date();
+  var q=Math.floor(now.getMonth()/3);
+  var rec=getFinRecords();
+  if(!rec.jubismPayments) return 0;
+  return rec.jubismPayments.filter(function(p){
+    if(!p.date)return false;
+    var d=new Date(p.date+'T00:00:00');
+    return d.getFullYear()===year&&Math.floor(d.getMonth()/3)===q;
+  }).reduce(function(s,p){return s+parseFloat(p.amount||0);},0);
+}
+
+function getJubismFY(){
+  var rec=getFinRecords();
+  if(!rec.jubismPayments) return 0;
+  return rec.jubismPayments.filter(function(p){return isInFY(p.date);}).reduce(function(s,p){return s+parseFloat(p.amount||0);},0);
+}
+
+
 // ============================================================
 // DARK MODE
 // ============================================================
