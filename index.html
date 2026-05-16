@@ -454,6 +454,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         if (data.jubTracker) STATE.jubTracker = data.jubTracker;
         if (data.finTargets) STATE.finTargets = data.finTargets;
         if (data.revenueTarget) STATE.revenueTarget = data.revenueTarget;
+        if (data.finRecords) STATE.finRecords = data.finRecords;
         render();
         showSyncBadge('↻ Synced with Darren');
       });
@@ -688,7 +689,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 
 
-<!-- TBS FINANCIAL TARGETS MODAL -->
+<!-- OLD TBS FIN TARGETS -->
 <div class="mo" id="mo-tbs-targets">
   <div class="md">
     <div class="mt">Set financial targets</div>
@@ -886,8 +887,14 @@ let STATE={
   dashView:'month',
   finTargets:{
     payroll:3428,
-    tax:1500,
-    running:1000
+    super:500,
+    taxContrib:1250,
+    holidayGoal:5178
+  },
+  finRecords:{
+    fortnights:[],
+    taxDeposits:[],
+    holidayDeposits:[]
   },
   weekly:[
     {id:1,date:'2026-04-06',rev:1240,other:0,ads:380,shopify:79,cogs:310,othercost:0,notes:'Good week, Reels performing well'},
@@ -2230,221 +2237,227 @@ function showDashboard(){
 function renderDashboard(){
   var now=new Date();
   var hour=now.getHours();
-  var realGreeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
+  var greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
   var dateStr=now.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   var today=todayStr();
   var thisMonth=now.getMonth();
   var thisYear=now.getFullYear();
-  var targets=STATE.finTargets||{payroll:3428,tax:1500,running:1000};
-  var ftNeed=(targets.payroll||0)+(targets.tax||0)+(targets.running||0);
-  var monthNeed=ftNeed*2;
-  var yearNeed=ftNeed*26;
-
-  // Jubism tracker
+  var t=getFinTargets();
+  var rec=getFinRecords();
   var ft=getOrCreateFortnight();
+
+  // Jubism earned this fortnight
   var jubEarned=(ft.gordonDays.length+ft.darrenDays.length)*350;
 
-  // Photography
+  // Photography paid this month
   var photoMonth=STATE.jobs.filter(function(j){
     if(!j.date)return false;
     var d=new Date(j.date+'T00:00:00');
     return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;
   });
-  var photoInvoicedMonth=photoMonth.filter(function(j){return['invoice-sent','invoice-paid'].includes(j.status);}).reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
   var photoPaidMonth=photoMonth.filter(function(j){return j.status==='invoice-paid';}).reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
-  var photoCostMonth=photoMonth.filter(function(j){return j.status==='invoice-paid';}).reduce(function(s,j){return s+parseFloat(j.cost||0);},0);
-  var photoProfitMonth=photoPaidMonth-photoCostMonth;
   var photoUnpaid=STATE.jobs.filter(function(j){return j.status==='invoice-sent';});
-  var photoActiveJobs=STATE.jobs.filter(function(j){return!['invoice-paid','cancelled'].includes(j.status);});
+  var photoUnpaidTotal=photoUnpaid.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
 
-  // Photography FY (Australian financial year)
-  var photoYTD=STATE.jobs.filter(function(j){return isInFY(j.date);});
-  var photoRevYTD=photoYTD.filter(function(j){return j.status==='invoice-paid';}).reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
-  var photoCostYTD=photoYTD.filter(function(j){return j.status==='invoice-paid';}).reduce(function(s,j){return s+parseFloat(j.cost||0);},0);
-  var photoProfitYTD=photoRevYTD-photoCostYTD;
+  // Photography YTD (Aus FY)
+  var photoYTD=STATE.jobs.filter(function(j){return isInFY(j.date)&&j.status==='invoice-paid';});
+  var photoRevYTD=photoYTD.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
+  var photoProfitYTD=photoYTD.reduce(function(s,j){return s+parseFloat(j.invoice||0)-parseFloat(j.cost||0);},0);
 
-  // Fortnightly photo paid
+  // Total fortnightly pool
   var photoFTPaid=STATE.jobs.filter(function(j){
     return j.status==='invoice-paid'&&j.date&&j.date>=ft.start&&j.date<=ft.end;
   }).reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
-  var totalFTEarned=jubEarned+photoFTPaid;
-  var ftCream=Math.max(0,totalFTEarned-ftNeed);
-  var ftRemaining=Math.max(0,ftNeed-totalFTEarned);
+  var totalPool=jubEarned+photoFTPaid;
 
-  // BRG month
+  // Obligations
+  var afterPayroll=Math.max(0,totalPool-t.payroll);
+  var afterSuper=Math.max(0,afterPayroll-t.super);
+  var afterTax=Math.max(0,afterSuper-t.taxContrib);
+  var cream=afterTax;
+
+  // Savings
+  var taxSavedTotal=rec.taxDeposits.reduce(function(s,d){return s+parseFloat(d.amount||0);},0);
+  var taxThisMonth=rec.taxDeposits.filter(function(d){
+    if(!d.date)return false;
+    var dt=new Date(d.date+'T00:00:00');
+    return dt.getMonth()===thisMonth&&dt.getFullYear()===thisYear;
+  }).reduce(function(s,d){return s+parseFloat(d.amount||0);},0);
+  var holidaySaved=rec.holidayDeposits.reduce(function(s,d){return s+parseFloat(d.amount||0);},0);
+
+  // BRG
   var brgMonth=STATE.weekly.filter(function(w){if(!w.date)return false;var d=new Date(w.date+'T00:00:00');return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;});
   var brgRevMonth=brgMonth.reduce(function(s,w){return s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0);},0);
   var brgCostsMonth=brgMonth.reduce(function(s,w){return s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
   var brgProfitMonth=brgRevMonth-brgCostsMonth;
-  var brgAdsMonth=brgMonth.reduce(function(s,w){return s+parseFloat(w.ads||0);},0);
 
   // Flippers
+  var flipToShip=STATE.flipItems.filter(function(i){return i.status==='sold';}).length;
   var flipInStock=STATE.flipItems.filter(function(i){return i.status==='stock';}).length;
   var flipListed=STATE.flipItems.filter(function(i){return i.status==='listed';}).length;
-  var flipToShip=STATE.flipItems.filter(function(i){return i.status==='sold';}).length;
-  var flipProfitTotal=STATE.flipItems.filter(function(i){return i.status==='shipped';}).reduce(function(s,i){return s+(parseFloat(i.sale||0)-parseFloat(i.ship||0)-parseFloat(i.cost||0));},0);
 
-  // Targets progress
-  function pct(val,target){return target>0?Math.min(Math.round((val/target)*100),100):0;}
-  function statusColor(p){return p>=100?'#0F6E56':p>=75?'#854F0B':'#A32D2D';}
-  function bar(val,target){
-    var p=pct(val,target);var c=statusColor(p);
-    return '<div style="height:5px;background:var(--color-background-tertiary);border-radius:99px;overflow:hidden;margin-top:4px"><div style="height:100%;width:'+p+'%;background:'+c+';border-radius:99px"></div></div>';
+  function fmt(n){return'$'+(Math.round(n)||0).toLocaleString();}
+  function pct(val,target){return target>0?Math.min(100,Math.round((val/target)*100)):0;}
+  function bar(val,target,color){
+    var p=pct(val,target);
+    var c=color||(p>=100?'#0F6E56':p>=60?'#854F0B':'#A32D2D');
+    return'<div style="height:6px;background:var(--bg-tertiary);border-radius:99px;overflow:hidden;margin-top:5px"><div style="height:100%;width:'+p+'%;background:'+c+';border-radius:99px;transition:width 0.4s"></div></div>';
+  }
+  function chip(label,ok){
+    return'<span style="font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500;background:'+(ok?'#EAF3DE':'#FCEBEB')+';color:'+(ok?'#27500A':'#791F1F')+'">'+(ok?'✓ ':'')+label+'</span>';
+  }
+  function card(title,body,accent){
+    return'<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:16px;border-top:3px solid '+(accent||'var(--blue)')+'">'+
+      (title?'<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">'+title+'</div>':'')+
+      body+'</div>';
+  }
+  function row(label,val,color,sub){
+    return'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:0.5px solid var(--border-light);font-size:13px">'+
+      '<div><span style="color:var(--text-secondary)">'+label+'</span>'+(sub?'<div style="font-size:10px;color:var(--text-tertiary)">'+sub+'</div>':'')+'</div>'+
+      '<span style="font-weight:500;color:'+(color||'var(--text-primary)')+'">'+val+'</span></div>';
   }
 
-  // Stat card
-  function sc(label,val,color){
-    return '<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px">'+
-      '<div style="font-size:10px;color:var(--color-text-secondary);margin-bottom:3px">'+label+'</div>'+
-      '<div style="font-size:18px;font-weight:500;color:'+(color||'var(--color-text-primary)')+'">'+val+'</div>'+
-    '</div>';
-  }
+  var html='<div style="padding:20px;display:flex;flex-direction:column;gap:16px;max-width:1200px">';
 
-  // Row
-  function row(label,val,color){
-    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px">'+
-      '<span style="color:var(--color-text-secondary)">'+label+'</span>'+
-      '<span style="font-weight:500;color:'+(color||'var(--color-text-primary)')+'">'+val+'</span></div>';
-  }
-
-  // Card
-  function card(content,borderColor,extra){
-    var bc=borderColor||'var(--color-border-secondary)';
-    return '<div style="background:var(--color-background-primary);border:1px solid '+(borderColor||'rgba(255,255,255,0.12)')+';border-radius:var(--border-radius-lg);padding:14px 16px;border-top:3px solid '+bc+';'+(extra||'')+'">'+content+'</div>';
-  }
-  function cardTitle(t){return '<div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">'+t+'</div>';}
-
-  var html='<div style="padding:20px;display:flex;flex-direction:column;gap:16px">';
-
-  // GREETING
+  // GREETING + EDIT TARGETS
   html+='<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px">';
-  html+='<div><div style="font-size:20px;font-weight:500;color:var(--color-text-primary)">'+realGreeting+', Gordon</div>';
-  html+='<div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">'+dateStr+'</div></div>';
-  html+='<button onclick="openTBSTargets()" style="font-size:12px;padding:5px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;cursor:pointer;color:var(--color-text-primary);font-family:inherit">&#9881; Set targets</button>';
+  html+='<div><div style="font-size:20px;font-weight:500">'+greeting+', Gordon</div><div style="font-size:12px;color:var(--text-secondary);margin-top:2px">'+dateStr+'</div></div>';
+  html+='<button onclick="openFinTargets()" style="font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit">⚙️ Edit targets</button>';
   html+='</div>';
 
-  // INVOICE REMINDER BANNER
+  // INVOICE REMINDER
   var dow=now.getDay();
-  if(dow===2){
-    html+='<div style="background:var(--color-background-info);border:0.5px solid var(--color-border-info);border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;font-weight:500;color:var(--color-text-info)">&#128197; Invoice day — send Jubism invoice today &nbsp;·&nbsp; <span style="font-weight:400">Earned: $'+jubEarned.toLocaleString()+'</span></div>';
-  } else if(dow===5){
-    html+='<div style="background:var(--color-background-success);border:0.5px solid var(--color-border-success);border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;font-weight:500;color:var(--color-text-success)">&#128176; Payday — Jubism payment expected today, run payroll</div>';
-  } else if(dow===1){
-    html+='<div style="background:var(--color-background-warning);border:0.5px solid var(--color-border-warning);border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;font-weight:500;color:var(--color-text-warning)">&#9888; Invoice tomorrow — send Jubism invoice Tuesday &nbsp;·&nbsp; <span style="font-weight:400">Earned so far: $'+jubEarned.toLocaleString()+'</span></div>';
-  }
+  if(dow===2) html+='<div style="background:#E6F1FB;border:1px solid #B5D4F4;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:500;color:#0C447C">📅 Invoice day — send Jubism invoice today &nbsp;·&nbsp; <span style="font-weight:400">Earned: '+fmt(jubEarned)+'</span></div>';
+  else if(dow===5) html+='<div style="background:#EAF3DE;border:1px solid #C0DD97;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:500;color:#27500A">💰 Payday — Jubism payment expected today. Run payroll!</div>';
+  else if(dow===1) html+='<div style="background:#FAEEDA;border:1px solid #FAC775;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:500;color:#633806">⚠️ Invoice tomorrow — prepare Jubism invoice. Earned so far: '+fmt(jubEarned)+'</div>';
 
-  // JUBISM TRACKER
-  html+=renderJubTracker();
-
-  // TOP ROW: Income + Targets
+  // ROW 1: JUBISM TRACKER + FORTNIGHTLY OBLIGATIONS
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
 
-  // Income card
-  var incContent=cardTitle('Income — this fortnight');
-  incContent+=row('Jubism earned','$'+Math.round(jubEarned).toLocaleString(),'var(--color-text-success)');
-  incContent+=row('Photography paid (month)','$'+Math.round(photoFTPaid).toLocaleString(),'var(--color-text-success)');
-  incContent+=row('BackRoom Gear profit','$'+Math.round(brgProfitMonth).toLocaleString(),brgProfitMonth>=0?'var(--color-text-success)':'var(--color-text-danger)');
-  incContent+=row('Two Bear Flippers profit','$'+Math.round(flipProfitTotal).toLocaleString(),flipProfitTotal>=0?'var(--color-text-success)':'var(--color-text-danger)');
-  incContent+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:13px;font-weight:500"><span>Total earned</span><span style="color:var(--color-text-info);font-size:17px">$'+Math.round(totalFTEarned).toLocaleString()+'</span></div>';
-  incContent+='<div style="height:6px;background:var(--color-background-tertiary);border-radius:99px;overflow:hidden"><div style="height:100%;width:'+pct(totalFTEarned,ftNeed)+'%;background:'+statusColor(pct(totalFTEarned,ftNeed))+';border-radius:99px"></div></div>';
-  incContent+='<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--color-text-tertiary)"><span>$0</span><span>Target: $'+ftNeed.toLocaleString()+'</span></div>';
-  html+=card(incContent,'var(--color-border-info)');
+  // Jubism tracker
+  html+=card('Jubism work tracker — '+fmtDate(ft.start)+' to '+fmtDate(ft.end),
+    renderJubTracker(true),
+    '#185FA5'
+  );
 
-  // Targets card
-  var tgtContent=cardTitle('Targets — this fortnight');
-  tgtContent+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  // Fortnightly obligations
+  var oblBody='';
+  oblBody+='<div style="font-size:22px;font-weight:600;color:var(--blue);margin-bottom:4px">'+fmt(totalPool)+'</div>';
+  oblBody+='<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:12px">earned this fortnight (Jubism '+fmt(jubEarned)+' + Photo '+fmt(photoFTPaid)+')</div>';
   // Payroll
-  var afterPayroll=Math.max(0,totalFTEarned);
-  var pPayroll=pct(afterPayroll,targets.payroll);
-  tgtContent+='<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary)"><span>Payroll</span><span>$'+targets.payroll.toLocaleString()+'</span></div>'+bar(afterPayroll,targets.payroll)+'<div style="font-size:11px;margin-top:3px;color:'+statusColor(pPayroll)+'">'+(pPayroll>=100?'&#10003; Covered':'$'+Math.round(Math.max(0,targets.payroll-afterPayroll)).toLocaleString()+' to go')+'</div></div>';
-  // Tax
-  var afterTax=Math.max(0,totalFTEarned-targets.payroll);
-  var pTax=pct(afterTax,targets.tax);
-  tgtContent+='<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary)"><span>Tax provision</span><span>$'+targets.tax.toLocaleString()+'</span></div>'+bar(afterTax,targets.tax)+'<div style="font-size:11px;margin-top:3px;color:'+statusColor(pTax)+'">'+(pTax>=100?'&#10003; Covered':'$'+Math.round(Math.max(0,targets.tax-afterTax)).toLocaleString()+' to go')+'</div></div>';
-  // Running
-  var afterRunning=Math.max(0,totalFTEarned-targets.payroll-targets.tax);
-  var pRunning=pct(afterRunning,targets.running);
-  tgtContent+='<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary)"><span>Running costs</span><span>$'+targets.running.toLocaleString()+'</span></div>'+bar(afterRunning,targets.running)+'<div style="font-size:11px;margin-top:3px;color:'+statusColor(pRunning)+'">'+(pRunning>=100?'&#10003; Covered':'$'+Math.round(Math.max(0,targets.running-afterRunning)).toLocaleString()+' to go')+'</div></div>';
-  // Cream or remaining
-  if(ftCream>0){
-    tgtContent+='<div style="background:#EAF3DE;border-radius:var(--border-radius-md);padding:10px 12px"><div style="font-size:11px;color:#3B6D11;margin-bottom:2px">In the cream &#127808;</div><div style="font-size:18px;font-weight:500;color:#0F6E56">$'+ftCream.toLocaleString()+'</div></div>';
-  } else {
-    tgtContent+='<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:2px">Still needed</div><div style="font-size:18px;font-weight:500;color:#A32D2D">$'+ftRemaining.toLocaleString()+'</div></div>';
+  var payrollOk=totalPool>=t.payroll;
+  oblBody+='<div style="margin-bottom:10px">';
+  oblBody+='<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--text-secondary)">Payroll</span><span style="font-weight:500">'+fmt(t.payroll)+'</span></div>';
+  oblBody+=bar(totalPool,t.payroll);
+  oblBody+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">';
+  oblBody+='<span style="font-size:11px;color:'+(payrollOk?'#27500A':'#A32D2D')+'">'+(payrollOk?'✓ Covered':'$'+Math.round(t.payroll-totalPool).toLocaleString()+' to go')+'</span>';
+  if(payrollOk&&!(ft.paid&&ft.paid.payroll)){
+    oblBody+='<button onclick="openMarkPaid(&quot;payroll&quot;,&quot;"+ft.key+"&quot;)" style="font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid #0F6E56;background:transparent;cursor:pointer;color:#0F6E56;font-family:inherit">Mark paid</button>';
+  } else if(ft.paid&&ft.paid.payroll){
+    oblBody+='<span style="font-size:10px;color:#27500A">✓ Paid '+fmtDate(ft.paid.payroll)+'</span>';
   }
-  tgtContent+='</div>';
-  html+=card(tgtContent,'#0F6E56');
-  html+='</div>'; // end top row
+  oblBody+='</div></div>';
+  // Super
+  var superOk=afterPayroll>=t.super;
+  oblBody+='<div style="margin-bottom:10px">';
+  oblBody+='<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--text-secondary)">Super (from July 1)</span><span style="font-weight:500">'+fmt(t.super)+'</span></div>';
+  oblBody+=bar(afterPayroll,t.super);
+  oblBody+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">';
+  oblBody+='<span style="font-size:11px;color:'+(superOk?'#27500A':'#A32D2D')+'">'+(superOk?'✓ Covered':'$'+Math.round(t.super-afterPayroll).toLocaleString()+' to go')+'</span>';
+  if(superOk&&!(ft.paid&&ft.paid.super)){
+    oblBody+='<button onclick="openMarkPaid(&quot;super&quot;,&quot;"+ft.key+"&quot;)" style="font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid #0F6E56;background:transparent;cursor:pointer;color:#0F6E56;font-family:inherit">Mark paid</button>';
+  } else if(ft.paid&&ft.paid.super){
+    oblBody+='<span style="font-size:10px;color:#27500A">✓ Paid '+fmtDate(ft.paid.super)+'</span>';
+  }
+  oblBody+='</div></div>';
+  // Tax
+  var taxOk=afterSuper>=t.taxContrib;
+  oblBody+='<div style="margin-bottom:10px">';
+  oblBody+='<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--text-secondary)">Tax contribution</span><span style="font-weight:500">'+fmt(t.taxContrib)+'</span></div>';
+  oblBody+=bar(afterSuper,t.taxContrib);
+  oblBody+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">';
+  oblBody+='<span style="font-size:11px;color:'+(taxOk?'#27500A':'#A32D2D')+'">'+(taxOk?'✓ Covered':'$'+Math.round(t.taxContrib-afterSuper).toLocaleString()+' to go')+'</span>';
+  if(taxOk&&!(ft.paid&&ft.paid.tax)){
+    oblBody+='<button onclick="openMarkPaid(&quot;tax&quot;,&quot;"+ft.key+"&quot;)" style="font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid #0F6E56;background:transparent;cursor:pointer;color:#0F6E56;font-family:inherit">Mark moved</button>';
+  } else if(ft.paid&&ft.paid.tax){
+    oblBody+='<span style="font-size:10px;color:#27500A">✓ Moved '+fmtDate(ft.paid.tax)+'</span>';
+  }
+  oblBody+='</div></div>';
+  // Cream
+  if(cream>0){
+    oblBody+='<div style="background:#EAF3DE;border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center">';
+    oblBody+='<div><div style="font-size:11px;color:#3B6D11;font-weight:500">🟢 In the cream</div><div style="font-size:11px;color:#3B6D11">After all obligations</div></div>';
+    oblBody+='<div style="font-size:20px;font-weight:600;color:#0F6E56">'+fmt(cream)+'</div></div>';
+  } else {
+    oblBody+='<div style="background:#FCEBEB;border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center">';
+    oblBody+='<div style="font-size:11px;color:#791F1F;font-weight:500">Still needed after all obligations</div>';
+    oblBody+='<div style="font-size:20px;font-weight:600;color:#A32D2D">'+fmt(Math.abs(cream))+'</div></div>';
+  }
+  html+=card('Fortnightly obligations',oblBody,'#0F6E56');
+  html+='</div>';
 
-  // MIDDLE ROW: Photography + BRG + Flippers
+  // ROW 2: SAVINGS BUCKETS
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
+
+  // Tax/BAS account
+  var taxPct=pct(taxThisMonth,t.taxMonthly);
+  var taxBody='';
+  taxBody+=row('Saved this month',fmt(taxThisMonth),taxPct>=100?'#0F6E56':'#854F0B');
+  taxBody+=row('Target this month',fmt(t.taxMonthly));
+  taxBody+=bar(taxThisMonth,t.taxMonthly);
+  taxBody+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">';
+  taxBody+='<span style="font-size:11px;color:var(--text-tertiary)">Total saved all time: '+fmt(taxSavedTotal)+'</span>';
+  taxBody+='<button onclick="openDepositModal(&quot;tax&quot;)" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit">+ Add deposit</button>';
+  taxBody+='</div>';
+  html+=card('Tax / BAS account',taxBody,'#EF9F27');
+
+  // Holiday fund
+  var holPct=pct(holidaySaved,t.holidayGoal);
+  var holBody='';
+  holBody+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
+  holBody+='<div style="font-size:22px;font-weight:600;color:'+(holPct>=100?'#0F6E56':'#185FA5')+'">'+fmt(holidaySaved)+'</div>';
+  holBody+='<div style="font-size:13px;color:var(--text-tertiary)">of '+fmt(t.holidayGoal)+'</div></div>';
+  holBody+=bar(holidaySaved,t.holidayGoal,'#185FA5');
+  holBody+='<div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">'+holPct+'% of goal';
+  if(holPct>=100) holBody+=' 🎉 Ready for holidays!';
+  else holBody+=' — '+fmt(t.holidayGoal-holidaySaved)+' to go';
+  holBody+='</div>';
+  holBody+='<div style="margin-top:8px;text-align:right"><button onclick="openDepositModal(&quot;holiday&quot;)" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit">+ Add deposit</button></div>';
+  html+=card('Holiday fund',holBody,'#D85A30');
+  html+='</div>';
+
+  // ROW 3: PHOTOGRAPHY + BRG + FLIPPERS
   html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">';
 
   // Photography
-  var photoContent=cardTitle('Photography');
-  photoContent+=sc('Revenue this month','$'+Math.round(photoInvoicedMonth).toLocaleString(),'var(--color-text-info)');
-  photoContent+='<div style="margin-top:10px">';
-  photoContent+=row('Paid this month','$'+Math.round(photoPaidMonth).toLocaleString(),'#0F6E56');
-  if(photoUnpaid.length>0) photoContent+=row(photoUnpaid.length+' outstanding invoice'+(photoUnpaid.length>1?'s':''),'$'+Math.round(photoUnpaid.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0)).toLocaleString(),'#854F0B');
-  photoContent+=row('Active jobs',photoActiveJobs.length,'var(--color-text-primary)');
-  photoContent+='</div>';
-  photoContent+='<div style="margin-top:8px"><span class="dash-go" onclick="switchBiz(&quot;photo&quot;)" style="font-size:11px;color:var(--color-text-info);cursor:pointer">Go to Photography →</span></div>';
-  html+=card(photoContent,'#1D9E75');
+  var photoBody='';
+  photoBody+='<div style="font-size:20px;font-weight:600;color:#185FA5;margin-bottom:8px">'+fmt(photoPaidMonth)+'<span style="font-size:12px;font-weight:400;color:var(--text-tertiary)"> paid this month</span></div>';
+  if(photoUnpaid.length>0) photoBody+=row(photoUnpaid.length+' unpaid invoice'+(photoUnpaid.length>1?'s':''),fmt(photoUnpaidTotal),'#854F0B');
+  photoBody+=row('Jobs this month',photoMonth.length);
+  photoBody+=row('Revenue YTD',fmt(photoRevYTD),'#185FA5');
+  photoBody+=row('Profit YTD',fmt(photoProfitYTD),'#0F6E56');
+  photoBody+='<div style="margin-top:8px"><span onclick="switchBiz(&quot;photo&quot;)" style="font-size:11px;color:#185FA5;cursor:pointer">Go to Photography →</span></div>';
+  html+=card('Photography — '+now.toLocaleDateString('en-AU',{month:'long'}),photoBody,'#1D9E75');
 
   // BRG
-  var brgCogsMonth=brgMonth.reduce(function(s,w){return s+parseFloat(w.cogs||0);},0);
-  var brgContent=cardTitle('BackRoom Gear — '+now.toLocaleDateString('en-AU',{month:'long'}));
-  brgContent+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
-  brgContent+=sc('Revenue','$'+Math.round(brgRevMonth).toLocaleString(),'var(--color-text-info)');
-  brgContent+=sc('Profit','$'+Math.round(brgProfitMonth).toLocaleString(),brgProfitMonth>=0?'#0F6E56':'#A32D2D');
-  brgContent+='</div>';
-  brgContent+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
-  brgContent+='<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:7px 10px"><div style="font-size:10px;color:var(--color-text-secondary);margin-bottom:2px">Ad spend</div><div style="font-size:13px;font-weight:500;color:#854F0B">$'+Math.round(brgAdsMonth).toLocaleString()+'</div></div>';
-  brgContent+='<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:7px 10px"><div style="font-size:10px;color:var(--color-text-secondary);margin-bottom:2px">COGS</div><div style="font-size:13px;font-weight:500;color:#854F0B">$'+Math.round(brgCogsMonth).toLocaleString()+'</div></div>';
-  brgContent+='</div>';
-  brgContent+='<div style="margin-top:4px"><span onclick="switchBiz(&quot;backroom&quot;);setTimeout(function(){setBRGSection(&quot;financials&quot;);},80)" style="font-size:11px;color:var(--color-text-info);cursor:pointer">Go to BackRoom Gear →</span></div>';
-  html+=card(brgContent,'#EF9F27');
+  var brgBody='';
+  brgBody+='<div style="font-size:20px;font-weight:600;color:'+(brgProfitMonth>=0?'#0F6E56':'#A32D2D')+';margin-bottom:8px">'+fmt(brgProfitMonth)+'<span style="font-size:12px;font-weight:400;color:var(--text-tertiary)"> profit this month</span></div>';
+  brgBody+=row('Revenue',fmt(brgRevMonth),'#185FA5');
+  brgBody+=row('Ad spend',fmt(brgMonth.reduce(function(s,w){return s+parseFloat(w.ads||0);},0)),'#854F0B');
+  brgBody+=row('COGS',fmt(brgMonth.reduce(function(s,w){return s+parseFloat(w.cogs||0);},0)),'#854F0B');
+  brgBody+='<div style="margin-top:8px"><span onclick="switchBiz(&quot;backroom&quot;);setTimeout(function(){setBRGSection(&quot;financials&quot;);},80)" style="font-size:11px;color:#185FA5;cursor:pointer">Go to BackRoom Gear →</span></div>';
+  html+=card('BackRoom Gear — '+now.toLocaleDateString('en-AU',{month:'long'}),brgBody,'#EF9F27');
 
   // Flippers
-  var flipContent=cardTitle('Two Bear Flippers');
-  flipContent+=sc('Total profit (shipped)','$'+Math.round(flipProfitTotal).toLocaleString(),flipProfitTotal>=0?'#0F6E56':'#A32D2D');
-  flipContent+='<div style="margin-top:10px">';
-  flipContent+=row('In stock',flipInStock,'var(--color-text-primary)');
-  flipContent+=row('Listed',flipListed,'var(--color-text-primary)');
-  if(flipToShip>0) flipContent+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px"><span style="color:var(--color-text-secondary)">Ready to ship</span><span style="background:#FAEEDA;color:#633806;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500">'+flipToShip+' item'+(flipToShip>1?'s':'')+'</span></div>';
-  flipContent+='</div>';
-  flipContent+='<div style="margin-top:8px"><span onclick="switchBiz(&quot;flippers&quot;)" style="font-size:11px;color:var(--color-text-info);cursor:pointer">Go to Flippers →</span></div>';
-  html+=card(flipContent,'#D85A30');
+  var flipBody='';
+  flipBody+=row('In stock',flipInStock.toLocaleString());
+  flipBody+=row('Listed',flipListed.toLocaleString());
+  if(flipToShip>0) flipBody+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px"><span style="color:var(--text-secondary)">Ready to ship</span><span style="background:#FAEEDA;color:#633806;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500">'+flipToShip+' item'+(flipToShip>1?'s':'')+'</span></div>';
+  flipBody+='<div style="margin-top:8px"><span onclick="switchBiz(&quot;flippers&quot;)" style="font-size:11px;color:#185FA5;cursor:pointer">Go to Flippers →</span></div>';
+  html+=card('Two Bear Flippers',flipBody,'#D85A30');
+  html+='</div>';
 
-  html+='</div>'; // end middle row
-
-  // BOTTOM ROW: Monthly + Yearly
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
-
-  // Monthly - clean and simple
-  var monContent=cardTitle('Monthly — '+now.toLocaleDateString('en-AU',{month:'long',year:'numeric'}));
-  monContent+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
-  monContent+=sc('Revenue','$'+Math.round(photoInvoicedMonth).toLocaleString(),'var(--color-text-info)');
-  monContent+=sc('Paid','$'+Math.round(photoPaidMonth).toLocaleString(),'#0F6E56');
-  monContent+=sc('Profit','$'+Math.round(photoProfitMonth).toLocaleString(),'#0F6E56');
-  monContent+=sc('Jobs',photoMonth.length);
-  monContent+='</div>';
-  if(photoUnpaid.length>0){
-    monContent+='<div style="background:var(--color-background-warning);border-radius:var(--border-radius-md);padding:8px 10px;font-size:12px;color:var(--color-text-warning)">&#9888; '+photoUnpaid.length+' unpaid invoice'+(photoUnpaid.length>1?'s':'')+' — $'+Math.round(photoUnpaid.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0)).toLocaleString()+'</div>';
-  }
-  html+=card(monContent,'var(--color-border-info)');
-
-  // Yearly - clean and simple
-  var yrContent=cardTitle('Year to date — '+getFYLabel()+' (Aus FY)');
-  yrContent+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
-  yrContent+=sc('Revenue YTD','$'+Math.round(photoRevYTD).toLocaleString(),'var(--color-text-info)');
-  yrContent+=sc('Profit YTD','$'+Math.round(photoProfitYTD).toLocaleString(),'#0F6E56');
-  yrContent+=sc('Jubism earned YTD','$'+Math.round(STATE.jubTracker&&STATE.jubTracker.fortnights?STATE.jubTracker.fortnights.filter(function(f){return isInFY(f.key);}).reduce(function(s,f){return s+(f.gordonDays.length+f.darrenDays.length)*350;},0):0).toLocaleString(),'var(--color-text-info)');
-  yrContent+=sc('Jobs done',photoYTD.length);
-  yrContent+='</div>';
-  html+=card(yrContent,'var(--color-border-secondary)');
-
-  html+='</div>'; // end bottom row
-  html+='</div>'; // end wrap
-
+  html+='</div>';
   document.getElementById('main-content').innerHTML=html;
 }
 
@@ -2704,7 +2717,7 @@ function markJubPaid(){
   renderDashboard();
 }
 
-function renderJubTracker(){
+function renderJubTracker(innerOnly){
   var ft=getOrCreateFortnight();
   var days=getFortnightDays(ft);
   var today=todayStr();
@@ -2771,8 +2784,110 @@ function renderJubTracker(){
   html+='<div style="font-size:13px;font-weight:500;color:#185FA5">Earned this fortnight: $'+totalEarned.toLocaleString()+'</div>';
   html+='<div style="font-size:11px;color:var(--color-text-secondary)">'+fmtDate(ft.start)+' – '+fmtDate(ft.end)+'</div>';
   html+='</div>';
-  html+='</div>';
+  if(!innerOnly) html+='</div>';
   return html;
+}
+
+
+
+// ============================================================
+// FINANCE SYSTEM
+// ============================================================
+function getFinTargets(){
+  return STATE.finTargets||{payroll:3428,super:500,taxContrib:1250,holidayGoal:5178,taxMonthly:2500};
+}
+
+function getFinRecords(){
+  if(!STATE.finRecords) STATE.finRecords={fortnights:[],taxDeposits:[],holidayDeposits:[]};
+  if(!STATE.finRecords.fortnights) STATE.finRecords.fortnights=[];
+  if(!STATE.finRecords.taxDeposits) STATE.finRecords.taxDeposits=[];
+  if(!STATE.finRecords.holidayDeposits) STATE.finRecords.holidayDeposits=[];
+  return STATE.finRecords;
+}
+
+function openFinTargets(){
+  var t=getFinTargets();
+  document.getElementById('ft-payroll').value=t.payroll||3428;
+  document.getElementById('ft-super').value=(t.super||500)/2;
+  document.getElementById('ft-tax-contrib').value=t.taxContrib||1250;
+  document.getElementById('ft-holiday-goal').value=t.holidayGoal||5178;
+  document.getElementById('ft-tax-monthly').value=t.taxMonthly||2500;
+  updateFinSummary();
+  openModal('fin-targets');
+}
+
+function updateFinSummary(){
+  var p=parseFloat(document.getElementById('ft-payroll').value)||0;
+  var s=parseFloat(document.getElementById('ft-super').value)||0;
+  var tc=parseFloat(document.getElementById('ft-tax-contrib').value)||0;
+  var total=(p*2)+(s*2)+tc;
+  var el=document.getElementById('fin-summary');
+  if(el) el.innerHTML='Fortnightly total obligations: <strong>$'+total.toLocaleString()+'</strong> &nbsp;·&nbsp; Annually: <strong>$'+(total*26).toLocaleString()+'</strong>';
+}
+
+function saveFinTargets(){
+  var p=parseFloat(document.getElementById('ft-payroll').value)||1714;
+  var s=parseFloat(document.getElementById('ft-super').value)||250;
+  STATE.finTargets={
+    payroll:p*2,
+    super:s*2,
+    taxContrib:parseFloat(document.getElementById('ft-tax-contrib').value)||1250,
+    holidayGoal:parseFloat(document.getElementById('ft-holiday-goal').value)||5178,
+    taxMonthly:parseFloat(document.getElementById('ft-tax-monthly').value)||2500
+  };
+  saveState();
+  closeModal('fin-targets');
+  renderDashboard();
+}
+
+var _depositType='';
+function openDepositModal(type){
+  _depositType=type;
+  var titles={tax:'Add tax deposit',holiday:'Add holiday fund deposit'};
+  document.getElementById('deposit-title').textContent=titles[type]||'Add deposit';
+  document.getElementById('deposit-amount').value='';
+  document.getElementById('deposit-date').value=todayStr();
+  document.getElementById('deposit-notes').value='';
+  openModal('deposit');
+}
+
+function saveDeposit(){
+  var amt=parseFloat(document.getElementById('deposit-amount').value);
+  if(!amt)return;
+  var rec=getFinRecords();
+  var deposit={id:NID++,date:document.getElementById('deposit-date').value,amount:amt,notes:document.getElementById('deposit-notes').value.trim()};
+  if(_depositType==='tax') rec.taxDeposits.push(deposit);
+  else if(_depositType==='holiday') rec.holidayDeposits.push(deposit);
+  STATE.finRecords=rec;
+  saveState();
+  closeModal('deposit');
+  renderDashboard();
+}
+
+var _markPaidType='';
+var _markPaidFtKey='';
+function openMarkPaid(type,ftKey){
+  _markPaidType=type;
+  _markPaidFtKey=ftKey;
+  var ft=STATE.jubTracker&&STATE.jubTracker.fortnights?STATE.jubTracker.fortnights.find(function(f){return f.key===ftKey;}):null;
+  var t=getFinTargets();
+  var labels={payroll:'Payroll — $'+t.payroll.toLocaleString(),super:'Super — $'+t.super.toLocaleString(),tax:'Tax contribution — $'+t.taxContrib.toLocaleString()};
+  document.getElementById('mark-paid-title').textContent='Mark as paid';
+  document.getElementById('mark-paid-body').textContent=labels[type]||type;
+  document.getElementById('mark-paid-date').value=todayStr();
+  openModal('mark-paid');
+}
+
+function confirmMarkPaid(){
+  var ft=STATE.jubTracker&&STATE.jubTracker.fortnights?STATE.jubTracker.fortnights.find(function(f){return f.key===_markPaidFtKey;}):null;
+  if(!ft){
+    ft=getOrCreateFortnight();
+  }
+  if(!ft.paid) ft.paid={};
+  ft.paid[_markPaidType]=document.getElementById('mark-paid-date').value;
+  saveState();
+  closeModal('mark-paid');
+  renderDashboard();
 }
 
 
@@ -2839,3 +2954,53 @@ if('serviceWorker' in navigator) {
 
 </body>
 </html>
+
+<!-- FIN TARGETS MODAL -->
+<div class="mo" id="mo-fin-targets">
+  <div class="md">
+    <div class="mt">Edit financial targets</div>
+    <div class="section-sep">Fortnightly obligations</div>
+    <div class="form-row">
+      <div><div class="ml">Payroll per person ($)</div><input type="number" id="ft-payroll" placeholder="1714" step="1" oninput="updateFinSummary()"></div>
+      <div><div class="ml">Super per person ($)</div><input type="number" id="ft-super" placeholder="250" step="1" oninput="updateFinSummary()"></div>
+    </div>
+    <div><div class="ml">Tax contribution per fortnight ($)</div><input type="number" id="ft-tax-contrib" placeholder="1250" step="1" oninput="updateFinSummary()"></div>
+    <div class="section-sep">Holiday fund goal</div>
+    <div><div class="ml">Holiday fund target ($)</div><input type="number" id="ft-holiday-goal" placeholder="5178" step="1" oninput="updateFinSummary()"></div>
+    <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px">Tip: 1 fortnight = payroll + super + tax (~$5,178)</div>
+    <div class="section-sep">Tax/BAS account</div>
+    <div><div class="ml">Monthly tax target ($)</div><input type="number" id="ft-tax-monthly" placeholder="2500" step="1"></div>
+    <div id="fin-summary" style="background:var(--bg-secondary);border-radius:var(--radius-md);padding:10px 12px;font-size:12px;color:var(--text-secondary);margin-top:4px"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('fin-targets')">Cancel</button>
+      <button class="btn blue" onclick="saveFinTargets()">Save targets</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD DEPOSIT MODAL -->
+<div class="mo" id="mo-deposit">
+  <div class="md" style="width:360px">
+    <div class="mt" id="deposit-title">Add deposit</div>
+    <div><div class="ml">Amount ($)</div><input type="number" id="deposit-amount" placeholder="0.00" step="0.01"></div>
+    <div><div class="ml">Date</div><input type="date" id="deposit-date"></div>
+    <div><div class="ml">Notes</div><input type="text" id="deposit-notes" placeholder="Optional..."></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('deposit')">Cancel</button>
+      <button class="btn blue" id="deposit-save-btn" onclick="saveDeposit()">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- MARK PAID MODAL -->
+<div class="mo" id="mo-mark-paid">
+  <div class="md" style="width:360px">
+    <div class="mt" id="mark-paid-title">Mark as paid</div>
+    <div id="mark-paid-body" style="font-size:13px;color:var(--text-secondary);margin-bottom:8px"></div>
+    <div><div class="ml">Date paid</div><input type="date" id="mark-paid-date"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('mark-paid')">Cancel</button>
+      <button class="btn green" onclick="confirmMarkPaid()">Confirm paid</button>
+    </div>
+  </div>
+</div>
