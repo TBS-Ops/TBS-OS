@@ -901,12 +901,15 @@ let STATE={
     payroll:3428,
     super:500,
     taxContrib:1250,
-    holidayGoal:5178
+    holidayGoal:5178,
+    taxMonthly:2500,
+    operatingMonthly:2500
   },
   finRecords:{
     fortnights:[],
     taxDeposits:[],
-    holidayDeposits:[]
+    holidayDeposits:[],
+    operatingDeposits:[]
   },
   weekly:[
     {id:1,date:'2026-04-06',rev:1240,other:0,ads:380,shopify:79,cogs:310,othercost:0,notes:'Good week, Reels performing well'},
@@ -2408,34 +2411,41 @@ function renderDashboard(){
   html+=card('Fortnightly obligations',oblBody,'#0F6E56');
   html+='</div>';
 
-  // ROW 2: SAVINGS BUCKETS
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
+  // ROW 2: SAVINGS BUCKETS (3 col)
+  var operatingDeposits=(rec.operatingDeposits||[]);
+  var operatingSaved=operatingDeposits.reduce(function(s,d){return s+parseFloat(d.amount||0);},0);
+  var operatingThisMonth=operatingDeposits.filter(function(d){
+    if(!d.date)return false;
+    var dt=new Date(d.date+'T00:00:00');
+    return dt.getMonth()===thisMonth&&dt.getFullYear()===thisYear;
+  }).reduce(function(s,d){return s+parseFloat(d.amount||0);},0);
 
-  // Tax/BAS account
-  var taxPct=pct(taxThisMonth,t.taxMonthly);
-  var taxBody='';
-  taxBody+=row('Saved this month',fmt(taxThisMonth),taxPct>=100?'#0F6E56':'#854F0B');
-  taxBody+=row('Target this month',fmt(t.taxMonthly));
-  taxBody+=bar(taxThisMonth,t.taxMonthly);
-  taxBody+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">';
-  taxBody+='<span style="font-size:11px;color:var(--text-tertiary)">Total saved all time: '+fmt(taxSavedTotal)+'</span>';
-  taxBody+='<button onclick="openDepositModal(&quot;tax&quot;)" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit">+ Add deposit</button>';
-  taxBody+='</div>';
-  html+=card('Tax / BAS account',taxBody,'#EF9F27');
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">';
+
+  // Tax/BAS
+  var taxPct=pct(taxThisMonth,t.taxMonthly||2500);
+  var taxBody='<div style="font-size:18px;font-weight:600;color:'+(taxPct>=100?'#0F6E56':'#854F0B')+'">'+fmt(taxThisMonth)+'<span style="font-size:11px;font-weight:400;color:var(--text-tertiary)"> this month</span></div>';
+  taxBody+=bar(taxThisMonth,t.taxMonthly||2500);
+  taxBody+='<div style="font-size:11px;color:var(--text-tertiary);margin-top:3px">Target: '+fmt(t.taxMonthly||2500)+' &nbsp;·&nbsp; All time: '+fmt(taxSavedTotal)+'</div>';
+  taxBody+='<div style="margin-top:8px"><button onclick="openDepositModal(&quot;tax&quot;)" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit">+ Add</button></div>';
+  html+=card('Tax / BAS',taxBody,'#EF9F27');
 
   // Holiday fund
-  var holPct=pct(holidaySaved,t.holidayGoal);
-  var holBody='';
-  holBody+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
-  holBody+='<div style="font-size:22px;font-weight:600;color:'+(holPct>=100?'#0F6E56':'#185FA5')+'">'+fmt(holidaySaved)+'</div>';
-  holBody+='<div style="font-size:13px;color:var(--text-tertiary)">of '+fmt(t.holidayGoal)+'</div></div>';
-  holBody+=bar(holidaySaved,t.holidayGoal,'#185FA5');
-  holBody+='<div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">'+holPct+'% of goal';
-  if(holPct>=100) holBody+=' 🎉 Ready for holidays!';
-  else holBody+=' — '+fmt(t.holidayGoal-holidaySaved)+' to go';
-  holBody+='</div>';
-  holBody+='<div style="margin-top:8px;text-align:right"><button onclick="openDepositModal(&quot;holiday&quot;)" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit">+ Add deposit</button></div>';
+  var holPct=pct(holidaySaved,t.holidayGoal||5178);
+  var holBody='<div style="font-size:18px;font-weight:600;color:'+(holPct>=100?'#0F6E56':'#185FA5')+'">'+fmt(holidaySaved)+'<span style="font-size:11px;font-weight:400;color:var(--text-tertiary)"> saved</span></div>';
+  holBody+=bar(holidaySaved,t.holidayGoal||5178,'#185FA5');
+  holBody+='<div style="font-size:11px;color:var(--text-tertiary);margin-top:3px">'+holPct+'% of '+fmt(t.holidayGoal||5178)+' goal'+(holPct>=100?' 🎉':' — '+fmt((t.holidayGoal||5178)-holidaySaved)+' to go')+'</div>';
+  holBody+='<div style="margin-top:8px"><button onclick="openDepositModal(&quot;holiday&quot;)" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit">+ Add</button></div>';
   html+=card('Holiday fund',holBody,'#D85A30');
+
+  // Operating fund
+  var opPct=pct(operatingThisMonth,t.operatingMonthly||2500);
+  var opBody='<div style="font-size:18px;font-weight:600;color:'+(opPct>=100?'#0F6E56':'var(--text-primary)')+'">'+fmt(operatingThisMonth)+'<span style="font-size:11px;font-weight:400;color:var(--text-tertiary)"> this month</span></div>';
+  opBody+=bar(operatingThisMonth,t.operatingMonthly||2500,'#1D9E75');
+  opBody+='<div style="font-size:11px;color:var(--text-tertiary);margin-top:3px">Target: '+fmt(t.operatingMonthly||2500)+' &nbsp;·&nbsp; All time: '+fmt(operatingSaved)+'</div>';
+  opBody+='<div style="margin-top:8px"><button onclick="openDepositModal(&quot;operating&quot;)" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit">+ Add</button></div>';
+  html+=card('Operating fund',opBody,'#1D9E75');
+
   html+='</div>';
 
   // ROW 3: PHOTOGRAPHY + BRG + FLIPPERS
@@ -2824,6 +2834,7 @@ function openFinTargets(){
   document.getElementById('ft-tax-contrib').value=t.taxContrib||1250;
   document.getElementById('ft-holiday-goal').value=t.holidayGoal||5178;
   document.getElementById('ft-tax-monthly').value=t.taxMonthly||2500;
+  document.getElementById('ft-operating-monthly').value=t.operatingMonthly||2500;
   updateFinSummary();
   openModal('fin-targets');
 }
@@ -2845,7 +2856,8 @@ function saveFinTargets(){
     super:s*2,
     taxContrib:parseFloat(document.getElementById('ft-tax-contrib').value)||1250,
     holidayGoal:parseFloat(document.getElementById('ft-holiday-goal').value)||5178,
-    taxMonthly:parseFloat(document.getElementById('ft-tax-monthly').value)||2500
+    taxMonthly:parseFloat(document.getElementById('ft-tax-monthly').value)||2500,
+    operatingMonthly:parseFloat(document.getElementById('ft-operating-monthly').value)||2500
   };
   saveState();
   closeModal('fin-targets');
@@ -2855,7 +2867,7 @@ function saveFinTargets(){
 var _depositType='';
 function openDepositModal(type){
   _depositType=type;
-  var titles={tax:'Add tax deposit',holiday:'Add holiday fund deposit'};
+  var titles={tax:'Add tax deposit',holiday:'Add holiday fund deposit',operating:'Add to operating fund'};
   document.getElementById('deposit-title').textContent=titles[type]||'Add deposit';
   document.getElementById('deposit-amount').value='';
   document.getElementById('deposit-date').value=todayStr();
@@ -2870,6 +2882,7 @@ function saveDeposit(){
   var deposit={id:NID++,date:document.getElementById('deposit-date').value,amount:amt,notes:document.getElementById('deposit-notes').value.trim()};
   if(_depositType==='tax') rec.taxDeposits.push(deposit);
   else if(_depositType==='holiday') rec.holidayDeposits.push(deposit);
+  else if(_depositType==='operating'){ if(!rec.operatingDeposits) rec.operatingDeposits=[]; rec.operatingDeposits.push(deposit);}
   STATE.finRecords=rec;
   saveState();
   closeModal('deposit');
@@ -2982,6 +2995,8 @@ if('serviceWorker' in navigator) {
     <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px">Tip: 1 fortnight = payroll + super + tax (~$5,178)</div>
     <div class="section-sep">Tax/BAS account</div>
     <div><div class="ml">Monthly tax target ($)</div><input type="number" id="ft-tax-monthly" placeholder="2500" step="1"></div>
+    <div class="section-sep">Operating fund</div>
+    <div><div class="ml">Monthly operating target ($)</div><input type="number" id="ft-operating-monthly" placeholder="2500" step="1"></div>
     <div id="fin-summary" style="background:var(--bg-secondary);border-radius:var(--radius-md);padding:10px 12px;font-size:12px;color:var(--text-secondary);margin-top:4px"></div>
     <div class="ma">
       <button class="btn" onclick="closeModal('fin-targets')">Cancel</button>
