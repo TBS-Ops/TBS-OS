@@ -2286,10 +2286,12 @@ function renderDashboard(){
   var totalPool=jubEarned+photoFTPaid;
 
   // Obligations
+  var operatingFT=t.operatingFT||1250;
   var afterPayroll=Math.max(0,totalPool-t.payroll);
   var afterSuper=Math.max(0,afterPayroll-t.super);
   var afterTax=Math.max(0,afterSuper-t.taxContrib);
-  var cream=afterTax;
+  var afterOperating=Math.max(0,afterTax-operatingFT);
+  var cream=afterOperating;
 
   // Savings
   var taxSavedTotal=rec.taxDeposits.reduce(function(s,d){return s+parseFloat(d.amount||0);},0);
@@ -2398,6 +2400,15 @@ function renderDashboard(){
     oblBody+='<span style="font-size:10px;color:#27500A">✓ Moved '+fmtDate(ft.paid.tax)+'</span>';
   }
   oblBody+='</div></div>';
+  // Operating
+  var operatingOk=afterTax>=operatingFT;
+  oblBody+='<div style="margin-bottom:10px">';
+  oblBody+='<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--text-secondary)">Operating costs</span><span style="font-weight:500">'+fmt(operatingFT)+'</span></div>';
+  oblBody+=bar(afterTax,operatingFT);
+  oblBody+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">';
+  oblBody+='<span style="font-size:11px;color:'+(operatingOk?'#27500A':'#A32D2D')+'">'+(operatingOk?'✓ Covered':'$'+Math.round(operatingFT-afterTax).toLocaleString()+' to go')+'</span>';
+  oblBody+='</div></div>';
+
   // Cream
   if(cream>0){
     oblBody+='<div style="background:#EAF3DE;border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center">';
@@ -2420,7 +2431,7 @@ function renderDashboard(){
     return dt.getMonth()===thisMonth&&dt.getFullYear()===thisYear;
   }).reduce(function(s,d){return s+parseFloat(d.amount||0);},0);
 
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
 
   // Tax/BAS
   var taxPct=pct(taxThisMonth,t.taxMonthly||2500);
@@ -2437,14 +2448,6 @@ function renderDashboard(){
   holBody+='<div style="font-size:11px;color:var(--text-tertiary);margin-top:3px">'+holPct+'% of '+fmt(t.holidayGoal||5178)+' goal'+(holPct>=100?' 🎉':' — '+fmt((t.holidayGoal||5178)-holidaySaved)+' to go')+'</div>';
   holBody+='<div style="margin-top:8px"><button onclick="openDepositModal(&quot;holiday&quot;)" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit">+ Add</button></div>';
   html+=card('Holiday fund',holBody,'#D85A30');
-
-  // Operating fund
-  var opPct=pct(operatingThisMonth,t.operatingMonthly||2500);
-  var opBody='<div style="font-size:18px;font-weight:600;color:'+(opPct>=100?'#0F6E56':'var(--text-primary)')+'">'+fmt(operatingThisMonth)+'<span style="font-size:11px;font-weight:400;color:var(--text-tertiary)"> this month</span></div>';
-  opBody+=bar(operatingThisMonth,t.operatingMonthly||2500,'#1D9E75');
-  opBody+='<div style="font-size:11px;color:var(--text-tertiary);margin-top:3px">Target: '+fmt(t.operatingMonthly||2500)+' &nbsp;·&nbsp; All time: '+fmt(operatingSaved)+'</div>';
-  opBody+='<div style="margin-top:8px"><button onclick="openDepositModal(&quot;operating&quot;)" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit">+ Add</button></div>';
-  html+=card('Operating fund',opBody,'#1D9E75');
 
   html+='</div>';
 
@@ -2830,11 +2833,11 @@ function getFinRecords(){
 function openFinTargets(){
   var t=getFinTargets();
   document.getElementById('ft-payroll').value=t.payroll||3428;
-  document.getElementById('ft-super').value=(t.super||500)/2;
+  document.getElementById('ft-super').value=t.super||500;
   document.getElementById('ft-tax-contrib').value=t.taxContrib||1250;
+  document.getElementById('ft-operating-ft').value=t.operatingFT||1250;
   document.getElementById('ft-holiday-goal').value=t.holidayGoal||5178;
   document.getElementById('ft-tax-monthly').value=t.taxMonthly||2500;
-  document.getElementById('ft-operating-monthly').value=t.operatingMonthly||2500;
   updateFinSummary();
   openModal('fin-targets');
 }
@@ -2843,7 +2846,8 @@ function updateFinSummary(){
   var p=parseFloat(document.getElementById('ft-payroll').value)||0;
   var s=parseFloat(document.getElementById('ft-super').value)||0;
   var tc=parseFloat(document.getElementById('ft-tax-contrib').value)||0;
-  var total=(p*2)+(s*2)+tc;
+  var op=parseFloat(document.getElementById('ft-operating-ft')?document.getElementById('ft-operating-ft').value:0)||0;
+  var total=p+s+tc+op;
   var el=document.getElementById('fin-summary');
   if(el) el.innerHTML='Fortnightly total obligations: <strong>$'+total.toLocaleString()+'</strong> &nbsp;·&nbsp; Annually: <strong>$'+(total*26).toLocaleString()+'</strong>';
 }
@@ -2852,12 +2856,12 @@ function saveFinTargets(){
   var p=parseFloat(document.getElementById('ft-payroll').value)||1714;
   var s=parseFloat(document.getElementById('ft-super').value)||250;
   STATE.finTargets={
-    payroll:p*2,
-    super:s*2,
+    payroll:p,
+    super:s,
     taxContrib:parseFloat(document.getElementById('ft-tax-contrib').value)||1250,
+    operatingFT:parseFloat(document.getElementById('ft-operating-ft').value)||1250,
     holidayGoal:parseFloat(document.getElementById('ft-holiday-goal').value)||5178,
-    taxMonthly:parseFloat(document.getElementById('ft-tax-monthly').value)||2500,
-    operatingMonthly:parseFloat(document.getElementById('ft-operating-monthly').value)||2500
+    taxMonthly:parseFloat(document.getElementById('ft-tax-monthly').value)||2500
   };
   saveState();
   closeModal('fin-targets');
@@ -2986,10 +2990,13 @@ if('serviceWorker' in navigator) {
     <div class="mt">Edit financial targets</div>
     <div class="section-sep">Fortnightly obligations</div>
     <div class="form-row">
-      <div><div class="ml">Payroll per person ($)</div><input type="number" id="ft-payroll" placeholder="1714" step="1" oninput="updateFinSummary()"></div>
-      <div><div class="ml">Super per person ($)</div><input type="number" id="ft-super" placeholder="250" step="1" oninput="updateFinSummary()"></div>
+      <div><div class="ml">Total payroll ($)</div><input type="number" id="ft-payroll" placeholder="3428" step="1" oninput="updateFinSummary()"></div>
+      <div><div class="ml">Total super ($)</div><input type="number" id="ft-super" placeholder="500" step="1" oninput="updateFinSummary()"></div>
     </div>
-    <div><div class="ml">Tax contribution per fortnight ($)</div><input type="number" id="ft-tax-contrib" placeholder="1250" step="1" oninput="updateFinSummary()"></div>
+    <div class="form-row">
+      <div><div class="ml">Tax contribution per fortnight ($)</div><input type="number" id="ft-tax-contrib" placeholder="1250" step="1" oninput="updateFinSummary()"></div>
+      <div><div class="ml">Operating costs per fortnight ($)</div><input type="number" id="ft-operating-ft" placeholder="1250" step="1" oninput="updateFinSummary()"></div>
+    </div>
     <div class="section-sep">Holiday fund goal</div>
     <div><div class="ml">Holiday fund target ($)</div><input type="number" id="ft-holiday-goal" placeholder="5178" step="1" oninput="updateFinSummary()"></div>
     <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px">Tip: 1 fortnight = payroll + super + tax (~$5,178)</div>
