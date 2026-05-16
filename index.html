@@ -847,6 +847,13 @@ function getDiff(ds){if(!ds)return null;const d=new Date(ds),n=new Date();n.setH
 function fmtDate(ds){if(!ds)return'—';const d=new Date(ds+'T00:00:00');return d.getDate()+' '+MONTHS[d.getMonth()];}
 function fmtTime(ts){if(!ts)return'';const p=ts.split(':');return p[0]+':'+p[1];}
 function fmt$(n){return n?'$'+parseFloat(n).toFixed(2):'—';}
+function saveState(){
+  if(window.saveToFirebase){
+    window.saveToFirebase(STATE);
+    showSyncBadge('✓ Saved');
+  }
+}
+
 function showSyncBadge(msg){
   var el=document.getElementById('sync-badge');
   if(!el)return;
