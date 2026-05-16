@@ -370,7 +370,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           brgTasks: JSON.stringify(state.brgTasks),
           weekly: JSON.stringify(state.weekly),
           hauls: JSON.stringify(state.hauls),
-          flipItems: JSON.stringify(state.flipItems)
+          flipItems: JSON.stringify(state.flipItems),
+          jubTracker: JSON.stringify(state.jubTracker||{}),
+          finTargets: JSON.stringify(state.finTargets||{}),
+          finRecords: JSON.stringify(state.finRecords||{})
         });
       } catch(e) {
         console.error("Save error:", e);
@@ -390,7 +393,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             brgTasks: d.brgTasks ? JSON.parse(d.brgTasks) : null,
             weekly: d.weekly ? JSON.parse(d.weekly) : null,
             hauls: d.hauls ? JSON.parse(d.hauls) : null,
-            flipItems: d.flipItems ? JSON.parse(d.flipItems) : null
+            flipItems: d.flipItems ? JSON.parse(d.flipItems) : null,
+            jubTracker: d.jubTracker ? JSON.parse(d.jubTracker) : null,
+            finTargets: d.finTargets ? JSON.parse(d.finTargets) : null,
+            finRecords: d.finRecords ? JSON.parse(d.finRecords) : null
           };
         }
         return null;
@@ -432,6 +438,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         if (saved.weekly) STATE.weekly = saved.weekly;
         if (saved.hauls) STATE.hauls = saved.hauls;
         if (saved.flipItems) STATE.flipItems = saved.flipItems;
+        if (saved.jubTracker) STATE.jubTracker = saved.jubTracker;
+        if (saved.finTargets) STATE.finTargets = saved.finTargets;
+        if (saved.finRecords) STATE.finRecords = saved.finRecords;
         // Find highest ID
         const allIds = [...STATE.jubTasks, ...STATE.jobs, ...STATE.brgTasks, ...STATE.weekly, ...STATE.hauls, ...STATE.flipItems].map(x=>x.id||0);
         if (allIds.length) NID = Math.max(...allIds) + 1;
@@ -451,6 +460,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         if (data.weekly) STATE.weekly = data.weekly;
         if (data.hauls) STATE.hauls = data.hauls;
         if (data.flipItems) STATE.flipItems = data.flipItems;
+        if (data.jubTracker) STATE.jubTracker = data.jubTracker;
+        if (data.finTargets) STATE.finTargets = data.finTargets;
+        if (data.finRecords) STATE.finRecords = data.finRecords;
         if (data.jubTracker) STATE.jubTracker = data.jubTracker;
         if (data.finTargets) STATE.finTargets = data.finTargets;
         if (data.revenueTarget) STATE.revenueTarget = data.revenueTarget;
