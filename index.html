@@ -2378,7 +2378,7 @@ function renderDashboard(){
   html+='<div style="position:absolute;top:0;bottom:0;left:'+pct(monthlyCosts,monthGoal)+'%;width:2px;background:rgba(255,255,255,0.4)"></div>';
   html+='</div>';
   html+='<div style="display:flex;justify-content:space-between;font-size:11px">';
-  html+='<span style="color:'+mBarColor+'">'+(mCostsCovered?'✅ Costs covered — '+fmt(monthTotal-monthlyCosts)+' in the cream':'🔴 '+fmt(monthlyCosts-monthTotal)+' to cover costs')+'</span>';
+  html+='<span style="color:var(--text-secondary)">'+(mCostsCovered?'✅ Costs covered — '+fmt(monthTotal-monthlyCosts)+' in the cream':'🔴 '+fmt(monthlyCosts-monthTotal)+' to cover costs')+'</span>';
   html+='<span style="color:var(--text-tertiary)">Goal: '+fmt(monthGoal)+'</span>';
   html+='</div>';
   html+='</div>';
