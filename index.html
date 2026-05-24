@@ -259,7 +259,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .loc-badge{font-size:11px;background:#EAF3DE;color:#27500A;padding:3px 10px;border-radius:99px;font-weight:500}
 
 /* DETAIL PANEL */
-.detail-panel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(750px,92vw);max-height:85vh;background:var(--bg-primary);border-radius:12px;padding:24px;display:none;overflow-y:auto;z-index:200;flex-direction:column;gap:0;box-shadow:0 20px 60px rgba(0,0,0,0.4);border:1px solid var(--border-mid)}
+.detail-panel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(480px,92vw);max-height:85vh;background:var(--bg-primary);border-radius:12px;padding:24px;display:none;overflow-y:auto;z-index:200;flex-direction:column;gap:0;box-shadow:0 20px 60px rgba(0,0,0,0.4);border:1px solid var(--border-mid)}
 .detail-panel.open{display:flex}
 .dp-title{font-size:14px;font-weight:500;color:var(--text-primary);flex:1;line-height:1.4}
 .pl{font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-top:14px;margin-bottom:3px}
@@ -922,6 +922,7 @@ let STATE={
     taxMonthly:2500,
     operatingMonthly:2500,
     monthlyGoal:12000,
+    monthlyCosts:13000,
     quarterlyGoal:36000,
     yearlyGoal:150000
   },
@@ -2353,10 +2354,7 @@ function renderDashboard(){
   html+='<button onclick="openIncomeTargets()" style="font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit">⚙️ Set targets</button>';
   html+='</div>';
 
-  // INVOICE REMINDER BANNER
-  if(dow===2) html+='<div style="background:#E6F1FB;border:1px solid #B5D4F4;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:500;color:#0C447C">📅 Invoice day — send Jubism invoice today &nbsp;·&nbsp; <span style="font-weight:400">Earned: '+fmt(jubEarned)+'</span></div>';
-  else if(dow===5) html+='<div style="background:#EAF3DE;border:1px solid #C0DD97;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:500;color:#27500A">💰 Payday — Jubism payment expected. <button onclick="openJubPaymentModal()" style="font-size:12px;padding:2px 10px;border-radius:99px;border:1px solid #27500A;background:transparent;cursor:pointer;color:#27500A;font-family:inherit;margin-left:8px">Record payment</button></div>';
-  else if(dow===1) html+='<div style="background:#FAEEDA;border:1px solid #FAC775;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:500;color:#633806">⚠️ Invoice tomorrow — prepare Jubism invoice. Earned so far: '+fmt(jubEarned)+'</div>';
+  // Invoice banners removed
 
   // JUBISM TRACKER
   html+=renderJubTracker();
@@ -2366,14 +2364,23 @@ function renderDashboard(){
   html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">Income targets — Jubism + Photography</div>';
 
   // Month
+  var monthlyCosts=t.monthlyCosts||13000;
   var mPct=pct(monthTotal,monthGoal);
+  var mCostsCovered=monthTotal>=monthlyCosts;
+  var mBarColor=mCostsCovered?'#0F6E56':'#A32D2D';
   html+='<div style="margin-bottom:12px">';
   html+='<div style="display:flex;justify-content:space-between;align-items:baseline">';
   html+='<span style="font-size:13px;color:var(--text-secondary)">'+now.toLocaleDateString('en-AU',{month:'long'})+'</span>';
-  html+='<span style="font-size:18px;font-weight:600;color:#185FA5">'+fmt(monthTotal)+'<span style="font-size:12px;font-weight:400;color:var(--text-tertiary)"> / '+fmt(monthGoal)+'</span></span>';
+  html+='<span style="font-size:18px;font-weight:600;color:'+(mCostsCovered?'#0F6E56':'#185FA5')+'">'+fmt(monthTotal)+'<span style="font-size:12px;font-weight:400;color:var(--text-tertiary)"> / '+fmt(monthGoal)+'</span></span>';
   html+='</div>';
-  html+=bar(monthTotal,monthGoal);
-  html+='<div style="font-size:11px;color:var(--text-tertiary)">'+mPct+'% of monthly goal'+(mPct>=100?' ✅':' — '+fmt(monthGoal-monthTotal)+' to go')+'</div>';
+  html+='<div style="height:8px;background:var(--bg-tertiary);border-radius:99px;overflow:hidden;margin:6px 0;position:relative">';
+  html+='<div style="height:100%;width:'+mPct+'%;background:'+mBarColor+';border-radius:99px;transition:width 0.4s"></div>';
+  html+='<div style="position:absolute;top:0;bottom:0;left:'+pct(monthlyCosts,monthGoal)+'%;width:2px;background:rgba(255,255,255,0.4)"></div>';
+  html+='</div>';
+  html+='<div style="display:flex;justify-content:space-between;font-size:11px">';
+  html+='<span style="color:'+mBarColor+'">'+(mCostsCovered?'✅ Costs covered — '+fmt(monthTotal-monthlyCosts)+' in the cream':'🔴 '+fmt(monthlyCosts-monthTotal)+' to cover costs')+'</span>';
+  html+='<span style="color:var(--text-tertiary)">Goal: '+fmt(monthGoal)+'</span>';
+  html+='</div>';
   html+='</div>';
 
   // Quarter
@@ -2405,7 +2412,7 @@ function renderDashboard(){
   html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">';
 
   // Jubism tile
-  var jubBadge='<button onclick="openJubPaymentModal()" style="font-size:11px;padding:2px 10px;border-radius:99px;border:1px solid #185FA5;background:transparent;cursor:pointer;color:#185FA5;font-family:inherit">+ Record payment</button>';
+  var jubBadge='<div style="display:flex;gap:6px;flex-wrap:wrap"><button onclick="openJubPaymentModal()" style="font-size:11px;padding:2px 10px;border-radius:99px;border:1px solid #185FA5;background:transparent;cursor:pointer;color:#185FA5;font-family:inherit">+ Record payment</button><button onclick="openJubPaymentsHistory()" style="font-size:11px;padding:2px 10px;border-radius:99px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-secondary);font-family:inherit">View history</button></div>';
   html+=tile('Jubism',fmt(jubMonth),'paid this month · tracker: '+fmt(jubEarned),'#185FA5','',jubBadge);
 
   // Photography tile
@@ -2457,6 +2464,7 @@ function saveJubPayment(){
 function openIncomeTargets(){
   var t=getFinTargets();
   document.getElementById('it-monthly').value=t.monthlyGoal||12000;
+  document.getElementById('it-costs').value=t.monthlyCosts||13000;
   document.getElementById('it-quarterly').value=t.quarterlyGoal||36000;
   document.getElementById('it-yearly').value=t.yearlyGoal||150000;
   openModal('income-targets');
@@ -2465,6 +2473,7 @@ function openIncomeTargets(){
 function saveIncomeTargets(){
   var t=getFinTargets();
   t.monthlyGoal=parseFloat(document.getElementById('it-monthly').value)||12000;
+  t.monthlyCosts=parseFloat(document.getElementById('it-costs').value)||13000;
   t.quarterlyGoal=parseFloat(document.getElementById('it-quarterly').value)||36000;
   t.yearlyGoal=parseFloat(document.getElementById('it-yearly').value)||150000;
   STATE.finTargets=t;
@@ -2643,7 +2652,7 @@ function renderJubTracker(innerOnly){
 // FINANCE HELPERS
 // ============================================================
 function getFinTargets(){
-  return STATE.finTargets||{payroll:3428,super:500,taxContrib:1250,holidayGoal:5178,taxMonthly:2500,operatingMonthly:2500,monthlyGoal:12000,quarterlyGoal:36000,yearlyGoal:150000};
+  return STATE.finTargets||{payroll:3428,super:500,taxContrib:1250,holidayGoal:5178,taxMonthly:2500,operatingMonthly:2500,monthlyGoal:12000,monthlyCosts:13000,quarterlyGoal:36000,yearlyGoal:150000};
 }
 
 function getFinRecords(){
@@ -2673,11 +2682,67 @@ function saveJubPayment(){
   if(!amt)return;
   var rec=getFinRecords();
   if(!rec.jubismPayments) rec.jubismPayments=[];
-  rec.jubismPayments.push({id:NID++,date:document.getElementById('jub-payment-date').value,amount:amt,notes:document.getElementById('jub-payment-notes').value.trim()});
+  var editId=window._editJubPaymentId;
+  if(editId){
+    var idx=rec.jubismPayments.findIndex(function(p){return p.id===editId;});
+    if(idx>=0){
+      rec.jubismPayments[idx]={id:editId,date:document.getElementById('jub-payment-date').value,amount:amt,notes:document.getElementById('jub-payment-notes').value.trim()};
+    }
+    window._editJubPaymentId=null;
+  } else {
+    rec.jubismPayments.push({id:NID++,date:document.getElementById('jub-payment-date').value,amount:amt,notes:document.getElementById('jub-payment-notes').value.trim()});
+  }
   STATE.finRecords=rec;
   saveState();
   closeModal('jub-payment');
   renderDashboard();
+}
+
+function deleteJubPayment(id){
+  var rec=getFinRecords();
+  rec.jubismPayments=rec.jubismPayments.filter(function(p){return p.id!==id;});
+  STATE.finRecords=rec;
+  saveState();
+  renderDashboard();
+}
+
+function editJubPayment(id){
+  var rec=getFinRecords();
+  var p=rec.jubismPayments.find(function(p){return p.id===id;});
+  if(!p)return;
+  window._editJubPaymentId=id;
+  document.getElementById('jub-payment-amount').value=p.amount;
+  document.getElementById('jub-payment-date').value=p.date;
+  document.getElementById('jub-payment-notes').value=p.notes||'';
+  var hint=document.getElementById('jub-payment-hint');
+  if(hint) hint.textContent='Editing existing payment';
+  openModal('jub-payment');
+}
+
+function openJubPaymentsHistory(){
+  var rec=getFinRecords();
+  var payments=(rec.jubismPayments||[]).slice().reverse();
+  var html='<div style="max-height:60vh;overflow-y:auto">';
+  if(!payments.length){
+    html+='<div style="color:var(--text-secondary);font-size:13px;padding:12px 0">No payments recorded yet.</div>';
+  } else {
+    html+='<table style="width:100%;border-collapse:collapse;font-size:13px">';
+    html+='<thead><tr style="border-bottom:1px solid var(--border-mid)"><th style="text-align:left;padding:6px 8px;color:var(--text-tertiary);font-weight:500">Date</th><th style="text-align:left;padding:6px 8px;color:var(--text-tertiary);font-weight:500">Amount</th><th style="text-align:left;padding:6px 8px;color:var(--text-tertiary);font-weight:500">Notes</th><th></th></tr></thead><tbody>';
+    payments.forEach(function(p){
+      html+='<tr style="border-bottom:0.5px solid var(--border-light)">';
+      html+='<td style="padding:8px">'+fmtDate(p.date)+'</td>';
+      html+='<td style="padding:8px;font-weight:500;color:#185FA5">'+fmt(p.amount)+'</td>';
+      html+='<td style="padding:8px;color:var(--text-secondary)">'+(p.notes||'—')+'</td>';
+      html+='<td style="padding:8px;display:flex;gap:4px">';
+      html+='<button onclick="editJubPayment('+p.id+')" style="font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;font-family:inherit">Edit</button>';
+      html+='<button onclick="deleteJubPayment('+p.id+')" style="font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--red);background:transparent;cursor:pointer;color:var(--red);font-family:inherit">Delete</button>';
+      html+='</td></tr>';
+    });
+    html+='</tbody></table>';
+  }
+  html+='</div>';
+  document.getElementById('jub-history-body').innerHTML=html;
+  openModal('jub-history');
 }
 
 function getJubismThisMonth(month,year){
@@ -2792,12 +2857,28 @@ if('serviceWorker' in navigator) {
     <div class="mt">Set income targets</div>
     <div class="form-row">
       <div><div class="ml">Monthly goal ($)</div><input type="number" id="it-monthly" placeholder="12000" step="500"></div>
-      <div><div class="ml">Quarterly goal ($)</div><input type="number" id="it-quarterly" placeholder="36000" step="1000"></div>
+      <div><div class="ml">Monthly costs ($)</div><input type="number" id="it-costs" placeholder="13000" step="500"></div>
     </div>
-    <div><div class="ml">Yearly goal ($)</div><input type="number" id="it-yearly" placeholder="150000" step="5000"></div>
+    <div class="form-row">
+      <div><div class="ml">Quarterly goal ($)</div><input type="number" id="it-quarterly" placeholder="36000" step="1000"></div>
+      <div><div class="ml">Yearly goal ($)</div><input type="number" id="it-yearly" placeholder="150000" step="5000"></div>
+    </div>
     <div class="ma">
       <button class="btn" onclick="closeModal('income-targets')">Cancel</button>
       <button class="btn blue" onclick="saveIncomeTargets()">Save targets</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- JUBISM PAYMENT HISTORY MODAL -->
+<div class="mo" id="mo-jub-history">
+  <div class="md" style="width:560px">
+    <div class="mt">Jubism payment history</div>
+    <div id="jub-history-body"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('jub-history')">Close</button>
+      <button class="btn blue" onclick="closeModal('jub-history');openJubPaymentModal()">+ Add payment</button>
     </div>
   </div>
 </div>
