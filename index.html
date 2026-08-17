@@ -1301,10 +1301,18 @@ function saveJubTask(){
 function renderPhoto(){
   document.getElementById('section-bar-wrap').innerHTML='';
   const allJobs=STATE.jobs;
-  const active=allJobs.filter(j=>j.status!=='invoice-paid'&&j.status!=='cancelled').length;
-  const invoiced=allJobs.filter(j=>['invoice-sent','invoice-paid'].includes(j.status)).reduce((s,j)=>s+parseFloat(j.invoice||0),0);
-  const paid=allJobs.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+parseFloat(j.invoice||0),0);
-  const totalProfit=allJobs.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+(parseFloat(j.invoice||0)-parseFloat(j.cost||0)),0);
+  const active=allJobs.filter(j=>j.status!=='invoice-paid'&&j.status!=='cancelled'&&!j.archived).length;
+  // YTD = current FY only (July 1 2026 onwards)
+  const fyJobs=allJobs.filter(j=>isInFY(j.date));
+  const invoiced=fyJobs.filter(j=>['invoice-sent','invoice-paid'].includes(j.status)).reduce((s,j)=>s+parseFloat(j.invoice||0),0);
+  const paid=fyJobs.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+parseFloat(j.invoice||0),0);
+  const totalProfit=fyJobs.filter(j=>j.status==='invoice-paid').reduce((s,j)=>s+(parseFloat(j.invoice||0)-parseFloat(j.cost||0)),0);
+  // Last FY for comparison
+  const lastFYStart=new Date(getAusFYStart());lastFYStart.setFullYear(lastFYStart.getFullYear()-1);
+  const lastFYEnd=new Date(getAusFYStart());lastFYEnd.setDate(lastFYEnd.getDate()-1);
+  const lastFYJobs=allJobs.filter(j=>{if(!j.date)return false;var d=new Date(j.date+'T00:00:00');return d>=lastFYStart&&d<=lastFYEnd&&j.status==='invoice-paid';});
+  const lastFYPaid=lastFYJobs.reduce((s,j)=>s+parseFloat(j.invoice||0),0);
+  const lastFYProfit=lastFYJobs.reduce((s,j)=>s+(parseFloat(j.invoice||0)-parseFloat(j.cost||0)),0);
 
   // MTD calculations
   const now_mtd=new Date();
@@ -2323,33 +2331,31 @@ function renderDashboard(){
   var thisMonth=now.getMonth();
   var thisYear=now.getFullYear();
   var t=getFinTargets();
-  var ft=getOrCreateFortnight();
 
-  // Jubism earned
-  var jubEarned=(ft.gordonDays.length+ft.darrenDays.length)*350;
-
-  // Jubism payments this month and FY
+  // Jubism paid invoices
   var jubMonth=(STATE.jubInvoices||[]).filter(function(inv){
     if(!inv.paid||!inv.date)return false;
     var d=new Date(inv.date+'T00:00:00');
     return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;
   }).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
-  var jubFY=jubPaidFY;
+  var jubFY=(STATE.jubInvoices||[]).filter(function(inv){return inv.paid&&isInFY(inv.date);}).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
+  var jubPending=(STATE.jubInvoices||[]).filter(function(inv){return!inv.paid;}).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
 
-  // Photography this month and FY
+  // Photography
   var photoMonthJobs=STATE.jobs.filter(function(j){
     if(!j.date||j.status!=='invoice-paid')return false;
     var d=new Date(j.date+'T00:00:00');
     return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;
   });
   var photoMonth=photoMonthJobs.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
-  var photoProfitMonth=photoMonthJobs.reduce(function(s,j){return s+parseFloat(j.invoice||0)-parseFloat(j.cost||0);},0);
+  var photoCostMonth=photoMonthJobs.reduce(function(s,j){return s+parseFloat(j.cost||0);},0);
+  var photoProfitMonth=photoMonth-photoCostMonth;
   var photoFYJobs=STATE.jobs.filter(function(j){return isInFY(j.date)&&j.status==='invoice-paid';});
   var photoFY=photoFYJobs.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
   var photoProfitFY=photoFYJobs.reduce(function(s,j){return s+parseFloat(j.invoice||0)-parseFloat(j.cost||0);},0);
   var photoUnpaid=STATE.jobs.filter(function(j){return j.status==='invoice-sent';});
 
-  // NT this month and FY
+  // NT
   var ntMonthWeeks=(STATE.ntWeekly||[]).filter(function(w){
     if(!w.date)return false;
     var d=new Date(w.date+'T00:00:00');
@@ -2360,52 +2366,77 @@ function renderDashboard(){
   var ntProfitMonth=ntMonth-ntCostsMonth;
   var ntFYWeeks=(STATE.ntWeekly||[]).filter(function(w){return isInFY(w.date);});
   var ntFY=ntFYWeeks.reduce(function(s,w){return s+parseFloat(w.rev||0);},0);
-  var ntCostsFY=ntFYWeeks.reduce(function(s,w){return s+parseFloat(w.cogs||0)+parseFloat(w.meta||0)+parseFloat(w.google||0)+parseFloat(w.shipping||0)+parseFloat(w.other||0);},0);
-  var ntProfitFY=ntFY-ntCostsFY;
+  var ntProfitFY=ntFY-ntFYWeeks.reduce(function(s,w){return s+parseFloat(w.cogs||0)+parseFloat(w.meta||0)+parseFloat(w.google||0)+parseFloat(w.shipping||0)+parseFloat(w.other||0);},0);
 
-  // BRG this month and FY
+  // BRG
   var brgMonthWeeks=STATE.weekly.filter(function(w){
     if(!w.date)return false;
     var d=new Date(w.date+'T00:00:00');
     return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;
   });
   var brgMonth=brgMonthWeeks.reduce(function(s,w){return s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0);},0);
-  var brgCostsMonth=brgMonthWeeks.reduce(function(s,w){return s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
-  var brgProfitMonth=brgMonth-brgCostsMonth;
+  var brgProfitMonth=brgMonth-brgMonthWeeks.reduce(function(s,w){return s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
   var brgFYWeeks=STATE.weekly.filter(function(w){return isInFY(w.date);});
   var brgFY=brgFYWeeks.reduce(function(s,w){return s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0);},0);
-  var brgCostsFY=brgFYWeeks.reduce(function(s,w){return s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
-  var brgProfitFY=brgFY-brgCostsFY;
+  var brgProfitFY=brgFY-brgFYWeeks.reduce(function(s,w){return s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
 
-  // Totals (Jubism + Photography count toward main targets, NT and BRG shown separately)
-  var totalRevMonth=jubMonth+photoMonth;
-  var totalRevFY=jubFY+photoFY;
-  var monthGoal=t.monthlyGoal||12000;
+  // Totals — all except Flippers
+  var totalRevMonth=jubMonth+photoMonth+ntMonth+brgMonth;
+  var totalProfitMonth=jubMonth+photoProfitMonth+ntProfitMonth+brgProfitMonth;
+  var totalRevFY=jubFY+photoFY+ntFY+brgFY;
+  var totalProfitFY=jubFY+photoProfitFY+ntProfitFY+brgProfitFY;
+
+  var monthGoal=t.monthlyGoal||15000;
   var monthlyCosts=t.monthlyCosts||13000;
-  var yearGoal=t.yearlyGoal||150000;
+  var yearGoal=t.yearlyGoal||180000;
 
   function pct(v,g){return g>0?Math.min(100,Math.round((v/g)*100)):0;}
+  function fmt2(n){return'$'+(Math.round(n)||0).toLocaleString();}
 
-  function streamTile(name,color,revMonth,profitMonth,revFY,profitFY,extra){
-    return'<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:14px 16px;border-top:3px solid '+color+'">'+
-      '<div style="font-size:10px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">'+name+'</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'+
-        '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px">'+
-          '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">Revenue MTD</div>'+
-          '<div style="font-size:16px;font-weight:600;color:'+color+'">'+fmt(revMonth)+'</div></div>'+
-        '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px">'+
-          '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">Profit MTD</div>'+
-          '<div style="font-size:16px;font-weight:600;color:'+(profitMonth>=0?'#0F6E56':'#A32D2D')+'">'+fmt(profitMonth)+'</div></div>'+
-        '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px">'+
-          '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">Revenue FY</div>'+
-          '<div style="font-size:15px;font-weight:500;color:'+color+'">'+fmt(revFY)+'</div></div>'+
-        '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px">'+
-          '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">Profit FY</div>'+
-          '<div style="font-size:15px;font-weight:500;color:'+(profitFY>=0?'#0F6E56':'#A32D2D')+'">'+fmt(profitFY)+'</div></div>'+
+  // SVG donut chart
+  function donut(segments,size,thick){
+    size=size||120;thick=thick||18;
+    var r=(size-thick)/2;
+    var cx=size/2,cy=size/2;
+    var circ=2*Math.PI*r;
+    var total=segments.reduce(function(s,seg){return s+(seg.value||0);},0);
+    if(total===0) return'<svg width="'+size+'" height="'+size+'"><circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="'+thick+'"/></svg>';
+    var offset=0;
+    var paths='';
+    segments.forEach(function(seg){
+      var frac=(seg.value||0)/total;
+      var dash=frac*circ;
+      var gap=circ-dash;
+      paths+='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+seg.color+'" stroke-width="'+thick+'" stroke-dasharray="'+dash+' '+gap+'" stroke-dashoffset="'+(-offset*circ/1)+'" transform="rotate(-90 '+cx+' '+cy+')" stroke-linecap="butt"/>';
+      offset+=frac;
+    });
+    return'<svg width="'+size+'" height="'+size+'">'+paths+'</svg>';
+  }
+
+  // Progress wheel
+  function wheel(value,goal,color,label,sublabel){
+    var p=pct(value,goal);
+    var size=140;var thick=14;var r=(size-thick)/2;var cx=size/2;var cy=size/2;
+    var circ=2*Math.PI*r;
+    var dash=(p/100)*circ;
+    var bg='rgba(255,255,255,0.08)';
+    return'<div style="display:flex;flex-direction:column;align-items:center;gap:6px">'+
+      '<div style="position:relative;width:'+size+'px;height:'+size+'px">'+
+        '<svg width="'+size+'" height="'+size+'" style="position:absolute;top:0;left:0">'+
+          '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+bg+'" stroke-width="'+thick+'"/>'+
+          '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="'+thick+'" stroke-dasharray="'+dash+' '+(circ-dash)+'" stroke-dashoffset="'+(-circ/4)+'" stroke-linecap="round"/>'+
+        '</svg>'+
+        '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center">'+
+          '<div style="font-size:16px;font-weight:700;color:'+color+'">'+p+'%</div>'+
+          '<div style="font-size:10px;color:var(--text-tertiary)">'+fmt2(value)+'</div>'+
+        '</div>'+
       '</div>'+
-      (extra||'')+
+      '<div style="text-align:center"><div style="font-size:12px;font-weight:600;color:var(--text-primary)">'+label+'</div>'+
+      '<div style="font-size:10px;color:var(--text-tertiary)">of '+fmt2(goal)+'</div></div>'+
     '</div>';
   }
+
+  var mCostsCovered=totalRevMonth>=monthlyCosts;
 
   var html='<div style="padding:20px;display:flex;flex-direction:column;gap:16px">';
 
@@ -2416,76 +2447,95 @@ function renderDashboard(){
   html+='<button onclick="openIncomeTargets()" style="font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit">⚙️ Set targets</button>';
   html+='</div>';
 
-  // JUBISM SUMMARY (simple - tracker moved to Jubism section)
-  var jubPaidFY=(STATE.jubInvoices||[]).filter(function(inv){return inv.paid&&isInFY(inv.date);}).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
-  var jubPending=(STATE.jubInvoices||[]).filter(function(inv){return!inv.paid;}).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
+  // TOP ROW: Charts + Targets
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
 
+  // LEFT: Revenue split donut + stream breakdown
+  html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:16px">';
+  html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">Revenue split — '+now.toLocaleDateString('en-AU',{month:'long'})+'</div>';
+  html+='<div style="display:flex;align-items:center;gap:20px">';
+  var donutSegs=[
+    {value:jubMonth,color:'#D4AF36'},
+    {value:photoMonth,color:'#1B3A8C'},
+    {value:ntMonth,color:'#F47B20'},
+    {value:brgMonth,color:'#FF1493'}
+  ];
+  html+=donut(donutSegs,130,20);
+  html+='<div style="flex:1;display:flex;flex-direction:column;gap:8px">';
+  var streams=[
+    {label:'Jubism',color:'#D4AF36',month:jubMonth,fy:jubFY},
+    {label:'Photography',color:'#1B3A8C',month:photoMonth,fy:photoFY},
+    {label:'Now Trending',color:'#F47B20',month:ntMonth,fy:ntFY},
+    {label:'BackRoom Gear',color:'#FF1493',month:brgMonth,fy:brgFY}
+  ];
+  streams.forEach(function(s){
+    html+='<div style="display:flex;align-items:center;gap:8px">'+
+      '<div style="width:10px;height:10px;border-radius:50%;background:'+s.color+';flex-shrink:0"></div>'+
+      '<div style="flex:1;font-size:12px;color:var(--text-secondary)">'+s.label+'</div>'+
+      '<div style="font-size:13px;font-weight:600;color:'+s.color+'">'+fmt2(s.month)+'</div>'+
+      '<div style="font-size:11px;color:var(--text-tertiary);min-width:60px;text-align:right">'+fmt2(s.fy)+' FY</div>'+
+    '</div>';
+  });
+  html+='<div style="border-top:0.5px solid var(--border-light);padding-top:6px;margin-top:2px;display:flex;justify-content:space-between">';
+  html+='<span style="font-size:12px;font-weight:600;color:var(--text-primary)">Total</span>';
+  html+='<span style="font-size:13px;font-weight:700;color:var(--text-primary)">'+fmt2(totalRevMonth)+'</span>';
+  html+='</div>';
+  html+='</div></div></div>';
 
-  // TOP ROW: Total business targets
-  var mCostsCovered=totalRevMonth>=monthlyCosts;
-  var mBarColor=mCostsCovered?'#0F6E56':'#A32D2D';
-  var mPct=pct(totalRevMonth,monthGoal);
-  var yPct=pct(totalRevFY,yearGoal);
+  // RIGHT: Goal progress wheels
+  html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:16px">';
+  html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">Progress to goals</div>';
+  html+='<div style="display:flex;justify-content:space-around;align-items:center">';
+  html+=wheel(totalRevMonth,monthGoal,mCostsCovered?'#0F6E56':'#F47B20','Monthly','Revenue');
+  html+=wheel(totalRevFY,yearGoal,'#1B3A8C','FY26/27','Revenue');
+  html+=wheel(totalProfitMonth,totalRevMonth,'#D4AF36','Profit','This month');
+  html+='</div>';
+  html+='<div style="display:flex;justify-content:space-around;font-size:11px;color:var(--text-tertiary);margin-top:8px">';
+  html+='<span>'+(mCostsCovered?'✅ Costs covered':'🔴 '+fmt2(monthlyCosts-totalRevMonth)+' to costs')+'</span>';
+  html+='<span>'+fmt2(yearGoal-totalRevFY)+' to goal</span>';
+  html+='<span>'+fmt2(totalProfitMonth)+' profit</span>';
+  html+='</div>';
+  html+='<div style="margin-top:10px;text-align:center"><button onclick="openJubPaymentModal()" style="font-size:11px;padding:3px 12px;border-radius:99px;border:1px solid #D4AF36;background:transparent;cursor:pointer;color:#D4AF36;font-family:inherit">+ Record Jubism payment</button></div>';
+  html+='</div>';
 
-  html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:16px;border-top:3px solid #D4AF36">';
-  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
-  html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em">Total business — Jubism + Photography</div>';
-  html+='<div style="display:flex;gap:8px">';
-  html+='<button onclick="openJubPaymentModal()" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid #D4AF36;background:transparent;cursor:pointer;color:#D4AF36;font-family:inherit">+ Record Jubism payment</button>';
-  html+='</div></div>';
-
-  // Month bar
-  html+='<div style="margin-bottom:12px">';
-  html+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">';
-  html+='<span style="font-size:13px;color:var(--text-secondary)">'+now.toLocaleDateString('en-AU',{month:'long'})+'</span>';
-  html+='<span style="font-size:18px;font-weight:600;color:'+(mCostsCovered?'#0F6E56':'#185FA5')+'">'+fmt(totalRevMonth)+'<span style="font-size:12px;font-weight:400;color:var(--text-tertiary)"> / '+fmt(monthGoal)+'</span></span>';
-  html+='</div>';
-  html+='<div style="height:8px;background:var(--bg-tertiary);border-radius:99px;overflow:hidden;position:relative">';
-  html+='<div style="height:100%;width:'+mPct+'%;background:'+mBarColor+';border-radius:99px;transition:width 0.4s"></div>';
-  var costPct=pct(monthlyCosts,monthGoal);
-  html+='<div style="position:absolute;top:0;bottom:0;left:'+costPct+'%;width:2px;background:rgba(255,255,255,0.4)"></div>';
-  html+='</div>';
-  html+='<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:3px">';
-  html+='<span style="color:var(--text-secondary)">'+(mCostsCovered?'✅ Costs covered — '+fmt(totalRevMonth-monthlyCosts)+' in the cream':'🔴 '+fmt(monthlyCosts-totalRevMonth)+' to cover costs')+'</span>';
-  html+='<span style="color:var(--text-tertiary)">Goal: '+fmt(monthGoal)+'</span>';
-  html+='</div></div>';
-
-  // FY bar
-  html+='<div>';
-  html+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">';
-  html+='<span style="font-size:13px;color:var(--text-secondary)">'+getFYLabel()+'</span>';
-  html+='<span style="font-size:18px;font-weight:600;color:#185FA5">'+fmt(totalRevFY)+'<span style="font-size:12px;font-weight:400;color:var(--text-tertiary)"> / '+fmt(yearGoal)+'</span></span>';
-  html+='</div>';
-  html+='<div style="height:8px;background:var(--bg-tertiary);border-radius:99px;overflow:hidden">';
-  html+='<div style="height:100%;width:'+yPct+'%;background:#185FA5;border-radius:99px;transition:width 0.4s"></div>';
-  html+='</div>';
-  html+='<div style="font-size:11px;color:var(--text-secondary);margin-top:3px">'+yPct+'% of yearly goal'+(yPct>=100?' ✅':' — '+fmt(yearGoal-totalRevFY)+' to go')+'</div>';
-  html+='</div>';
-  html+='</div>'; // end targets card
+  html+='</div>'; // end top row
 
   // BOTTOM ROW: 4 stream tiles
   html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">';
 
-  // Jubism tile
-  var jubExtra='<div style="display:flex;gap:8px;margin-top:4px">'+
-    (jubPending>0?'<span style="font-size:11px;background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:99px">'+fmt(jubPending)+' pending</span>':'')+
-    '<span onclick="switchBiz(&quot;jubism&quot;)" style="font-size:11px;color:#D4AF36;cursor:pointer">View invoices →</span>'+
-    '</div>';
+  function streamTile(name,color,revM,profM,revFY,profFY,extra){
+    return'<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:14px 16px;border-top:3px solid '+color+'">'+
+      '<div style="font-size:10px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">'+name+'</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'+
+        '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px">'+
+          '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">Rev MTD</div>'+
+          '<div style="font-size:15px;font-weight:600;color:'+color+'">'+fmt2(revM)+'</div></div>'+
+        '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px">'+
+          '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">Profit MTD</div>'+
+          '<div style="font-size:15px;font-weight:600;color:'+(profM>=0?'#0F6E56':'#A32D2D')+'">'+fmt2(profM)+'</div></div>'+
+        '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px">'+
+          '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">Rev FY</div>'+
+          '<div style="font-size:14px;font-weight:500;color:'+color+'">'+fmt2(revFY)+'</div></div>'+
+        '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px">'+
+          '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">Profit FY</div>'+
+          '<div style="font-size:14px;font-weight:500;color:'+(profFY>=0?'#0F6E56':'#A32D2D')+'">'+fmt2(profFY)+'</div></div>'+
+      '</div>'+(extra||'')+'</div>';
+  }
+
+  var jubExtra='<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+    (jubPending>0?'<span style="font-size:11px;background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:99px">'+fmt2(jubPending)+' pending</span>':'')+
+    '<span onclick="switchBiz(&quot;jubism&quot;)" style="font-size:11px;color:#D4AF36;cursor:pointer">Invoices →</span></div>';
   html+=streamTile('Jubism','#D4AF36',jubMonth,jubMonth,jubFY,jubFY,jubExtra);
 
-  // Photography tile
   var photoExtra=photoUnpaid.length>0?
-    '<div style="font-size:11px;background:#FAEEDA;color:#633806;padding:3px 8px;border-radius:99px;display:inline-block;margin-top:4px">'+photoUnpaid.length+' unpaid invoice'+(photoUnpaid.length>1?'s':'')+'</div>':'';
+    '<span style="font-size:11px;background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:99px">'+photoUnpaid.length+' unpaid</span>':'';
   html+=streamTile('Photography','#1B3A8C',photoMonth,photoProfitMonth,photoFY,photoProfitFY,photoExtra);
 
-  // NT tile
   html+=streamTile('Now Trending','#F47B20',ntMonth,ntProfitMonth,ntFY,ntProfitFY,'');
-
-  // BRG tile
   html+=streamTile('BackRoom Gear','#FF1493',brgMonth,brgProfitMonth,brgFY,brgProfitFY,'');
 
-  html+='</div>'; // end 4-col
-  html+='</div>'; // end wrap
+  html+='</div>';
+  html+='</div>';
   document.getElementById('main-content').innerHTML=html;
 }
 
