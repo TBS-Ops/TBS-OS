@@ -19,19 +19,19 @@
   --radius-md:8px;--radius-lg:12px;
   --blue:#185FA5;--blue-light:#E6F1FB;--blue-dark:#0C447C;
   --green:#0F6E56;--green-light:#E1F5EE;
-  --amber:#854F0B;--amber-light:#FAEEDA;
+  --amber:#8B0057;--amber-light:#FAEEDA;
   --orange:#D85A30;--orange-light:#FEF0EA;
   --purple:#534AB7;--purple-light:#EEEDFE;
   --red:#A32D2D;--red-light:#FCEBEB;
-  --teal:#1D9E75;--teal-light:#9FE1CB;
+  --teal:#1B3A8C;--teal-light:#9FE1CB;
 }
 [data-theme="dark"]{
   --bg-primary:#1c1c1e;--bg-secondary:#2c2c2e;--bg-tertiary:#18181a;
   --text-primary:#f0f0f0;--text-secondary:#a0a0a0;--text-tertiary:#606060;
   --border-light:rgba(255,255,255,0.08);--border-mid:rgba(255,255,255,0.15);
   --blue:#378ADD;--blue-light:#0C2D4A;--blue-dark:#85B7EB;
-  --green:#1D9E75;--green-light:#04342C;
-  --amber:#EF9F27;--amber-light:#3A2200;
+  --green:#1B3A8C;--green-light:#04342C;
+  --amber:#FF1493;--amber-light:#3A2200;
   --orange:#F0997B;--orange-light:#2A1200;
   --purple:#AFA9EC;--purple-light:#1E1B3A;
   --red:#F09595;--red-light:#2A0F0F;
@@ -89,7 +89,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sec-tab{padding:5px 14px;border-radius:var(--radius-md);font-size:12px;cursor:pointer;color:var(--text-secondary);border:1px solid transparent;transition:all 0.15s;font-family:inherit}
 .sec-tab.active-jub{background:var(--blue-light);color:var(--blue);border-color:#B5D4F4;font-weight:500}
 .sec-tab.active-photo{background:var(--green-light);color:var(--green);border-color:#5DCAA5;font-weight:500}
-.sec-tab.active-brg{background:var(--amber-light);color:var(--amber);border-color:#EF9F27;font-weight:500}
+.sec-tab.active-brg{background:var(--amber-light);color:var(--amber);border-color:#FF1493;font-weight:500}
 .sec-tab.active-flip{background:var(--orange-light);color:var(--orange);border-color:#F0997B;font-weight:500}
 .sec-tab:hover:not([class*="active"]){background:var(--bg-secondary)}
 
@@ -373,7 +373,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           flipItems: JSON.stringify(state.flipItems),
           jubTracker: JSON.stringify(state.jubTracker||{}),
           finTargets: JSON.stringify(state.finTargets||{}),
-          finRecords: JSON.stringify(state.finRecords||{})
+          finRecords: JSON.stringify(state.finRecords||{}),
+          ntTasks: JSON.stringify(state.ntTasks||[]),
+          ntWeekly: JSON.stringify(state.ntWeekly||[])
         });
       } catch(e) {
         console.error("Save error:", e);
@@ -396,7 +398,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             flipItems: d.flipItems ? JSON.parse(d.flipItems) : null,
             jubTracker: d.jubTracker ? JSON.parse(d.jubTracker) : null,
             finTargets: d.finTargets ? JSON.parse(d.finTargets) : null,
-            finRecords: d.finRecords ? JSON.parse(d.finRecords) : null
+            finRecords: d.finRecords ? JSON.parse(d.finRecords) : null,
+            ntTasks: d.ntTasks ? JSON.parse(d.ntTasks) : null,
+            ntWeekly: d.ntWeekly ? JSON.parse(d.ntWeekly) : null
           };
         }
         return null;
@@ -467,6 +471,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         if (data.finTargets) STATE.finTargets = data.finTargets;
         if (data.revenueTarget) STATE.revenueTarget = data.revenueTarget;
         if (data.finRecords) STATE.finRecords = data.finRecords;
+        if (data.ntTasks) STATE.ntTasks = data.ntTasks;
+        if (data.ntWeekly) STATE.ntWeekly = data.ntWeekly;
         render();
         showSyncBadge('↻ Synced with Darren');
       });
@@ -788,14 +794,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 // ============================================================
 const BIZ=[
   {id:'jubism',name:'Jubism Work',dot:'#378ADD'},
-  {id:'photo',name:'Photography',dot:'#1D9E75'},
-  {id:'backroom',name:'BackRoom Gear',dot:'#EF9F27'},
+  {id:'photo',name:'Photography',dot:'#1B3A8C'},
+  {id:'nt',name:'Now Trending',dot:'#F47B20'},
+  {id:'backroom',name:'BackRoom Gear',dot:'#FF1493'},
   {id:'flippers',name:'Two Bear Flippers',dot:'#D85A30'}
 ];
 const JUB_BRANDS=[
-  {id:'nt',name:'Now Trending',short:'NT'},
   {id:'es',name:'Exclusive Signings',short:'ES'},
-  {id:'ag',name:'Ausgel',short:'AG'},
   {id:'cgw',name:'Celebration Giftware',short:'CGW'},
   {id:'admin',name:'Admin',short:'ADM'}
 ];
@@ -868,6 +873,10 @@ function statusObj(id){return PHOTO_STATUSES.find(s=>s.id===id)||PHOTO_STATUSES[
 
 let STATE={
   activeBiz:'jubism',
+  // Now Trending
+  ntSection:'tasks',
+  ntTasks:[],
+  ntWeekly:[],
   // Jubism
   jubFilter:'today',
   jubTasks:[
@@ -972,6 +981,7 @@ function render(){
   if(!biz){try{renderDashboard();}catch(e){console.error('Dashboard error:',e);document.getElementById('main-content').innerHTML='<div style="padding:20px;color:red">Dashboard error: '+e.message+'</div>';}}
   else if(biz==='jubism') renderJubism();
   else if(biz==='photo') renderPhoto();
+  else if(biz==='nt') renderNT();
   else if(biz==='backroom') renderBRG();
   else renderFlippers();
 }
@@ -1617,7 +1627,7 @@ function renderBRGAds(){
 
 function tickBRGTask(id){
   const t=STATE.brgTasks.find(x=>x.id===id);if(!t)return;
-  if(t.recur!=='none'){const next=nextOcc(t.due,t.recur);t.due=next;t.done=false;showToast(`Rescheduled → ${fmtDate(next)}`,'#854F0B');}
+  if(t.recur!=='none'){const next=nextOcc(t.due,t.recur);t.due=next;t.done=false;showToast(`Rescheduled → ${fmtDate(next)}`,'#8B0057');}
   else t.done=!t.done;
   renderBRG();saveState();
 }
@@ -2017,7 +2027,7 @@ function renderHaulList(){
   if(!el)return;
   el.innerHTML=hauls.map(h=>{
     const st=haulStats(h.id);
-    const fc=st.inCream?'#1D9E75':st.recoveryPct>50?'#EF9F27':'#D85A30';
+    const fc=st.inCream?'#1B3A8C':st.recoveryPct>50?'#FF1493':'#D85A30';
     return`<div class="haul-row${STATE.activeHaulId===h.id?' haul-active':''}" onclick="selectHaul(${h.id})">
       <div class="haul-name">${h.name}</div>
       <div class="haul-meta">${h.source} · ${fmtDate(h.date)} · $${parseFloat(h.cost).toFixed(0)} · ${st.total} items</div>
@@ -2040,7 +2050,7 @@ function renderItemsPanel(){
   const haul=STATE.hauls.find(h=>h.id===STATE.activeHaulId);
   if(!haul){return;}
   const st=haulStats(haul.id);
-  const fc=st.inCream?'#1D9E75':st.recoveryPct>50?'#EF9F27':'#D85A30';
+  const fc=st.inCream?'#1B3A8C':st.recoveryPct>50?'#FF1493':'#D85A30';
   let items=STATE.flipItems.filter(i=>i.haulId===haul.id);
   if(STATE.itemFilter!=='all') items=items.filter(i=>i.status===STATE.itemFilter);
   if(STATE.itemSearch) items=items.filter(i=>i.name.toLowerCase().includes(STATE.itemSearch)||i.sku.toLowerCase().includes(STATE.itemSearch)||(i.loc||'').toLowerCase().includes(STATE.itemSearch));
@@ -2279,155 +2289,159 @@ function renderDashboard(){
   var thisMonth=now.getMonth();
   var thisYear=now.getFullYear();
   var t=getFinTargets();
-  var rec=getFinRecords();
   var ft=getOrCreateFortnight();
 
-  // Income calculations
+  // Jubism earned
   var jubEarned=(ft.gordonDays.length+ft.darrenDays.length)*350;
+
+  // Jubism payments this month and FY
   var jubMonth=getJubismThisMonth(thisMonth,thisYear);
-  var jubQuarter=getJubismThisQuarter(thisYear);
   var jubFY=getJubismFY();
 
-  // Photography this month
-  var photoMonth=STATE.jobs.filter(function(j){
-    if(!j.date)return false;
+  // Photography this month and FY
+  var photoMonthJobs=STATE.jobs.filter(function(j){
+    if(!j.date||j.status!=='invoice-paid')return false;
     var d=new Date(j.date+'T00:00:00');
-    return d.getMonth()===thisMonth&&d.getFullYear()===thisYear&&j.status==='invoice-paid';
+    return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;
   });
-  var photoMonthTotal=photoMonth.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
-
-  // Photography quarterly (current quarter)
-  var currentQ=Math.floor(thisMonth/3);
-  var photoQuarter=STATE.jobs.filter(function(j){
-    if(!j.date)return false;
-    var d=new Date(j.date+'T00:00:00');
-    return d.getFullYear()===thisYear&&Math.floor(d.getMonth()/3)===currentQ&&j.status==='invoice-paid';
-  }).reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
-
-  // Photography FY
-  var photoFY=STATE.jobs.filter(function(j){return isInFY(j.date)&&j.status==='invoice-paid';}).reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
+  var photoMonth=photoMonthJobs.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
+  var photoProfitMonth=photoMonthJobs.reduce(function(s,j){return s+parseFloat(j.invoice||0)-parseFloat(j.cost||0);},0);
+  var photoFYJobs=STATE.jobs.filter(function(j){return isInFY(j.date)&&j.status==='invoice-paid';});
+  var photoFY=photoFYJobs.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
+  var photoProfitFY=photoFYJobs.reduce(function(s,j){return s+parseFloat(j.invoice||0)-parseFloat(j.cost||0);},0);
   var photoUnpaid=STATE.jobs.filter(function(j){return j.status==='invoice-sent';});
-  var photoUnpaidTotal=photoUnpaid.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
 
-  // BRG this month
-  var brgMonth=STATE.weekly.filter(function(w){if(!w.date)return false;var d=new Date(w.date+'T00:00:00');return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;});
-  var brgRev=brgMonth.reduce(function(s,w){return s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0);},0);
-  var brgCosts=brgMonth.reduce(function(s,w){return s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
-  var brgProfit=brgRev-brgCosts;
+  // NT this month and FY
+  var ntMonthWeeks=(STATE.ntWeekly||[]).filter(function(w){
+    if(!w.date)return false;
+    var d=new Date(w.date+'T00:00:00');
+    return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;
+  });
+  var ntMonth=ntMonthWeeks.reduce(function(s,w){return s+parseFloat(w.rev||0);},0);
+  var ntCostsMonth=ntMonthWeeks.reduce(function(s,w){return s+parseFloat(w.cogs||0)+parseFloat(w.meta||0)+parseFloat(w.google||0)+parseFloat(w.shipping||0)+parseFloat(w.other||0);},0);
+  var ntProfitMonth=ntMonth-ntCostsMonth;
+  var ntFYWeeks=(STATE.ntWeekly||[]).filter(function(w){return isInFY(w.date);});
+  var ntFY=ntFYWeeks.reduce(function(s,w){return s+parseFloat(w.rev||0);},0);
+  var ntCostsFY=ntFYWeeks.reduce(function(s,w){return s+parseFloat(w.cogs||0)+parseFloat(w.meta||0)+parseFloat(w.google||0)+parseFloat(w.shipping||0)+parseFloat(w.other||0);},0);
+  var ntProfitFY=ntFY-ntCostsFY;
 
-  // Flippers
-  var flipInStock=STATE.flipItems.filter(function(i){return i.status==='stock';}).length;
-  var flipListed=STATE.flipItems.filter(function(i){return i.status==='listed';}).length;
-  var flipToShip=STATE.flipItems.filter(function(i){return i.status==='sold';}).length;
-  var flipProfit=STATE.flipItems.filter(function(i){return i.status==='shipped';}).reduce(function(s,i){return s+(parseFloat(i.sale||0)-parseFloat(i.ship||0)-parseFloat(i.cost||0));},0);
+  // BRG this month and FY
+  var brgMonthWeeks=STATE.weekly.filter(function(w){
+    if(!w.date)return false;
+    var d=new Date(w.date+'T00:00:00');
+    return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;
+  });
+  var brgMonth=brgMonthWeeks.reduce(function(s,w){return s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0);},0);
+  var brgCostsMonth=brgMonthWeeks.reduce(function(s,w){return s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
+  var brgProfitMonth=brgMonth-brgCostsMonth;
+  var brgFYWeeks=STATE.weekly.filter(function(w){return isInFY(w.date);});
+  var brgFY=brgFYWeeks.reduce(function(s,w){return s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0);},0);
+  var brgCostsFY=brgFYWeeks.reduce(function(s,w){return s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
+  var brgProfitFY=brgFY-brgCostsFY;
 
-  // Totals (Jubism + Photography only toward goal)
-  var monthTotal=jubMonth+photoMonthTotal;
-  var quarterTotal=jubQuarter+photoQuarter;
-  var fyTotal=jubFY+photoFY;
+  // Totals (Jubism + Photography count toward main targets, NT and BRG shown separately)
+  var totalRevMonth=jubMonth+photoMonth;
+  var totalRevFY=jubFY+photoFY;
   var monthGoal=t.monthlyGoal||12000;
-  var quarterGoal=t.quarterlyGoal||36000;
+  var monthlyCosts=t.monthlyCosts||13000;
   var yearGoal=t.yearlyGoal||150000;
 
   function pct(v,g){return g>0?Math.min(100,Math.round((v/g)*100)):0;}
-  function bar(v,g,color){
-    var p=pct(v,g);
-    var c=color||(p>=100?'#0F6E56':p>=70?'#185FA5':'#854F0B');
-    return'<div style="height:8px;background:var(--bg-tertiary);border-radius:99px;overflow:hidden;margin:6px 0"><div style="height:100%;width:'+p+'%;background:'+c+';border-radius:99px;transition:width 0.4s"></div></div>';
-  }
-  function tile(title,main,sub,accent,onclick,badge){
-    return'<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:14px 16px;border-top:3px solid '+accent+';cursor:'+(onclick?'pointer':'default')+'" '+(onclick?'onclick="'+onclick+'"':'')+'>'+
-      '<div style="font-size:10px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">'+title+'</div>'+
-      '<div style="font-size:22px;font-weight:600;color:'+accent+'">'+main+'</div>'+
-      '<div style="font-size:12px;color:var(--text-secondary);margin-top:2px">'+sub+'</div>'+
-      (badge?'<div style="margin-top:8px">'+badge+'</div>':'')+
+
+  function streamTile(name,color,revMonth,profitMonth,revFY,profitFY,extra){
+    return'<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:14px 16px;border-top:3px solid '+color+'">'+
+      '<div style="font-size:10px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">'+name+'</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'+
+        '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px">'+
+          '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">Revenue MTD</div>'+
+          '<div style="font-size:16px;font-weight:600;color:'+color+'">'+fmt(revMonth)+'</div></div>'+
+        '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px">'+
+          '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">Profit MTD</div>'+
+          '<div style="font-size:16px;font-weight:600;color:'+(profitMonth>=0?'#0F6E56':'#A32D2D')+'">'+fmt(profitMonth)+'</div></div>'+
+        '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px">'+
+          '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">Revenue FY</div>'+
+          '<div style="font-size:15px;font-weight:500;color:'+color+'">'+fmt(revFY)+'</div></div>'+
+        '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px">'+
+          '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">Profit FY</div>'+
+          '<div style="font-size:15px;font-weight:500;color:'+(profitFY>=0?'#0F6E56':'#A32D2D')+'">'+fmt(profitFY)+'</div></div>'+
+      '</div>'+
+      (extra||'')+
     '</div>';
   }
 
   var html='<div style="padding:20px;display:flex;flex-direction:column;gap:16px">';
 
   // GREETING
-  var dow=now.getDay();
   html+='<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px">';
   html+='<div><div style="font-size:20px;font-weight:500">'+greeting+', Gordon 👋</div>';
   html+='<div style="font-size:12px;color:var(--text-secondary);margin-top:2px">'+dateStr+'</div></div>';
   html+='<button onclick="openIncomeTargets()" style="font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit">⚙️ Set targets</button>';
   html+='</div>';
 
-  // Invoice banners removed
-
   // JUBISM TRACKER
   html+=renderJubTracker();
 
-  // INCOME TARGETS - Month / Quarter / Year
-  html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:16px;border-top:3px solid #185FA5">';
-  html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">Income targets — Jubism + Photography</div>';
-
-  // Month
-  var monthlyCosts=t.monthlyCosts||13000;
-  var mPct=pct(monthTotal,monthGoal);
-  var mCostsCovered=monthTotal>=monthlyCosts;
+  // TOP ROW: Total business targets
+  var mCostsCovered=totalRevMonth>=monthlyCosts;
   var mBarColor=mCostsCovered?'#0F6E56':'#A32D2D';
+  var mPct=pct(totalRevMonth,monthGoal);
+  var yPct=pct(totalRevFY,yearGoal);
+
+  html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:16px;border-top:3px solid #378ADD">';
+  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+  html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em">Total business — Jubism + Photography</div>';
+  html+='<div style="display:flex;gap:8px">';
+  html+='<button onclick="openJubPaymentModal()" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid #378ADD;background:transparent;cursor:pointer;color:#378ADD;font-family:inherit">+ Record Jubism payment</button>';
+  html+='</div></div>';
+
+  // Month bar
   html+='<div style="margin-bottom:12px">';
-  html+='<div style="display:flex;justify-content:space-between;align-items:baseline">';
+  html+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">';
   html+='<span style="font-size:13px;color:var(--text-secondary)">'+now.toLocaleDateString('en-AU',{month:'long'})+'</span>';
-  html+='<span style="font-size:18px;font-weight:600;color:'+(mCostsCovered?'#0F6E56':'#185FA5')+'">'+fmt(monthTotal)+'<span style="font-size:12px;font-weight:400;color:var(--text-tertiary)"> / '+fmt(monthGoal)+'</span></span>';
+  html+='<span style="font-size:18px;font-weight:600;color:'+(mCostsCovered?'#0F6E56':'#185FA5')+'">'+fmt(totalRevMonth)+'<span style="font-size:12px;font-weight:400;color:var(--text-tertiary)"> / '+fmt(monthGoal)+'</span></span>';
   html+='</div>';
-  html+='<div style="height:8px;background:var(--bg-tertiary);border-radius:99px;overflow:hidden;margin:6px 0;position:relative">';
+  html+='<div style="height:8px;background:var(--bg-tertiary);border-radius:99px;overflow:hidden;position:relative">';
   html+='<div style="height:100%;width:'+mPct+'%;background:'+mBarColor+';border-radius:99px;transition:width 0.4s"></div>';
-  html+='<div style="position:absolute;top:0;bottom:0;left:'+pct(monthlyCosts,monthGoal)+'%;width:2px;background:rgba(255,255,255,0.4)"></div>';
+  var costPct=pct(monthlyCosts,monthGoal);
+  html+='<div style="position:absolute;top:0;bottom:0;left:'+costPct+'%;width:2px;background:rgba(255,255,255,0.4)"></div>';
   html+='</div>';
-  html+='<div style="display:flex;justify-content:space-between;font-size:11px">';
-  html+='<span style="color:var(--text-secondary)">'+(mCostsCovered?'✅ Costs covered — '+fmt(monthTotal-monthlyCosts)+' in the cream':'🔴 '+fmt(monthlyCosts-monthTotal)+' to cover costs')+'</span>';
+  html+='<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:3px">';
+  html+='<span style="color:var(--text-secondary)">'+(mCostsCovered?'✅ Costs covered — '+fmt(totalRevMonth-monthlyCosts)+' in the cream':'🔴 '+fmt(monthlyCosts-totalRevMonth)+' to cover costs')+'</span>';
   html+='<span style="color:var(--text-tertiary)">Goal: '+fmt(monthGoal)+'</span>';
-  html+='</div>';
-  html+='</div>';
+  html+='</div></div>';
 
-  // Quarter
-  var qNames=['Jan-Mar','Apr-Jun','Jul-Sep','Oct-Dec'];
-  var qPct=pct(quarterTotal,quarterGoal);
-  html+='<div style="margin-bottom:12px">';
-  html+='<div style="display:flex;justify-content:space-between;align-items:baseline">';
-  html+='<span style="font-size:13px;color:var(--text-secondary)">Quarter '+qNames[currentQ]+'</span>';
-  html+='<span style="font-size:18px;font-weight:600;color:#185FA5">'+fmt(quarterTotal)+'<span style="font-size:12px;font-weight:400;color:var(--text-tertiary)"> / '+fmt(quarterGoal)+'</span></span>';
-  html+='</div>';
-  html+=bar(quarterTotal,quarterGoal);
-  html+='<div style="font-size:11px;color:var(--text-tertiary)">'+qPct+'% of quarterly goal'+(qPct>=100?' ✅':' — '+fmt(quarterGoal-quarterTotal)+' to go')+'</div>';
-  html+='</div>';
-
-  // Year (FY)
-  var yPct=pct(fyTotal,yearGoal);
+  // FY bar
   html+='<div>';
-  html+='<div style="display:flex;justify-content:space-between;align-items:baseline">';
+  html+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">';
   html+='<span style="font-size:13px;color:var(--text-secondary)">'+getFYLabel()+'</span>';
-  html+='<span style="font-size:18px;font-weight:600;color:#185FA5">'+fmt(fyTotal)+'<span style="font-size:12px;font-weight:400;color:var(--text-tertiary)"> / '+fmt(yearGoal)+'</span></span>';
+  html+='<span style="font-size:18px;font-weight:600;color:#185FA5">'+fmt(totalRevFY)+'<span style="font-size:12px;font-weight:400;color:var(--text-tertiary)"> / '+fmt(yearGoal)+'</span></span>';
   html+='</div>';
-  html+=bar(fyTotal,yearGoal);
-  html+='<div style="font-size:11px;color:var(--text-tertiary)">'+yPct+'% of yearly goal'+(yPct>=100?' ✅':' — '+fmt(yearGoal-fyTotal)+' to go')+'</div>';
+  html+='<div style="height:8px;background:var(--bg-tertiary);border-radius:99px;overflow:hidden">';
+  html+='<div style="height:100%;width:'+yPct+'%;background:#185FA5;border-radius:99px;transition:width 0.4s"></div>';
   html+='</div>';
-
+  html+='<div style="font-size:11px;color:var(--text-secondary);margin-top:3px">'+yPct+'% of yearly goal'+(yPct>=100?' ✅':' — '+fmt(yearGoal-totalRevFY)+' to go')+'</div>';
+  html+='</div>';
   html+='</div>'; // end targets card
 
-  // INCOME TILES - 4 across
+  // BOTTOM ROW: 4 stream tiles
   html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">';
 
   // Jubism tile
-  var jubBadge='<div style="display:flex;gap:6px;flex-wrap:wrap"><button onclick="openJubPaymentModal()" style="font-size:11px;padding:2px 10px;border-radius:99px;border:1px solid #185FA5;background:transparent;cursor:pointer;color:#185FA5;font-family:inherit">+ Record payment</button><button onclick="openJubPaymentsHistory()" style="font-size:11px;padding:2px 10px;border-radius:99px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-secondary);font-family:inherit">View history</button></div>';
-  html+=tile('Jubism',fmt(jubMonth),'paid this month · tracker: '+fmt(jubEarned),'#185FA5','',jubBadge);
+  var jubExtra='<div style="font-size:11px;color:var(--text-secondary)">Day tracker: '+fmt(jubEarned)+' earned this fortnight</div>';
+  html+=streamTile('Jubism','#378ADD',jubMonth,jubMonth*0.9,jubFY,jubFY*0.9,jubExtra);
 
   // Photography tile
-  var photoBadge=photoUnpaid.length>0?'<span style="font-size:11px;background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:99px">'+photoUnpaid.length+' unpaid · '+fmt(photoUnpaidTotal)+'</span>':'';
-  html+=tile('Photography',fmt(photoMonthTotal),'paid invoices this month','#1D9E75','switchBiz(&quot;photo&quot;)',photoBadge);
+  var photoExtra=photoUnpaid.length>0?
+    '<div style="font-size:11px;background:#FAEEDA;color:#633806;padding:3px 8px;border-radius:99px;display:inline-block;margin-top:4px">'+photoUnpaid.length+' unpaid invoice'+(photoUnpaid.length>1?'s':'')+'</div>':'';
+  html+=streamTile('Photography','#1B3A8C',photoMonth,photoProfitMonth,photoFY,photoProfitFY,photoExtra);
+
+  // NT tile
+  html+=streamTile('Now Trending','#F47B20',ntMonth,ntProfitMonth,ntFY,ntProfitFY,'');
 
   // BRG tile
-  html+=tile('BackRoom Gear',fmt(brgProfit),(brgProfit>=0?'profit':'loss')+' this month · rev '+fmt(brgRev),'#EF9F27','switchBiz(&quot;backroom&quot;)','');
+  html+=streamTile('BackRoom Gear','#FF1493',brgMonth,brgProfitMonth,brgFY,brgProfitFY,'');
 
-  // Flippers tile
-  var flipBadge=flipToShip>0?'<span style="font-size:11px;background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:99px">'+flipToShip+' to ship</span>':'';
-  html+=tile('Two Bear Flippers',flipInStock+' in stock',flipListed+' listed · '+fmt(flipProfit)+' profit shipped','#D85A30','switchBiz(&quot;flippers&quot;)',flipBadge);
-
-  html+='</div>'; // end tiles
-
+  html+='</div>'; // end 4-col
   html+='</div>'; // end wrap
   document.getElementById('main-content').innerHTML=html;
 }
@@ -2774,6 +2788,374 @@ function getJubismFY(){
 }
 
 
+
+// ============================================================
+// NOW TRENDING
+// ============================================================
+var NT_COLOR = '#F47B20';
+
+function renderNT(){
+  var section = STATE.ntSection||'tasks';
+  document.getElementById('section-bar-wrap').innerHTML=
+    '<div class="section-bar">'+
+    ['tasks','financials'].map(function(s){
+      var label=s==='tasks'?'Tasks':'Financials';
+      var activeClass=section===s?' active-nt':'';
+      return '<div class="sec-tab'+activeClass+'" onclick="setNTSection(&quot;'+s+'&quot;)">'+label+'</div>';
+    }).join('')+
+    '</div>';
+  if(section==='tasks') renderNTTasks();
+  else renderNTFinancials();
+}
+
+function setNTSection(s){
+  STATE.ntSection=s;
+  renderNT();
+}
+
+// NT TASKS
+function renderNTTasks(){
+  document.getElementById('subbar-wrap').innerHTML=
+    '<div class="subbar"><span style="flex:1"></span>'+
+    '<button class="btn sm" style="background:#F47B20;color:#fff;border:none" onclick="openNTTaskModal()">+ Add task</button></div>';
+
+  var tasks=(STATE.ntTasks||[]).filter(function(t){return!t._pendingDelete;});
+  var today=todayStr();
+
+  // Sort: priority first, then by due date
+  tasks.sort(function(a,b){
+    if(a.priority&&!b.priority)return -1;
+    if(!a.priority&&b.priority)return 1;
+    if(!a.due&&!b.due)return 0;
+    if(!a.due)return 1;
+    if(!b.due)return -1;
+    return a.due>b.due?1:-1;
+  });
+
+  if(!tasks.length){
+    document.getElementById('main-content').innerHTML=
+      '<div class="empty"><span class="empty-t">No NT tasks yet</span>'+
+      '<button class="btn" style="background:#F47B20;color:#fff;border:none;margin-top:8px" onclick="openNTTaskModal()">+ Add task</button></div>';
+    return;
+  }
+
+  var html='<div style="padding:16px;display:flex;flex-direction:column;gap:8px">';
+  tasks.forEach(function(t){
+    var overdue=t.due&&t.due<today;
+    var borderStyle=t.priority?'border-left:3px solid #F47B20;':'';
+    html+='<div class="task-row" style="'+borderStyle+'" onclick="openNTTaskPanel('+t.id+')">';
+    html+='<div class="task-cb" onclick="event.stopPropagation();tickNTTask('+t.id+')"></div>';
+    html+='<div class="task-info">';
+    html+='<div class="task-title">'+(t.priority?'<span style="color:#F47B20;font-size:10px;margin-right:3px">▲</span>':'')+t.title+'</div>';
+    if(t.notes) html+='<div class="task-notes-preview">'+t.notes+'</div>';
+    html+='<div class="task-meta">';
+    if(t.due) html+='<span class="due-'+(overdue?'overdue':t.due===today?'today':'upcoming')+'">'+fmtDate(t.due)+'</span>';
+    if(t.recur&&t.recur!=='none') html+='<span class="recur-badge">'+(RECUR_LABELS[t.recur]||t.recur)+'</span>';
+    html+=avHtml(t.assignee==='both'?'Gordon':t.assignee||'Gordon');
+    if(t.assignee==='both') html+=avHtml('Darren');
+    html+='</div></div></div>';
+  });
+  html+='</div>';
+  document.getElementById('main-content').innerHTML=html;
+}
+
+function openNTTaskModal(id){
+  STATE.editingNTTaskId=null;
+  document.getElementById('nt-task-title').textContent='New NT task';
+  document.getElementById('nt-task-save').textContent='Save task';
+  document.getElementById('nt-task-name').value='';
+  document.getElementById('nt-task-due').value=todayStr();
+  document.getElementById('nt-task-recur').value='none';
+  document.getElementById('nt-task-assignee').value='both';
+  document.getElementById('nt-task-priority').checked=false;
+  document.getElementById('nt-task-notes').value='';
+  openModal('nt-task');
+}
+
+function saveNTTask(){
+  var name=document.getElementById('nt-task-name').value.trim();
+  if(!name)return;
+  if(!STATE.ntTasks) STATE.ntTasks=[];
+  var task={
+    id:STATE.editingNTTaskId||NID++,
+    title:name,
+    assignee:document.getElementById('nt-task-assignee').value,
+    due:document.getElementById('nt-task-due').value||todayStr(),
+    recur:document.getElementById('nt-task-recur').value,
+    priority:document.getElementById('nt-task-priority').checked,
+    notes:document.getElementById('nt-task-notes').value.trim(),
+    done:false
+  };
+  if(STATE.editingNTTaskId){
+    var idx=STATE.ntTasks.findIndex(function(t){return t.id===STATE.editingNTTaskId;});
+    if(idx>=0) STATE.ntTasks[idx]=task;
+  } else {
+    STATE.ntTasks.push(task);
+  }
+  STATE.editingNTTaskId=null;
+  saveState();
+  closeModal('nt-task');
+  renderNTTasks();
+}
+
+function tickNTTask(id){
+  var t=(STATE.ntTasks||[]).find(function(x){return x.id===id;});
+  if(!t)return;
+  if(t.recur!=='none'){
+    var next=nextOcc(t.due,t.recur,[]);
+    t.due=next;t.done=false;
+    saveState();
+    showCelebration();
+    showToast('↻ '+t.title+' → '+fmtDate(next),'#F47B20');
+    renderNTTasks();
+  } else {
+    showCelebration();
+    t._pendingDelete=true;
+    renderNTTasks();
+    showUndoBar(t.title,function(){
+      t._pendingDelete=false;
+      renderNTTasks();
+    },function(){
+      STATE.ntTasks=STATE.ntTasks.filter(function(x){return x.id!==id;});
+      saveState();
+      renderNTTasks();
+    });
+  }
+}
+
+function openNTTaskPanel(id){
+  var t=(STATE.ntTasks||[]).find(function(x){return x.id===id;});
+  if(!t)return;
+  document.getElementById('panel-title').textContent=t.title;
+  document.getElementById('panel-body').innerHTML=
+    '<hr class="pdiv">'+
+    '<div class="pl">Assignee</div><div class="pv">'+avHtml(t.assignee==='both'?'Gordon':t.assignee||'Gordon')+(t.assignee==='both'?avHtml('Darren'):'')+' <span>'+(t.assignee==='both'?'Gordon & Darren':t.assignee)+'</span></div>'+
+    '<div class="pl">Due</div><div class="pv">'+(t.due?fmtDate(t.due):'No date')+'</div>'+
+    '<div class="pl">Recurrence</div><div class="pv">'+(RECUR_LABELS[t.recur]||'One-off')+'</div>'+
+    '<div class="pl">Notes</div>'+
+    '<textarea id="nt-panel-notes-'+id+'" style="width:100%;font-size:13px;padding:8px 10px;border-radius:8px;border:1px solid var(--border-light);background:var(--bg-primary);color:var(--text-primary);font-family:inherit;resize:vertical;min-height:80px;margin-top:4px;outline:none" placeholder="Add notes..." onchange="saveNTNotes('+id+',this.value)">'+(t.notes||'')+'</textarea>'+
+    '<div style="display:flex;gap:6px;margin-top:12px">'+
+    '<button class="btn sm" style="flex:1" onclick="editNTTask('+id+')">Edit</button>'+
+    '<button class="btn sm" style="flex:1;color:#F47B20;border-color:#F47B20" onclick="toggleNTPriority('+id+')">'+(t.priority?'▲ High':'▽ Normal')+'</button>'+
+    '<button class="btn sm danger" style="flex:1" onclick="deleteNTTask('+id+')">Delete</button>'+
+    '</div>';
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function saveNTNotes(id,notes){
+  var t=(STATE.ntTasks||[]).find(function(x){return x.id===id;});
+  if(t){t.notes=notes;saveState();}
+}
+
+function toggleNTPriority(id){
+  var t=(STATE.ntTasks||[]).find(function(x){return x.id===id;});
+  if(!t)return;
+  t.priority=!t.priority;
+  saveState();
+  openNTTaskPanel(id);
+  renderNTTasks();
+}
+
+function editNTTask(id){
+  var t=(STATE.ntTasks||[]).find(function(x){return x.id===id;});
+  if(!t)return;
+  STATE.editingNTTaskId=id;
+  document.getElementById('nt-task-title').textContent='Edit NT task';
+  document.getElementById('nt-task-save').textContent='Save changes';
+  document.getElementById('nt-task-name').value=t.title;
+  document.getElementById('nt-task-due').value=t.due||'';
+  document.getElementById('nt-task-recur').value=t.recur||'none';
+  document.getElementById('nt-task-assignee').value=t.assignee||'both';
+  document.getElementById('nt-task-priority').checked=t.priority||false;
+  document.getElementById('nt-task-notes').value=t.notes||'';
+  closePanel();
+  openModal('nt-task');
+}
+
+function deleteNTTask(id){
+  if(!confirm('Delete this task?'))return;
+  STATE.ntTasks=(STATE.ntTasks||[]).filter(function(x){return x.id!==id;});
+  saveState();
+  closePanel();
+  renderNTTasks();
+}
+
+// NT FINANCIALS
+function renderNTFinancials(){
+  var weeks=[...( STATE.ntWeekly||[])].sort(function(a,b){return a.date>b.date?1:-1;});
+  var now=new Date();
+  var thisMonth=now.getMonth();
+  var thisYear=now.getFullYear();
+
+  var fyWeeks=weeks.filter(function(w){return isInFY(w.date);});
+  var monthWeeks=weeks.filter(function(w){
+    if(!w.date)return false;
+    var d=new Date(w.date+'T00:00:00');
+    return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;
+  });
+
+  function calcTotals(wks){
+    return{
+      rev:wks.reduce(function(s,w){return s+parseFloat(w.rev||0);},0),
+      cogs:wks.reduce(function(s,w){return s+parseFloat(w.cogs||0);},0),
+      meta:wks.reduce(function(s,w){return s+parseFloat(w.meta||0);},0),
+      google:wks.reduce(function(s,w){return s+parseFloat(w.google||0);},0),
+      shipping:wks.reduce(function(s,w){return s+parseFloat(w.shipping||0);},0),
+      other:wks.reduce(function(s,w){return s+parseFloat(w.other||0);},0)
+    };
+  }
+  function profit(t){return t.rev-t.cogs-t.meta-t.google-t.shipping-t.other;}
+  function margin(t){return t.rev>0?((profit(t)/t.rev)*100).toFixed(1):0;}
+
+  var fyTotals=calcTotals(fyWeeks);
+  var mTotals=calcTotals(monthWeeks);
+  var latestWeek=weeks.length?weeks[weeks.length-1]:null;
+
+  document.getElementById('subbar-wrap').innerHTML=
+    '<div class="subbar"><span style="font-size:11px;color:var(--text-secondary)">'+weeks.length+' weeks tracked</span>'+
+    '<span style="flex:1"></span>'+
+    '<button class="btn sm" style="background:#F47B20;color:#fff;border:none" onclick="openNTPLModal()">+ Add week</button></div>';
+
+  var html='<div class="fin-wrap">';
+
+  // Summary cards
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">';
+
+  function statCard(label,val,color){
+    return'<div style="background:var(--bg-secondary);border-radius:8px;padding:10px 12px">'+
+      '<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:3px">'+label+'</div>'+
+      '<div style="font-size:18px;font-weight:600;color:'+(color||'var(--text-primary)')+'">'+fmt(val)+'</div></div>';
+  }
+
+  // MTD
+  html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:14px;border-top:3px solid #F47B20">';
+  html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:10px">This month</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  html+=statCard('Revenue',mTotals.rev,'#F47B20');
+  html+=statCard('Profit',profit(mTotals),profit(mTotals)>=0?'#0F6E56':'#A32D2D');
+  html+=statCard('COGS',mTotals.cogs,'#8B0057');
+  html+=statCard('Ad spend',mTotals.meta+mTotals.google,'#8B0057');
+  html+='</div></div>';
+
+  // FY
+  html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:14px;border-top:3px solid #F47B20">';
+  html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:10px">'+getFYLabel()+'</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  html+=statCard('Revenue',fyTotals.rev,'#F47B20');
+  html+=statCard('Profit',profit(fyTotals),profit(fyTotals)>=0?'#0F6E56':'#A32D2D');
+  html+=statCard('Margin',margin(fyTotals)+'%',parseFloat(margin(fyTotals))>0?'#0F6E56':'#A32D2D');
+  html+=statCard('Total costs',fyTotals.cogs+fyTotals.meta+fyTotals.google+fyTotals.shipping+fyTotals.other,'#8B0057');
+  html+='</div></div>';
+
+  // Latest week
+  if(latestWeek){
+    var lw=calcTotals([latestWeek]);
+    html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:14px;border-top:3px solid #F47B20">';
+    html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:10px">Latest week — w/c '+fmtDate(latestWeek.date)+'</div>';
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+    html+=statCard('Revenue',lw.rev,'#F47B20');
+    html+=statCard('Profit',profit(lw),profit(lw)>=0?'#0F6E56':'#A32D2D');
+    html+=statCard('Meta ads',latestWeek.meta||0,'#8B0057');
+    html+=statCard('Google ads',latestWeek.google||0,'#8B0057');
+    html+='</div></div>';
+  }
+  html+='</div>'; // end 3-col
+
+  // Weekly table
+  html+='<div style="overflow-x:auto"><table class="week-table" style="min-width:700px">';
+  html+='<thead><tr><th>Week</th><th>Revenue</th><th>COGS</th><th>Meta</th><th>Google</th><th>Shipping</th><th>Other</th><th>Profit</th><th>Margin</th><th></th></tr></thead><tbody>';
+  var revWeeks=[...weeks].reverse();
+  revWeeks.forEach(function(w){
+    var wt=calcTotals([w]);
+    var p=profit(wt);
+    var m=margin(wt);
+    html+='<tr>';
+    html+='<td style="font-weight:500;white-space:nowrap">'+fmtDate(w.date)+'</td>';
+    html+='<td style="color:#F47B20">'+fmt(wt.rev)+'</td>';
+    html+='<td style="color:#8B0057">'+fmt(wt.cogs)+'</td>';
+    html+='<td style="color:#8B0057">'+fmt(wt.meta)+'</td>';
+    html+='<td style="color:#8B0057">'+fmt(wt.google)+'</td>';
+    html+='<td style="color:#8B0057">'+fmt(wt.shipping)+'</td>';
+    html+='<td style="color:var(--text-tertiary)">'+fmt(wt.other)+'</td>';
+    html+='<td class="'+(p>=0?'profit-pos':'profit-neg')+'">'+(p>=0?'+':'')+fmt(p)+'</td>';
+    html+='<td style="color:'+(parseFloat(m)>=0?'#0F6E56':'#A32D2D')+'">'+m+'%</td>';
+    html+='<td><div style="display:flex;gap:4px">'+
+      '<button class="btn sm" onclick="editNTPL('+w.id+')">Edit</button>'+
+      '<button class="btn sm danger" onclick="deleteNTPL('+w.id+')">Delete</button>'+
+      '</div></td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  html+='</div>';
+  document.getElementById('main-content').innerHTML=html;
+}
+
+function openNTPLModal(){
+  STATE.editingNTPLId=null;
+  document.getElementById('nt-pl-title').textContent='Add NT weekly data';
+  document.getElementById('nt-pl-save').textContent='Save week';
+  var mon=new Date();mon.setDate(mon.getDate()-(mon.getDay()||7)+1);
+  document.getElementById('nt-date').value=mon.toISOString().slice(0,10);
+  ['nt-rev','nt-cogs','nt-meta','nt-google','nt-shipping','nt-other'].forEach(function(id){document.getElementById(id).value='';});
+  openModal('nt-pl');
+}
+
+function saveNTPL(){
+  var date=document.getElementById('nt-date').value;
+  if(!date)return;
+  if(!STATE.ntWeekly) STATE.ntWeekly=[];
+  var w={
+    id:STATE.editingNTPLId||NID++,
+    date:date,
+    rev:parseFloat(document.getElementById('nt-rev').value)||0,
+    cogs:parseFloat(document.getElementById('nt-cogs').value)||0,
+    meta:parseFloat(document.getElementById('nt-meta').value)||0,
+    google:parseFloat(document.getElementById('nt-google').value)||0,
+    shipping:parseFloat(document.getElementById('nt-shipping').value)||0,
+    other:parseFloat(document.getElementById('nt-other').value)||0
+  };
+  if(STATE.editingNTPLId){
+    var idx=STATE.ntWeekly.findIndex(function(x){return x.id===STATE.editingNTPLId;});
+    if(idx>=0) STATE.ntWeekly[idx]=w;
+  } else {
+    STATE.ntWeekly.push(w);
+  }
+  STATE.editingNTPLId=null;
+  saveState();
+  closeModal('nt-pl');
+  renderNTFinancials();
+}
+
+function editNTPL(id){
+  var w=(STATE.ntWeekly||[]).find(function(x){return x.id===id;});
+  if(!w)return;
+  STATE.editingNTPLId=id;
+  document.getElementById('nt-pl-title').textContent='Edit week';
+  document.getElementById('nt-pl-save').textContent='Save changes';
+  document.getElementById('nt-date').value=w.date;
+  document.getElementById('nt-rev').value=w.rev||'';
+  document.getElementById('nt-cogs').value=w.cogs||'';
+  document.getElementById('nt-meta').value=w.meta||'';
+  document.getElementById('nt-google').value=w.google||'';
+  document.getElementById('nt-shipping').value=w.shipping||'';
+  document.getElementById('nt-other').value=w.other||'';
+  openModal('nt-pl');
+}
+
+function deleteNTPL(id){
+  STATE.ntWeekly=(STATE.ntWeekly||[]).filter(function(x){return x.id!==id;});
+  saveState();
+  renderNTFinancials();
+}
+
+// NT section CSS
+(function(){
+  var style=document.createElement('style');
+  style.textContent='.active-nt{color:#F47B20;border-bottom:2px solid #F47B20;}';
+  document.head.appendChild(style);
+})();
+
+
 // ============================================================
 // DARK MODE
 // ============================================================
@@ -2879,6 +3261,67 @@ if('serviceWorker' in navigator) {
     <div class="ma">
       <button class="btn" onclick="closeModal('jub-history')">Close</button>
       <button class="btn blue" onclick="closeModal('jub-history');openJubPaymentModal()">+ Add payment</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- NT WEEKLY P&L MODAL -->
+<div class="mo" id="mo-nt-pl">
+  <div class="md">
+    <div class="mt" id="nt-pl-title">Add NT weekly data</div>
+    <div><div class="ml">Week starting (Monday)</div><input type="date" id="nt-date"></div>
+    <div class="section-sep">Revenue</div>
+    <div><div class="ml">Shopify / Total revenue ($)</div><input type="number" id="nt-rev" placeholder="0.00" step="0.01"></div>
+    <div class="section-sep">Costs</div>
+    <div class="form-row">
+      <div><div class="ml">COGS ($)</div><input type="number" id="nt-cogs" placeholder="0.00" step="0.01"></div>
+      <div><div class="ml">Meta ad spend ($)</div><input type="number" id="nt-meta" placeholder="0.00" step="0.01"></div>
+    </div>
+    <div class="form-row">
+      <div><div class="ml">Google ad spend ($)</div><input type="number" id="nt-google" placeholder="0.00" step="0.01"></div>
+      <div><div class="ml">Shipping ($)</div><input type="number" id="nt-shipping" placeholder="0.00" step="0.01"></div>
+    </div>
+    <div><div class="ml">Other costs ($)</div><input type="number" id="nt-other" placeholder="0.00" step="0.01"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('nt-pl')">Cancel</button>
+      <button class="btn" style="background:#F47B20;color:#fff" id="nt-pl-save" onclick="saveNTPL()">Save week</button>
+    </div>
+  </div>
+</div>
+
+<!-- NT TASK MODAL -->
+<div class="mo" id="mo-nt-task">
+  <div class="md">
+    <div class="mt" id="nt-task-title">New NT task</div>
+    <div><div class="ml">Task name</div><input type="text" id="nt-task-name" placeholder="What needs to be done?"></div>
+    <div><div class="ml">Assignee</div>
+      <select id="nt-task-assignee">
+        <option value="both">Both</option>
+        <option value="Gordon">Gordon</option>
+        <option value="Darren">Darren</option>
+      </select>
+    </div>
+    <div><div class="ml">Due date</div><input type="date" id="nt-task-due"></div>
+    <div><div class="ml">Recurrence</div>
+      <select id="nt-task-recur">
+        <option value="none">One-off</option>
+        <option value="daily">Daily (Mon-Fri)</option>
+        <option value="weekly">Weekly</option>
+        <option value="fortnightly">Fortnightly</option>
+        <option value="monthly">Monthly</option>
+      </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+        <input type="checkbox" id="nt-task-priority" style="width:16px;height:16px;accent-color:#F47B20">
+        <span style="color:#F47B20;font-weight:500">▲ High priority</span>
+      </label>
+    </div>
+    <div><div class="ml">Notes</div><textarea id="nt-task-notes" placeholder="Details..."></textarea></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('nt-task')">Cancel</button>
+      <button class="btn" style="background:#F47B20;color:#fff" id="nt-task-save" onclick="saveNTTask()">Save task</button>
     </div>
   </div>
 </div>
