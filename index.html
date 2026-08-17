@@ -448,6 +448,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         if (saved.jubTracker) STATE.jubTracker = saved.jubTracker;
         if (saved.finTargets) STATE.finTargets = saved.finTargets;
         if (saved.finRecords) STATE.finRecords = saved.finRecords;
+        if (saved.jubInvoices) STATE.jubInvoices = saved.jubInvoices;
+        if (saved.ntTasks) STATE.ntTasks = saved.ntTasks;
+        if (saved.ntWeekly) STATE.ntWeekly = saved.ntWeekly;
         // Find highest ID
         const allIds = [...STATE.jubTasks, ...STATE.jobs, ...STATE.brgTasks, ...STATE.weekly, ...STATE.hauls, ...STATE.flipItems].map(x=>x.id||0);
         if (allIds.length) NID = Math.max(...allIds) + 1;
@@ -3258,7 +3261,7 @@ function renderNTFinancials(){
   html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:10px">This month</div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
   html+=statCard('Revenue',mTotals.rev,'#F47B20');
-  html+=statCard('Profit',profit(mTotals),profit(mTotals)>=0?'#0F6E56':'#A32D2D');
+  html+=statCard('Profit',(profit(mTotals)>=0?'+':'')+fmt(profit(mTotals)),profit(mTotals)>=0?'#0F6E56':'var(--text-primary)');
   html+=statCard('COGS',mTotals.cogs,'#8B0057');
   html+=statCard('Ad spend',mTotals.meta+mTotals.google,'#8B0057');
   html+='</div></div>';
@@ -3268,7 +3271,7 @@ function renderNTFinancials(){
   html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:10px">'+getFYLabel()+'</div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
   html+=statCard('Revenue',fyTotals.rev,'#F47B20');
-  html+=statCard('Profit',profit(fyTotals),profit(fyTotals)>=0?'#0F6E56':'#A32D2D');
+  html+=statCard('Profit',(profit(fyTotals)>=0?'+':'')+fmt(profit(fyTotals)),profit(fyTotals)>=0?'#0F6E56':'var(--text-primary)');
   html+=statCard('Margin',margin(fyTotals)+'%',parseFloat(margin(fyTotals))>0?'#0F6E56':'#A32D2D');
   html+=statCard('Total costs',fyTotals.cogs+fyTotals.meta+fyTotals.google+fyTotals.shipping+fyTotals.other,'#8B0057');
   html+='</div></div>';
@@ -3280,7 +3283,7 @@ function renderNTFinancials(){
     html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:10px">Latest week — w/c '+fmtDate(latestWeek.date)+'</div>';
     html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
     html+=statCard('Revenue',lw.rev,'#F47B20');
-    html+=statCard('Profit',profit(lw),profit(lw)>=0?'#0F6E56':'#A32D2D');
+    html+=statCard('Profit',(profit(lw)>=0?'+':'')+fmt(profit(lw)),profit(lw)>=0?'#0F6E56':'var(--text-primary)');
     html+=statCard('Meta ads',latestWeek.meta||0,'#8B0057');
     html+=statCard('Google ads',latestWeek.google||0,'#8B0057');
     html+='</div></div>';
@@ -3303,7 +3306,7 @@ function renderNTFinancials(){
     html+='<td style="color:#8B0057">'+fmt(wt.google)+'</td>';
     html+='<td style="color:#8B0057">'+fmt(wt.shipping)+'</td>';
     html+='<td style="color:var(--text-tertiary)">'+fmt(wt.other)+'</td>';
-    html+='<td class="'+(p>=0?'profit-pos':'profit-neg')+'">'+(p>=0?'+':'')+fmt(p)+'</td>';
+    html+='<td class="'+(p>=0?'profit-pos':'profit-neg-readable')+'">'+(p>=0?'+':'-')+fmt(Math.abs(p))+'</td>';
     html+='<td style="color:'+(parseFloat(m)>=0?'#0F6E56':'#A32D2D')+'">'+m+'%</td>';
     html+='<td><div style="display:flex;gap:4px">'+
       '<button class="btn sm" onclick="editNTPL('+w.id+')">Edit</button>'+
