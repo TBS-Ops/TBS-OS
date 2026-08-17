@@ -218,6 +218,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .week-table tr:hover td{background:var(--bg-secondary)}
 .profit-pos{color:var(--green);font-weight:500}
 .profit-neg{color:var(--red);font-weight:500}
+.profit-neg-readable{color:var(--text-primary);font-weight:500}
 .margin-bar-wrap{display:flex;align-items:center;gap:6px}
 .margin-bar{flex:1;height:5px;background:var(--bg-tertiary);border-radius:99px;overflow:hidden;min-width:40px}
 .margin-fill{height:100%;border-radius:99px;background:var(--teal)}
@@ -1768,7 +1769,7 @@ function renderBRGFinancials(){
   html+=sc('COGS YTD','$'+cogsYTD.toFixed(0),'var(--amber)');
   html+=sc('Ad spend YTD','$'+adsYTD.toFixed(0),'var(--amber)');
   html+=sc('Other costs YTD','$'+otherYTD.toFixed(0),'var(--amber)');
-  html+=sc('Profit YTD',pSign(profitYTD),profitYTD>=0?'var(--green)':'var(--red)');
+  html+=sc('Profit YTD',pSign(profitYTD),profitYTD>=0?'var(--green)':'var(--text-primary)');
   html+=sc('Etsy rev YTD','$'+etsyRevYTD.toFixed(0),'var(--blue)');
   html+='</div></div>';
 
@@ -1785,7 +1786,7 @@ function renderBRGFinancials(){
     html+=sc('Ad spend','$'+parseFloat(tw.ads||0).toFixed(0),'var(--amber)');
     html+=sc('COGS','$'+parseFloat(tw.cogs||0).toFixed(0),'var(--amber)');
     html+=sc('Sessions',parseInt(tw.sessions||0).toLocaleString(),'var(--text-primary)');
-    html+=sc('Profit',pSign(twProfit),twProfit>=0?'var(--green)':'var(--red)');
+    html+=sc('Profit',pSign(twProfit),twProfit>=0?'var(--green)':'var(--text-primary)');
     html+='</div></div>';
   }
 
@@ -1803,7 +1804,7 @@ function renderBRGFinancials(){
     var margin=rev>0?Math.round((p/rev)*100):0;
     var orders=parseInt(w.orders||0)+parseInt(w.etsyOrders||0);
     var mColor=margin>=0?'var(--green)':'var(--red)';
-    var pCls=p>=0?'profit-pos':'profit-neg';
+    var pCls=p>=0?'profit-pos':'profit-neg-readable';
     html+='<tr>';
     html+='<td style="font-weight:500;white-space:nowrap">'+fmtDate(w.date)+'</td>';
     html+='<td>$'+parseFloat(w.rev||0).toFixed(0)+'</td>';
@@ -2463,17 +2464,25 @@ function renderDashboard(){
   html+=donut(donutSegs,130,20);
   html+='<div style="flex:1;display:flex;flex-direction:column;gap:8px">';
   var streams=[
-    {label:'Jubism',color:'#D4AF36',month:jubMonth,fy:jubFY},
-    {label:'Photography',color:'#1B3A8C',month:photoMonth,fy:photoFY},
-    {label:'Now Trending',color:'#F47B20',month:ntMonth,fy:ntFY},
-    {label:'BackRoom Gear',color:'#FF1493',month:brgMonth,fy:brgFY}
+    {label:'Jubism',color:'#D4AF36',month:jubMonth,fy:jubFY,profMonth:jubMonth,profFY:jubFY},
+    {label:'Photography',color:'#1B3A8C',month:photoMonth,fy:photoFY,profMonth:photoProfitMonth,profFY:photoProfitFY},
+    {label:'Now Trending',color:'#F47B20',month:ntMonth,fy:ntFY,profMonth:ntProfitMonth,profFY:ntProfitFY},
+    {label:'BackRoom Gear',color:'#FF1493',month:brgMonth,fy:brgFY,profMonth:brgProfitMonth,profFY:brgProfitFY}
   ];
   streams.forEach(function(s){
-    html+='<div style="display:flex;align-items:center;gap:8px">'+
+    var pColor=s.profMonth>=0?'#0F6E56':'var(--text-primary)';
+    var pFYColor=s.profFY>=0?'#0F6E56':'var(--text-primary)';
+    html+='<div style="display:flex;align-items:center;gap:6px">'+
       '<div style="width:10px;height:10px;border-radius:50%;background:'+s.color+';flex-shrink:0"></div>'+
       '<div style="flex:1;font-size:12px;color:var(--text-secondary)">'+s.label+'</div>'+
-      '<div style="font-size:13px;font-weight:600;color:'+s.color+'">'+fmt2(s.month)+'</div>'+
-      '<div style="font-size:11px;color:var(--text-tertiary);min-width:60px;text-align:right">'+fmt2(s.fy)+' FY</div>'+
+      '<div style="text-align:right">'+
+        '<div style="font-size:13px;font-weight:600;color:'+s.color+'">'+fmt2(s.month)+'</div>'+
+        '<div style="font-size:10px;color:'+pColor+'">'+fmt2(s.profMonth)+' profit</div>'+
+      '</div>'+
+      '<div style="text-align:right;min-width:70px">'+
+        '<div style="font-size:11px;color:var(--text-tertiary)">'+fmt2(s.fy)+' FY</div>'+
+        '<div style="font-size:10px;color:'+pFYColor+'">'+fmt2(s.profFY)+'</div>'+
+      '</div>'+
     '</div>';
   });
   html+='<div style="border-top:0.5px solid var(--border-light);padding-top:6px;margin-top:2px;display:flex;justify-content:space-between">';
@@ -2495,7 +2504,7 @@ function renderDashboard(){
   html+='<span>'+fmt2(yearGoal-totalRevFY)+' to goal</span>';
   html+='<span>'+fmt2(totalProfitMonth)+' profit</span>';
   html+='</div>';
-  html+='<div style="margin-top:10px;text-align:center"><button onclick="openJubPaymentModal()" style="font-size:11px;padding:3px 12px;border-radius:99px;border:1px solid #D4AF36;background:transparent;cursor:pointer;color:#D4AF36;font-family:inherit">+ Record Jubism payment</button></div>';
+
   html+='</div>';
 
   html+='</div>'; // end top row
@@ -2512,13 +2521,13 @@ function renderDashboard(){
           '<div style="font-size:15px;font-weight:600;color:'+color+'">'+fmt2(revM)+'</div></div>'+
         '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px">'+
           '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">Profit MTD</div>'+
-          '<div style="font-size:15px;font-weight:600;color:'+(profM>=0?'#0F6E56':'#A32D2D')+'">'+fmt2(profM)+'</div></div>'+
+          '<div style="font-size:15px;font-weight:600;color:'+(profM>=0?'#0F6E56':'var(--text-primary)')+'">'+( profM<0?'-':'')+fmt2(Math.abs(profM))+'</div></div>'+
         '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px">'+
           '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">Rev FY</div>'+
           '<div style="font-size:14px;font-weight:500;color:'+color+'">'+fmt2(revFY)+'</div></div>'+
         '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px">'+
           '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">Profit FY</div>'+
-          '<div style="font-size:14px;font-weight:500;color:'+(profFY>=0?'#0F6E56':'#A32D2D')+'">'+fmt2(profFY)+'</div></div>'+
+          '<div style="font-size:14px;font-weight:500;color:'+(profFY>=0?'#0F6E56':'var(--text-primary)')+'">'+( profFY<0?'-':'')+fmt2(Math.abs(profFY))+'</div></div>'+
       '</div>'+(extra||'')+'</div>';
   }
 
@@ -3023,48 +3032,59 @@ function renderNTTasks(){
     '<div class="subbar"><span style="flex:1"></span>'+
     '<button class="btn sm" style="background:#F47B20;color:#fff;border:none" onclick="openNTTaskModal()">+ Add task</button></div>';
 
-  var tasks=(STATE.ntTasks||[]).filter(function(t){return!t._pendingDelete;});
+  var allTasks=(STATE.ntTasks||[]).filter(function(t){return!t._pendingDelete;});
   var today=todayStr();
+  var NT_COLS=[{id:'daily',label:'Daily'},{id:'weekly',label:'Weekly'},{id:'project',label:'Projects'}];
 
-  // Sort: priority first, then by due date
-  tasks.sort(function(a,b){
-    if(a.priority&&!b.priority)return -1;
-    if(!a.priority&&b.priority)return 1;
-    if(!a.due&&!b.due)return 0;
-    if(!a.due)return 1;
-    if(!b.due)return -1;
-    return a.due>b.due?1:-1;
-  });
-
-  if(!tasks.length){
-    document.getElementById('main-content').innerHTML=
-      '<div class="empty"><span class="empty-t">No NT tasks yet</span>'+
-      '<button class="btn" style="background:#F47B20;color:#fff;border:none;margin-top:8px" onclick="openNTTaskModal()">+ Add task</button></div>';
-    return;
+  function sortTasks(tasks){
+    return tasks.slice().sort(function(a,b){
+      if(a.priority&&!b.priority)return -1;
+      if(!a.priority&&b.priority)return 1;
+      if(!a.due&&!b.due)return 0;
+      if(!a.due)return 1;
+      if(!b.due)return -1;
+      return a.due>b.due?1:-1;
+    });
   }
 
-  var html='<div style="padding:16px;display:flex;flex-direction:column;gap:8px">';
-  tasks.forEach(function(t){
+  function taskCard(t){
     var overdue=t.due&&t.due<today;
     var borderStyle=t.priority?'border-left:3px solid #F47B20;':'';
-    html+='<div class="task-row" style="'+borderStyle+'" onclick="openNTTaskPanel('+t.id+')">';
-    html+='<div class="task-cb" onclick="event.stopPropagation();tickNTTask('+t.id+')"></div>';
-    html+='<div class="task-info">';
-    html+='<div class="task-title">'+(t.priority?'<span style="color:#F47B20;font-size:10px;margin-right:3px">▲</span>':'')+t.title+'</div>';
-    if(t.notes) html+='<div class="task-notes-preview">'+t.notes+'</div>';
-    html+='<div class="task-meta">';
-    if(t.due) html+='<span class="due-'+(overdue?'overdue':t.due===today?'today':'upcoming')+'">'+fmtDate(t.due)+'</span>';
-    if(t.recur&&t.recur!=='none') html+='<span class="recur-badge">'+(RECUR_LABELS[t.recur]||t.recur)+'</span>';
-    html+=avHtml(t.assignee==='both'?'Gordon':t.assignee||'Gordon');
-    if(t.assignee==='both') html+=avHtml('Darren');
-    html+='</div></div></div>';
+    var h='<div class="task-row" style="'+borderStyle+'" onclick="openNTTaskPanel('+t.id+')">';
+    h+='<div class="task-cb" onclick="event.stopPropagation();tickNTTask('+t.id+')"></div>';
+    h+='<div class="task-info">';
+    h+='<div class="task-title">'+(t.priority?'<span style="color:#F47B20;font-size:10px;margin-right:3px">▲</span>':'')+t.title+'</div>';
+    if(t.notes) h+='<div class="task-notes-preview">'+t.notes+'</div>';
+    h+='<div class="task-meta">';
+    if(t.due) h+='<span class="due-'+(overdue?'overdue':t.due===today?'today':'upcoming')+'">'+fmtDate(t.due)+'</span>';
+    if(t.recur&&t.recur!=='none') h+='<span class="recur-badge">'+(RECUR_LABELS[t.recur]||t.recur)+'</span>';
+    h+=avHtml(t.assignee==='both'?'Gordon':t.assignee||'Gordon');
+    if(t.assignee==='both') h+=avHtml('Darren');
+    h+='</div></div></div>';
+    return h;
+  }
+
+  var html='<div class="jub-board">';
+  NT_COLS.forEach(function(col){
+    var colTasks=sortTasks(allTasks.filter(function(t){return(t.ntCol||'daily')===col.id;}));
+    html+='<div class="jub-col">';
+    html+='<div class="jub-col-header">';
+    html+='<span class="jub-col-title" style="color:#F47B20">'+col.label+'</span>';
+    html+='<span class="jub-col-count">'+colTasks.length+'</span>';
+    html+='<button class="add-task-btn-sm" onclick="openNTTaskModal(&quot;'+col.id+'&quot;)">+</button>';
+    html+='</div>';
+    html+='<div class="jub-col-body">';
+    colTasks.forEach(function(t){html+=taskCard(t);});
+    html+='</div></div>';
   });
   html+='</div>';
   document.getElementById('main-content').innerHTML=html;
 }
 
-function openNTTaskModal(id){
+
+function openNTTaskModal(col){
   STATE.editingNTTaskId=null;
+  STATE._ntTaskCol=col||'daily';
   document.getElementById('nt-task-title').textContent='New NT task';
   document.getElementById('nt-task-save').textContent='Save task';
   document.getElementById('nt-task-name').value='';
@@ -3073,6 +3093,7 @@ function openNTTaskModal(id){
   document.getElementById('nt-task-assignee').value='both';
   document.getElementById('nt-task-priority').checked=false;
   document.getElementById('nt-task-notes').value='';
+  if(document.getElementById('nt-task-col')) document.getElementById('nt-task-col').value=STATE._ntTaskCol||'daily';
   openModal('nt-task');
 }
 
@@ -3088,6 +3109,7 @@ function saveNTTask(){
     recur:document.getElementById('nt-task-recur').value,
     priority:document.getElementById('nt-task-priority').checked,
     notes:document.getElementById('nt-task-notes').value.trim(),
+    ntCol:(document.getElementById('nt-task-col')?document.getElementById('nt-task-col').value:STATE._ntTaskCol)||'daily',
     done:false
   };
   if(STATE.editingNTTaskId){
@@ -3499,6 +3521,13 @@ if('serviceWorker' in navigator) {
   <div class="md">
     <div class="mt" id="nt-task-title">New NT task</div>
     <div><div class="ml">Task name</div><input type="text" id="nt-task-name" placeholder="What needs to be done?"></div>
+    <div><div class="ml">Category</div>
+      <select id="nt-task-col">
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="project">Project</option>
+      </select>
+    </div>
     <div><div class="ml">Assignee</div>
       <select id="nt-task-assignee">
         <option value="both">Both</option>
