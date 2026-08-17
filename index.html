@@ -29,7 +29,7 @@
   --bg-primary:#1c1c1e;--bg-secondary:#2c2c2e;--bg-tertiary:#18181a;
   --text-primary:#f0f0f0;--text-secondary:#a0a0a0;--text-tertiary:#606060;
   --border-light:rgba(255,255,255,0.08);--border-mid:rgba(255,255,255,0.15);
-  --blue:#378ADD;--blue-light:#0C2D4A;--blue-dark:#85B7EB;
+  --blue:#D4AF36;--blue-light:#0C2D4A;--blue-dark:#85B7EB;
   --green:#1B3A8C;--green-light:#04342C;
   --amber:#FF1493;--amber-light:#3A2200;
   --orange:#F0997B;--orange-light:#2A1200;
@@ -375,7 +375,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           finTargets: JSON.stringify(state.finTargets||{}),
           finRecords: JSON.stringify(state.finRecords||{}),
           ntTasks: JSON.stringify(state.ntTasks||[]),
-          ntWeekly: JSON.stringify(state.ntWeekly||[])
+          ntWeekly: JSON.stringify(state.ntWeekly||[]),
+          jubInvoices: JSON.stringify(state.jubInvoices||[])
         });
       } catch(e) {
         console.error("Save error:", e);
@@ -400,7 +401,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             finTargets: d.finTargets ? JSON.parse(d.finTargets) : null,
             finRecords: d.finRecords ? JSON.parse(d.finRecords) : null,
             ntTasks: d.ntTasks ? JSON.parse(d.ntTasks) : null,
-            ntWeekly: d.ntWeekly ? JSON.parse(d.ntWeekly) : null
+            ntWeekly: d.ntWeekly ? JSON.parse(d.ntWeekly) : null,
+            jubInvoices: d.jubInvoices ? JSON.parse(d.jubInvoices) : null
           };
         }
         return null;
@@ -473,10 +475,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         if (data.finRecords) STATE.finRecords = data.finRecords;
         if (data.ntTasks) STATE.ntTasks = data.ntTasks;
         if (data.ntWeekly) STATE.ntWeekly = data.ntWeekly;
+        if (data.jubInvoices) STATE.jubInvoices = data.jubInvoices;
         render();
         showSyncBadge('↻ Synced with Darren');
       });
 
+      // Auto-archive old FY Photography jobs
+      var fyStart2026='2026-07-01';
+      STATE.jobs.forEach(function(j){
+        if(j.status==='invoice-paid'&&j.date&&j.date<fyStart2026){
+          j.archived=true;
+        }
+      });
+      // Auto-archive old FY BRG weekly entries (hide via filter, keep data)
       STATE.activeBiz = null;
       render();
       // Also update NID to avoid ID conflicts with loaded data
@@ -793,7 +804,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 // CONSTANTS & DATA
 // ============================================================
 const BIZ=[
-  {id:'jubism',name:'Jubism Work',dot:'#378ADD'},
+  {id:'jubism',name:'Jubism Work',dot:'#D4AF36'},
   {id:'photo',name:'Photography',dot:'#1B3A8C'},
   {id:'nt',name:'Now Trending',dot:'#F47B20'},
   {id:'backroom',name:'BackRoom Gear',dot:'#FF1493'},
@@ -879,6 +890,7 @@ let STATE={
   ntWeekly:[],
   // Jubism
   jubFilter:'today',
+  jubInvoices:[],
   jubTasks:[
     {id:1,title:'Daily Social Media Post',brand:'nt',assignee:'Gordon',due:todayStr(),recur:'daily',notes:'',done:false},
     {id:2,title:'Check Orders',brand:'nt',assignee:'Darren',due:todayStr(),recur:'weekdays',notes:'',done:false},
@@ -1038,12 +1050,26 @@ function showToast(msg,color){
 function renderJubism(){
   document.getElementById('section-bar-wrap').innerHTML='';
   const today=todayStr();
-  document.getElementById('subbar-wrap').innerHTML=`
-    <div class="subbar">
-      <span style="font-size:12px;color:var(--text-secondary)">${new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}</span>
-      <span style="flex:1"></span>
-      <button class="btn sm primary-jub" onclick="openJubTaskModal()">+ Add task</button>
-    </div>`;
+  document.getElementById('section-bar-wrap').innerHTML=
+    '<div class="section-bar">'+
+    ['tasks','invoices'].map(function(s){
+      var label=s==='tasks'?'Tasks':'Invoices';
+      var activeClass=STATE.jubSection===s?' active':'';
+      return '<div class="sec-tab'+activeClass+'" style="'+(STATE.jubSection===s?'color:#D4AF36;border-bottom:2px solid #D4AF36;':'')+'" onclick="setJubSection(&quot;'+s+'&quot;)">'+label+'</div>';
+    }).join('')+
+    '</div>';
+
+  if((STATE.jubSection||'tasks')==='invoices'){
+    renderJubismInvoices();
+    return;
+  }
+
+  document.getElementById('subbar-wrap').innerHTML=
+    '<div class="subbar">'+
+    '<span style="font-size:12px;color:var(--text-secondary)">'+new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})+'</span>'+
+    '<span style="flex:1"></span>'+
+    '<button class="btn sm" style="background:#D4AF36;color:#000;border:none;font-weight:600" onclick="openJubTaskModal()">+ Add task</button>'+
+    '</div>';
 
   let tasks=STATE.jubTasks.filter(t=>!t._pendingDelete);
 
@@ -1141,7 +1167,7 @@ function showUndoBar(title,onUndo,onConfirm){
   bar=document.createElement('div');
   bar.id='undo-bar';
   bar.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:8px 16px;border-radius:99px;font-size:12px;z-index:999;display:flex;align-items:center;gap:10px;box-shadow:0 4px 12px rgba(0,0,0,0.3)';
-  bar.innerHTML='<span>✓ "'+title.substring(0,30)+(title.length>30?'...':'')+'" done</span><button onclick="undoTask()" style="background:#378ADD;color:#fff;border:none;border-radius:99px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit">Undo</button>';
+  bar.innerHTML='<span>✓ "'+title.substring(0,30)+(title.length>30?'...':'')+'" done</span><button onclick="undoTask()" style="background:#D4AF36;color:#fff;border:none;border-radius:99px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit">Undo</button>';
   document.body.appendChild(bar);
   window._undoConfirm=onConfirm;
   window._undoCancel=onUndo;
@@ -1236,6 +1262,11 @@ function deleteJubTask(id){
   if(!confirm('Delete this task?'))return;
   STATE.jubTasks=STATE.jubTasks.filter(x=>x.id!==id);
   saveState();closePanel();renderJubism();
+}
+
+function setJubSection(s){
+  STATE.jubSection=s;
+  renderJubism();
 }
 
 function openJubTaskModal(brandId){
@@ -1633,7 +1664,10 @@ function tickBRGTask(id){
 }
 
 function renderBRGFinancials(){
-  var allWeeks=[...STATE.weekly].sort(function(a,b){return a.date>b.date?1:-1;});
+  var showPrevFY=STATE.brgShowPrevFY||false;
+  var fyStart='2026-07-01';
+  var allWeeksRaw=[...STATE.weekly].sort(function(a,b){return a.date>b.date?1:-1;});
+  var allWeeks=showPrevFY?allWeeksRaw:allWeeksRaw.filter(function(w){return!w.date||w.date>=fyStart;});
   var target=STATE.revenueTarget||50000;
   var now=new Date();
   var yearStart=new Date(now.getFullYear(),0,1);
@@ -2295,8 +2329,12 @@ function renderDashboard(){
   var jubEarned=(ft.gordonDays.length+ft.darrenDays.length)*350;
 
   // Jubism payments this month and FY
-  var jubMonth=getJubismThisMonth(thisMonth,thisYear);
-  var jubFY=getJubismFY();
+  var jubMonth=(STATE.jubInvoices||[]).filter(function(inv){
+    if(!inv.paid||!inv.date)return false;
+    var d=new Date(inv.date+'T00:00:00');
+    return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;
+  }).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
+  var jubFY=jubPaidFY;
 
   // Photography this month and FY
   var photoMonthJobs=STATE.jobs.filter(function(j){
@@ -2378,8 +2416,10 @@ function renderDashboard(){
   html+='<button onclick="openIncomeTargets()" style="font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit">⚙️ Set targets</button>';
   html+='</div>';
 
-  // JUBISM TRACKER
-  html+=renderJubTracker();
+  // JUBISM SUMMARY (simple - tracker moved to Jubism section)
+  var jubPaidFY=(STATE.jubInvoices||[]).filter(function(inv){return inv.paid&&isInFY(inv.date);}).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
+  var jubPending=(STATE.jubInvoices||[]).filter(function(inv){return!inv.paid;}).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
+
 
   // TOP ROW: Total business targets
   var mCostsCovered=totalRevMonth>=monthlyCosts;
@@ -2387,11 +2427,11 @@ function renderDashboard(){
   var mPct=pct(totalRevMonth,monthGoal);
   var yPct=pct(totalRevFY,yearGoal);
 
-  html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:16px;border-top:3px solid #378ADD">';
+  html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:16px;border-top:3px solid #D4AF36">';
   html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
   html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em">Total business — Jubism + Photography</div>';
   html+='<div style="display:flex;gap:8px">';
-  html+='<button onclick="openJubPaymentModal()" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid #378ADD;background:transparent;cursor:pointer;color:#378ADD;font-family:inherit">+ Record Jubism payment</button>';
+  html+='<button onclick="openJubPaymentModal()" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid #D4AF36;background:transparent;cursor:pointer;color:#D4AF36;font-family:inherit">+ Record Jubism payment</button>';
   html+='</div></div>';
 
   // Month bar
@@ -2427,8 +2467,11 @@ function renderDashboard(){
   html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">';
 
   // Jubism tile
-  var jubExtra='<div style="font-size:11px;color:var(--text-secondary)">Day tracker: '+fmt(jubEarned)+' earned this fortnight</div>';
-  html+=streamTile('Jubism','#378ADD',jubMonth,jubMonth*0.9,jubFY,jubFY*0.9,jubExtra);
+  var jubExtra='<div style="display:flex;gap:8px;margin-top:4px">'+
+    (jubPending>0?'<span style="font-size:11px;background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:99px">'+fmt(jubPending)+' pending</span>':'')+
+    '<span onclick="switchBiz(&quot;jubism&quot;)" style="font-size:11px;color:#D4AF36;cursor:pointer">View invoices →</span>'+
+    '</div>';
+  html+=streamTile('Jubism','#D4AF36',jubMonth,jubMonth,jubFY,jubFY,jubExtra);
 
   // Photography tile
   var photoExtra=photoUnpaid.length>0?
@@ -2787,6 +2830,117 @@ function getJubismFY(){
   return rec.jubismPayments.filter(function(p){return isInFY(p.date);}).reduce(function(s,p){return s+parseFloat(p.amount||0);},0);
 }
 
+
+
+
+// ============================================================
+// JUBISM INVOICE TRACKER
+// ============================================================
+function renderJubismInvoices(){
+  var invoices=(STATE.jubInvoices||[]).slice().sort(function(a,b){return b.date>a.date?1:-1;});
+  var fyInvoices=invoices.filter(function(inv){return isInFY(inv.date);});
+  var paidFY=fyInvoices.filter(function(inv){return inv.paid;}).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
+  var pendingFY=fyInvoices.filter(function(inv){return!inv.paid;}).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
+  var lastFYInvoices=invoices.filter(function(inv){
+    if(!inv.date)return false;
+    var d=new Date(inv.date+'T00:00:00');
+    var fyStart=getAusFYStart();
+    var lastFYStart=new Date(fyStart);
+    lastFYStart.setFullYear(lastFYStart.getFullYear()-1);
+    return d>=lastFYStart&&d<fyStart;
+  });
+  var lastFYPaid=lastFYInvoices.filter(function(inv){return inv.paid;}).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
+
+  document.getElementById('subbar-wrap').innerHTML=
+    '<div class="subbar">'+
+    '<span style="font-size:12px;color:var(--text-secondary)">Jubism invoice tracker</span>'+
+    '<span style="flex:1"></span>'+
+    '<button class="btn sm" style="background:#D4AF36;color:#000;border:none;font-weight:600" onclick="openJubInvoiceModal()">+ Add invoice</button>'+
+    '</div>';
+
+  var html='<div style="padding:16px;display:flex;flex-direction:column;gap:16px">';
+
+  // YTD summary
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">';
+  html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:14px;border-top:3px solid #D4AF36">';
+  html+='<div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;font-weight:600;margin-bottom:6px">Paid FY26/27</div>';
+  html+='<div style="font-size:24px;font-weight:700;color:#D4AF36">'+fmt(paidFY)+'</div></div>';
+  html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:14px;border-top:3px solid #854F0B">';
+  html+='<div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;font-weight:600;margin-bottom:6px">Pending</div>';
+  html+='<div style="font-size:24px;font-weight:700;color:#854F0B">'+fmt(pendingFY)+'</div></div>';
+  html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:14px;border-top:3px solid var(--border-mid)">';
+  html+='<div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;font-weight:600;margin-bottom:6px">Last FY (FY25/26)</div>';
+  html+='<div style="font-size:24px;font-weight:700;color:var(--text-secondary)">'+fmt(lastFYPaid)+'</div></div>';
+  html+='</div>';
+
+  // Invoice list
+  html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;overflow:hidden">';
+  if(!invoices.length){
+    html+='<div style="padding:24px;text-align:center;color:var(--text-tertiary)">No invoices yet — add your first one above</div>';
+  } else {
+    html+='<table style="width:100%;border-collapse:collapse;font-size:13px">';
+    html+='<thead><tr style="border-bottom:1px solid var(--border-mid);background:var(--bg-secondary)">';
+    html+='<th style="text-align:left;padding:10px 14px;font-weight:500;color:var(--text-tertiary)">Period</th>';
+    html+='<th style="text-align:left;padding:10px 14px;font-weight:500;color:var(--text-tertiary)">Date</th>';
+    html+='<th style="text-align:right;padding:10px 14px;font-weight:500;color:var(--text-tertiary)">Amount</th>';
+    html+='<th style="text-align:center;padding:10px 14px;font-weight:500;color:var(--text-tertiary)">Status</th>';
+    html+='<th style="padding:10px 14px"></th>';
+    html+='</tr></thead><tbody>';
+    invoices.forEach(function(inv){
+      html+='<tr style="border-bottom:0.5px solid var(--border-light)">';
+      html+='<td style="padding:10px 14px;font-weight:500">'+(inv.period||'—')+'</td>';
+      html+='<td style="padding:10px 14px;color:var(--text-secondary)">'+(inv.date?fmtDate(inv.date):'—')+'</td>';
+      html+='<td style="padding:10px 14px;text-align:right;font-weight:600;color:#D4AF36">'+fmt(inv.amount)+'</td>';
+      html+='<td style="padding:10px 14px;text-align:center">';
+      if(inv.paid){
+        html+='<span style="background:#EAF3DE;color:#27500A;font-size:11px;padding:3px 10px;border-radius:99px;font-weight:500">✓ Paid</span>';
+      } else {
+        html+='<button onclick="markJubInvoicePaid('+inv.id+')" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid #0F6E56;background:transparent;cursor:pointer;color:#0F6E56;font-family:inherit">Mark paid</button>';
+      }
+      html+='</td>';
+      html+='<td style="padding:10px 14px"><button onclick="deleteJubInvoice('+inv.id+')" style="font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--red);background:transparent;cursor:pointer;color:var(--red);font-family:inherit">Delete</button></td>';
+      html+='</tr>';
+    });
+    html+='</tbody></table>';
+  }
+  html+='</div></div>';
+  document.getElementById('main-content').innerHTML=html;
+}
+
+function openJubInvoiceModal(){
+  document.getElementById('jub-inv-title').textContent='Add Jubism invoice';
+  document.getElementById('jub-inv-period').value='';
+  document.getElementById('jub-inv-amount').value='';
+  document.getElementById('jub-inv-date').value=todayStr();
+  openModal('jub-invoice');
+}
+
+function saveJubInvoice(){
+  var amount=parseFloat(document.getElementById('jub-inv-amount').value);
+  if(!amount)return;
+  if(!STATE.jubInvoices) STATE.jubInvoices=[];
+  STATE.jubInvoices.push({
+    id:NID++,
+    period:document.getElementById('jub-inv-period').value.trim(),
+    amount:amount,
+    date:document.getElementById('jub-inv-date').value,
+    paid:false
+  });
+  saveState();
+  closeModal('jub-invoice');
+  renderJubismInvoices();
+}
+
+function markJubInvoicePaid(id){
+  var inv=(STATE.jubInvoices||[]).find(function(x){return x.id===id;});
+  if(inv){inv.paid=true;saveState();renderJubismInvoices();}
+}
+
+function deleteJubInvoice(id){
+  STATE.jubInvoices=(STATE.jubInvoices||[]).filter(function(x){return x.id!==id;});
+  saveState();
+  renderJubismInvoices();
+}
 
 
 // ============================================================
@@ -3322,6 +3476,21 @@ if('serviceWorker' in navigator) {
     <div class="ma">
       <button class="btn" onclick="closeModal('nt-task')">Cancel</button>
       <button class="btn" style="background:#F47B20;color:#fff" id="nt-task-save" onclick="saveNTTask()">Save task</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- JUBISM INVOICE MODAL -->
+<div class="mo" id="mo-jub-invoice">
+  <div class="md" style="width:400px">
+    <div class="mt" id="jub-inv-title">Add Jubism invoice</div>
+    <div><div class="ml">Fortnight</div><input type="text" id="jub-inv-period" placeholder="e.g. 11 May – 24 May"></div>
+    <div><div class="ml">Invoice amount ($)</div><input type="number" id="jub-inv-amount" placeholder="0.00" step="0.01"></div>
+    <div><div class="ml">Date invoiced</div><input type="date" id="jub-inv-date"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('jub-invoice')">Cancel</button>
+      <button class="btn" style="background:#D4AF36;color:#000;font-weight:600" onclick="saveJubInvoice()">Save</button>
     </div>
   </div>
 </div>
