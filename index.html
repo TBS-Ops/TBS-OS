@@ -377,6 +377,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           finRecords: JSON.stringify(state.finRecords||{}),
           ntTasks: JSON.stringify(state.ntTasks||[]),
           ntWeekly: JSON.stringify(state.ntWeekly||[]),
+          brgTaskList: JSON.stringify(state.brgTaskList||[]),
           jubInvoices: JSON.stringify(state.jubInvoices||[])
         });
       } catch(e) {
@@ -403,6 +404,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             finRecords: d.finRecords ? JSON.parse(d.finRecords) : null,
             ntTasks: d.ntTasks ? JSON.parse(d.ntTasks) : null,
             ntWeekly: d.ntWeekly ? JSON.parse(d.ntWeekly) : null,
+            brgTaskList: d.brgTaskList ? JSON.parse(d.brgTaskList) : null,
             jubInvoices: d.jubInvoices ? JSON.parse(d.jubInvoices) : null
           };
         }
@@ -451,6 +453,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         if (saved.jubInvoices) STATE.jubInvoices = saved.jubInvoices;
         if (saved.ntTasks) STATE.ntTasks = saved.ntTasks;
         if (saved.ntWeekly) STATE.ntWeekly = saved.ntWeekly;
+        if (saved.brgTaskList) STATE.brgTaskList = saved.brgTaskList;
         // Find highest ID
         const allIds = [...STATE.jubTasks, ...STATE.jobs, ...STATE.brgTasks, ...STATE.weekly, ...STATE.hauls, ...STATE.flipItems].map(x=>x.id||0);
         if (allIds.length) NID = Math.max(...allIds) + 1;
@@ -479,6 +482,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         if (data.finRecords) STATE.finRecords = data.finRecords;
         if (data.ntTasks) STATE.ntTasks = data.ntTasks;
         if (data.ntWeekly) STATE.ntWeekly = data.ntWeekly;
+        if (data.brgTaskList) STATE.brgTaskList = data.brgTaskList;
         if (data.jubInvoices) STATE.jubInvoices = data.jubInvoices;
         render();
         showSyncBadge('↻ Synced with Darren');
@@ -892,6 +896,7 @@ let STATE={
   ntSection:'tasks',
   ntTasks:[],
   ntWeekly:[],
+  brgTaskList:[],
   // Jubism
   jubFilter:'today',
   jubInvoices:[],
@@ -1437,7 +1442,7 @@ function openJobPanel(id){
   renderPhoto();
 }
 
-function quickJobStatus(id,status){const j=STATE.jobs.find(x=>x.id===id);if(j)j.status=status;saveState();openJobPanel(id);}
+function quickJobStatus(id,status){const j=STATE.jobs.find(x=>x.id===id);if(j)j.status=status;saveState();openJobPanel(id);renderPhoto();}
 
 function openJobModal(editId){
   STATE.editingJobId=editId||null;
@@ -1540,15 +1545,199 @@ function removeAgent(i){STATE.agents.splice(i,1);saveState();renderAgentList();}
 // BACKROOM GEAR
 // ============================================================
 function renderBRG(){
-  document.getElementById('section-bar-wrap').innerHTML=`
-    <div class="section-bar">
-      ${['content','ads','financials'].map(s=>`<div class="sec-tab${STATE.brgSection===s?' active-brg':''}" onclick="setBRGSection('${s}')">${s==='content'?'Content':s==='ads'?'Ads & Marketing':'Financials'}</div>`).join('')}
-    </div>`;
-  if(STATE.brgSection==='content') renderBRGContent();
-  else if(STATE.brgSection==='ads') renderBRGAds();
+  var section=STATE.brgSection||'tasks';
+  document.getElementById('section-bar-wrap').innerHTML=
+    '<div class="section-bar">'+
+    ['tasks','financials'].map(function(s){
+      var label=s==='tasks'?'Tasks':'Financials';
+      var activeClass=section===s?' active-brg':'';
+      var activeStyle=section===s?'color:#FF1493;border-bottom:2px solid #FF1493;':'';
+      return '<div class="sec-tab'+activeClass+'" style="'+activeStyle+'" onclick="setBRGSection(&quot;'+s+'&quot;)">'+label+'</div>';
+    }).join('')+
+    '</div>';
+  if(section==='tasks') renderBRGTasks();
   else renderBRGFinancials();
-  renderTabs();
 }
+
+function renderBRGTasks(){
+  document.getElementById('subbar-wrap').innerHTML=
+    '<div class="subbar"><span style="flex:1"></span>'+
+    '<button class="btn sm" style="background:#FF1493;color:#fff;border:none" onclick="openBRGTaskModal()">+ Add task</button></div>';
+
+  var allTasks=(STATE.brgTaskList||[]).filter(function(t){return!t._pendingDelete;});
+  var today=todayStr();
+  var BRG_COLS=[{id:'daily',label:'Daily'},{id:'weekly',label:'Weekly'},{id:'project',label:'Projects'}];
+
+  function sortTasks(tasks){
+    return tasks.slice().sort(function(a,b){
+      if(a.priority&&!b.priority)return -1;
+      if(!a.priority&&b.priority)return 1;
+      if(!a.due&&!b.due)return 0;
+      if(!a.due)return 1;
+      if(!b.due)return -1;
+      return a.due>b.due?1:-1;
+    });
+  }
+
+  function taskCard(t){
+    var overdue=t.due&&t.due<today;
+    var borderStyle=t.priority?'border-left:3px solid #FF1493;':'';
+    var h='<div class="task-row" style="'+borderStyle+'" onclick="openBRGTaskPanel('+t.id+')">';
+    h+='<div class="task-cb" onclick="event.stopPropagation();tickBRGTask('+t.id+')"></div>';
+    h+='<div class="task-info">';
+    h+='<div class="task-title">'+(t.priority?'<span style="color:#FF1493;font-size:10px;margin-right:3px">▲</span>':'')+t.title+'</div>';
+    if(t.notes) h+='<div class="task-notes-preview">'+t.notes+'</div>';
+    h+='<div class="task-meta">';
+    if(t.due) h+='<span class="due-'+(overdue?'overdue':t.due===today?'today':'upcoming')+'">'+fmtDate(t.due)+'</span>';
+    if(t.recur&&t.recur!=='none') h+='<span class="recur-badge">'+(RECUR_LABELS[t.recur]||t.recur)+'</span>';
+    h+=avHtml(t.assignee==='both'?'Gordon':t.assignee||'Gordon');
+    if(t.assignee==='both') h+=avHtml('Darren');
+    h+='</div></div></div>';
+    return h;
+  }
+
+  var html='<div class="jub-board">';
+  BRG_COLS.forEach(function(col){
+    var colTasks=sortTasks(allTasks.filter(function(t){return(t.brgCol||'daily')===col.id;}));
+    html+='<div class="jub-col">';
+    html+='<div class="jub-col-header">';
+    html+='<span class="jub-col-title" style="color:#FF1493">'+col.label+'</span>';
+    html+='<span class="jub-col-count">'+colTasks.length+'</span>';
+    html+='<button class="add-task-btn-sm" onclick="openBRGTaskModal(&quot;'+col.id+'&quot;)">+</button>';
+    html+='</div>';
+    html+='<div class="jub-col-body">';
+    colTasks.forEach(function(t){html+=taskCard(t);});
+    html+='</div></div>';
+  });
+  html+='</div>';
+  document.getElementById('main-content').innerHTML=html;
+}
+
+function openBRGTaskModal(col){
+  STATE.editingBRGTaskId=null;
+  STATE._brgTaskCol=col||'daily';
+  document.getElementById('brg-task-title').textContent='New BRG task';
+  document.getElementById('brg-task-save').textContent='Save task';
+  document.getElementById('brg-task-name').value='';
+  document.getElementById('brg-task-due').value=todayStr();
+  document.getElementById('brg-task-recur').value='none';
+  document.getElementById('brg-task-assignee').value='both';
+  document.getElementById('brg-task-priority').checked=false;
+  document.getElementById('brg-task-notes').value='';
+  if(document.getElementById('brg-task-col')) document.getElementById('brg-task-col').value=STATE._brgTaskCol||'daily';
+  openModal('brg-task');
+}
+
+function saveBRGTask(){
+  var name=document.getElementById('brg-task-name').value.trim();
+  if(!name)return;
+  if(!STATE.brgTaskList) STATE.brgTaskList=[];
+  var task={
+    id:STATE.editingBRGTaskId||NID++,
+    title:name,
+    assignee:document.getElementById('brg-task-assignee').value,
+    due:document.getElementById('brg-task-due').value||todayStr(),
+    recur:document.getElementById('brg-task-recur').value,
+    priority:document.getElementById('brg-task-priority').checked,
+    notes:document.getElementById('brg-task-notes').value.trim(),
+    brgCol:(document.getElementById('brg-task-col')?document.getElementById('brg-task-col').value:STATE._brgTaskCol)||'daily',
+    done:false
+  };
+  if(STATE.editingBRGTaskId){
+    var idx=(STATE.brgTaskList||[]).findIndex(function(t){return t.id===STATE.editingBRGTaskId;});
+    if(idx>=0) STATE.brgTaskList[idx]=task;
+  } else {
+    STATE.brgTaskList.push(task);
+  }
+  STATE.editingBRGTaskId=null;
+  saveState();
+  closeModal('brg-task');
+  renderBRGTasks();
+}
+
+function tickBRGTask(id){
+  var t=(STATE.brgTaskList||[]).find(function(x){return x.id===id;});
+  if(!t)return;
+  if(t.recur!=='none'){
+    var next=nextOcc(t.due,t.recur,[]);
+    t.due=next;t.done=false;
+    saveState();
+    showCelebration();
+    showToast('↻ '+t.title+' → '+fmtDate(next),'#FF1493');
+    renderBRGTasks();
+  } else {
+    showCelebration();
+    t._pendingDelete=true;
+    renderBRGTasks();
+    showUndoBar(t.title,function(){
+      t._pendingDelete=false;
+      renderBRGTasks();
+    },function(){
+      STATE.brgTaskList=STATE.brgTaskList.filter(function(x){return x.id!==id;});
+      saveState();
+      renderBRGTasks();
+    });
+  }
+}
+
+function openBRGTaskPanel(id){
+  var t=(STATE.brgTaskList||[]).find(function(x){return x.id===id;});
+  if(!t)return;
+  document.getElementById('panel-title').textContent=t.title;
+  document.getElementById('panel-body').innerHTML=
+    '<hr class="pdiv">'+
+    '<div class="pl">Assignee</div><div class="pv">'+avHtml(t.assignee==='both'?'Gordon':t.assignee||'Gordon')+(t.assignee==='both'?avHtml('Darren'):'')+' <span>'+(t.assignee==='both'?'Gordon & Darren':t.assignee)+'</span></div>'+
+    '<div class="pl">Due</div><div class="pv">'+(t.due?fmtDate(t.due):'No date')+'</div>'+
+    '<div class="pl">Recurrence</div><div class="pv">'+(RECUR_LABELS[t.recur]||'One-off')+'</div>'+
+    '<div class="pl">Notes</div>'+
+    '<textarea id="brg-panel-notes-'+id+'" style="width:100%;font-size:13px;padding:8px 10px;border-radius:8px;border:1px solid var(--border-light);background:var(--bg-primary);color:var(--text-primary);font-family:inherit;resize:vertical;min-height:80px;margin-top:4px;outline:none" placeholder="Add notes..." onchange="saveBRGTaskNotes('+id+',this.value)">'+(t.notes||'')+'</textarea>'+
+    '<div style="display:flex;gap:6px;margin-top:12px">'+
+    '<button class="btn sm" style="flex:1" onclick="editBRGTask('+id+')">Edit</button>'+
+    '<button class="btn sm" style="flex:1;color:#FF1493;border-color:#FF1493" onclick="toggleBRGPriority('+id+')">'+(t.priority?'▲ High':'▽ Normal')+'</button>'+
+    '<button class="btn sm danger" style="flex:1" onclick="deleteBRGTask('+id+')">Delete</button>'+
+    '</div>';
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function saveBRGTaskNotes(id,notes){
+  var t=(STATE.brgTaskList||[]).find(function(x){return x.id===id;});
+  if(t){t.notes=notes;saveState();}
+}
+
+function toggleBRGPriority(id){
+  var t=(STATE.brgTaskList||[]).find(function(x){return x.id===id;});
+  if(!t)return;
+  t.priority=!t.priority;
+  saveState();
+  openBRGTaskPanel(id);
+  renderBRGTasks();
+}
+
+function editBRGTask(id){
+  var t=(STATE.brgTaskList||[]).find(function(x){return x.id===id;});
+  if(!t)return;
+  STATE.editingBRGTaskId=id;
+  document.getElementById('brg-task-title').textContent='Edit BRG task';
+  document.getElementById('brg-task-save').textContent='Save changes';
+  document.getElementById('brg-task-name').value=t.title;
+  document.getElementById('brg-task-due').value=t.due||'';
+  document.getElementById('brg-task-recur').value=t.recur||'none';
+  document.getElementById('brg-task-assignee').value=t.assignee||'both';
+  document.getElementById('brg-task-priority').checked=t.priority||false;
+  document.getElementById('brg-task-notes').value=t.notes||'';
+  if(document.getElementById('brg-task-col')) document.getElementById('brg-task-col').value=t.brgCol||'daily';
+  closePanel();
+  openModal('brg-task');
+}
+
+function deleteBRGTask(id){
+  STATE.brgTaskList=(STATE.brgTaskList||[]).filter(function(x){return x.id!==id;});
+  saveState();
+  closePanel();
+  renderBRGTasks();
+}
+
+
 
 function setBRGSection(s){STATE.brgSection=s;renderBRG();}
 
@@ -2457,14 +2646,25 @@ function renderDashboard(){
   // LEFT: Revenue split donut + stream breakdown
   html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:16px">';
   html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">Revenue split — '+now.toLocaleDateString('en-AU',{month:'long'})+'</div>';
-  html+='<div style="display:flex;align-items:center;gap:20px">';
+  html+='<div style="display:flex;align-items:center;gap:16px">';
   var donutSegs=[
     {value:jubMonth,color:'#D4AF36'},
     {value:photoMonth,color:'#1B3A8C'},
     {value:ntMonth,color:'#F47B20'},
     {value:brgMonth,color:'#FF1493'}
   ];
-  html+=donut(donutSegs,130,20);
+  var profitSegs=[
+    {value:Math.max(0,jubMonth),color:'#D4AF36'},
+    {value:Math.max(0,photoProfitMonth),color:'#1B3A8C'},
+    {value:Math.max(0,ntProfitMonth),color:'#F47B20'},
+    {value:Math.max(0,brgProfitMonth),color:'#FF1493'}
+  ];
+  html+='<div style="display:flex;flex-direction:column;align-items:center;gap:4px">';
+  html+=donut(donutSegs,110,16);
+  html+='<div style="font-size:10px;color:var(--text-tertiary)">Revenue</div></div>';
+  html+='<div style="display:flex;flex-direction:column;align-items:center;gap:4px">';
+  html+=donut(profitSegs,110,16);
+  html+='<div style="font-size:10px;color:var(--text-tertiary)">Profit</div></div>';
   html+='<div style="flex:1;display:flex;flex-direction:column;gap:8px">';
   var streams=[
     {label:'Jubism',color:'#D4AF36',month:jubMonth,fy:jubFY,profMonth:jubMonth,profFY:jubFY},
@@ -2539,8 +2739,9 @@ function renderDashboard(){
     '<span onclick="switchBiz(&quot;jubism&quot;)" style="font-size:11px;color:#D4AF36;cursor:pointer">Invoices →</span></div>';
   html+=streamTile('Jubism','#D4AF36',jubMonth,jubMonth,jubFY,jubFY,jubExtra);
 
+  var photoUnpaidTotal=photoUnpaid.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
   var photoExtra=photoUnpaid.length>0?
-    '<span style="font-size:11px;background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:99px">'+photoUnpaid.length+' unpaid</span>':'';
+    '<span style="font-size:11px;background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:99px">'+fmt2(photoUnpaidTotal)+' unpaid · '+photoUnpaid.length+' invoice'+(photoUnpaid.length>1?'s':'')+'</span>':'';
   html+=streamTile('Photography','#1B3A8C',photoMonth,photoProfitMonth,photoFY,photoProfitFY,photoExtra);
 
   html+=streamTile('Now Trending','#F47B20',ntMonth,ntProfitMonth,ntFY,ntProfitFY,'');
@@ -3573,6 +3774,50 @@ if('serviceWorker' in navigator) {
     <div class="ma">
       <button class="btn" onclick="closeModal('jub-invoice')">Cancel</button>
       <button class="btn" style="background:#D4AF36;color:#000;font-weight:600" onclick="saveJubInvoice()">Save</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- BRG TASK MODAL -->
+<div class="mo" id="mo-brg-task">
+  <div class="md">
+    <div class="mt" id="brg-task-title">New BRG task</div>
+    <div><div class="ml">Task name</div><input type="text" id="brg-task-name" placeholder="What needs to be done?"></div>
+    <div><div class="ml">Category</div>
+      <select id="brg-task-col">
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="project">Project</option>
+      </select>
+    </div>
+    <div><div class="ml">Assignee</div>
+      <select id="brg-task-assignee">
+        <option value="both">Both</option>
+        <option value="Gordon">Gordon</option>
+        <option value="Darren">Darren</option>
+      </select>
+    </div>
+    <div><div class="ml">Due date</div><input type="date" id="brg-task-due"></div>
+    <div><div class="ml">Recurrence</div>
+      <select id="brg-task-recur">
+        <option value="none">One-off</option>
+        <option value="daily">Daily (Mon-Fri)</option>
+        <option value="weekly">Weekly</option>
+        <option value="fortnightly">Fortnightly</option>
+        <option value="monthly">Monthly</option>
+      </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+        <input type="checkbox" id="brg-task-priority" style="width:16px;height:16px;accent-color:#FF1493">
+        <span style="color:#FF1493;font-weight:500">▲ High priority</span>
+      </label>
+    </div>
+    <div><div class="ml">Notes</div><textarea id="brg-task-notes" placeholder="Details..."></textarea></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('brg-task')">Cancel</button>
+      <button class="btn" style="background:#FF1493;color:#fff;border:none" id="brg-task-save" onclick="saveBRGTask()">Save task</button>
     </div>
   </div>
 </div>
