@@ -455,7 +455,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         if (saved.ntWeekly) STATE.ntWeekly = saved.ntWeekly;
         if (saved.brgTaskList) STATE.brgTaskList = saved.brgTaskList;
         // Find highest ID
-        const allIds = [...STATE.jubTasks, ...STATE.jobs, ...STATE.brgTasks, ...STATE.weekly, ...STATE.hauls, ...STATE.flipItems].map(x=>x.id||0);
+        const allIds = [...STATE.jubTasks, ...STATE.jobs, ...STATE.brgTasks, ...STATE.weekly, ...STATE.hauls, ...STATE.flipItems, ...(STATE.brgTaskList||[]), ...(STATE.ntTasks||[]), ...(STATE.ntWeekly||[]), ...(STATE.jubInvoices||[])].map(x=>x.id||0);
         if (allIds.length) NID = Math.max(...allIds) + 1;
         showSyncBadge('✓ Data loaded');
       } else {
@@ -499,7 +499,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       STATE.activeBiz = null;
       render();
       // Also update NID to avoid ID conflicts with loaded data
-      const allLoaded=[...STATE.jubTasks,...STATE.jobs,...STATE.brgTasks,...STATE.weekly,...STATE.hauls,...STATE.flipItems];
+      const allLoaded=[...STATE.jubTasks,...STATE.jobs,...STATE.brgTasks,...STATE.weekly,...STATE.hauls,...STATE.flipItems,...(STATE.brgTaskList||[]),...(STATE.ntTasks||[]),...(STATE.ntWeekly||[]),...(STATE.jubInvoices||[])];
       if(allLoaded.length){
         const maxId=Math.max(...allLoaded.map(x=>x.id||0));
         if(maxId>=NID)NID=maxId+1;
