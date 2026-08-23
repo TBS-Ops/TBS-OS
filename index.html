@@ -362,7 +362,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     const COLL = "appstate";
 
     // Save state to Firestore
-    window.saveToFirebase = async function(state) {
+    window.saveToFirebase = function(state) {
+      return (async function() {
       try {
         await setDoc(doc(db, COLL, DOC_ID), {
           jubTasks: JSON.stringify(state.jubTasks),
@@ -383,6 +384,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       } catch(e) {
         console.error("Save error:", e);
       }
+      })();
     };
 
     // Load state from Firestore
@@ -898,9 +900,13 @@ function getDiff(ds){if(!ds)return null;const d=new Date(ds),n=new Date();n.setH
 function fmtDate(ds){if(!ds)return'—';const d=new Date(ds+'T00:00:00');return d.getDate()+' '+MONTHS[d.getMonth()];}
 function fmtTime(ts){if(!ts)return'';const p=ts.split(':');return p[0]+':'+p[1];}
 function fmt$(n){return n?'$'+parseFloat(n).toFixed(2):'—';}
+var _isSaving=false;
 function saveState(){
   if(window.saveToFirebase){
-    window.saveToFirebase(STATE);
+    _isSaving=true;
+    window.saveToFirebase(STATE).then(function(){
+      setTimeout(function(){_isSaving=false;},2000);
+    }).catch(function(){_isSaving=false;});
     showSyncBadge('✓ Saved');
   }
 }
