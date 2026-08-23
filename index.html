@@ -3515,12 +3515,10 @@ function setDark(dark){
 </script>
 
 <script>
+// Auto-unregister old service workers to prevent caching
 if('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('SW registered'))
-      .catch(err => console.log('SW error:', err));
-  });
+  navigator.serviceWorker.getRegistrations().then(function(regs){regs.forEach(function(r){r.unregister();});});
+  caches.keys().then(function(names){names.forEach(function(n){caches.delete(n);});});
 }
 </script>
 
