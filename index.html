@@ -841,7 +841,7 @@ const PHOTO_STATUSES=[
   {id:'cancelled',label:'Cancelled',cls:'sp-cancelled'}
 ];
 const SHOOT_TYPES=['15 Photos','20 Photos','25 Photos','Floor Plan','Video with agent','Video walkthrough','Travel fee','Other'];
-const RECUR_LABELS={none:'One-off',daily:'Daily (M-F)',weekly:'Weekly',fortnightly:'Fortnightly',monthly:'Monthly',custom:'Custom'};
+const RECUR_LABELS={none:'One-off',daily:'Daily (M-F)',daily7:'Daily (7 days)',weekly:'Weekly',mwf:'Mon/Wed/Fri',fortnightly:'Fortnightly',monthly:'Monthly',custom:'Custom'};
 const DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const CAT_LABELS={ig:'Instagram',fb:'Facebook',short:'Daily Short',pod:'Podcast',ads:'Ads',other:'Other'};
 const CAT_EV={ig:'ev-ig',fb:'ev-fb',short:'ev-short',pod:'ev-pod',ads:'ev-other',other:'ev-other'};
@@ -861,19 +861,39 @@ function addDays(ds,n){const d=new Date(ds);d.setDate(d.getDate()+n);return d.to
 function nextWeekSunday(){const d=new Date();d.setDate(d.getDate()+(7-d.getDay()));return d.toISOString().slice(0,10);}
 function nextOcc(ds,recur,customDays){
   if(recur==='none')return null;
-  if(recur==='daily'){let d=new Date(ds);d.setDate(d.getDate()+1);while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()+1);return d.toISOString().slice(0,10);}
+  if(recur==='daily'){
+    let d=new Date(ds+'T00:00:00');d.setDate(d.getDate()+1);
+    while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()+1);
+    return d.toISOString().slice(0,10);
+  }
+  if(recur==='daily7'){
+    let d=new Date(ds+'T00:00:00');d.setDate(d.getDate()+1);
+    return d.toISOString().slice(0,10);
+  }
   if(recur==='weekly')return addDays(ds,7);
+  if(recur==='mwf'){
+    // Next Mon, Wed or Fri after ds
+    let d=new Date(ds+'T00:00:00');d.setDate(d.getDate()+1);
+    while(![1,3,5].includes(d.getDay()))d.setDate(d.getDate()+1);
+    return d.toISOString().slice(0,10);
+  }
   if(recur==='fortnightly')return addDays(ds,14);
-  if(recur==='monthly'){const d=new Date(ds);d.setMonth(d.getMonth()+1);return d.toISOString().slice(0,10);}
+  if(recur==='monthly'){
+    const d=new Date(ds+'T00:00:00');d.setMonth(d.getMonth()+1);
+    return d.toISOString().slice(0,10);
+  }
   if(recur==='custom'&&customDays&&customDays.length){
-    let d=new Date(ds);d.setDate(d.getDate()+1);
-    for(let i=0;i<14;i++){
-      if(customDays.includes(d.getDay()))return d.toISOString().slice(0,10);
+    const dayNums={sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
+    const targets=customDays.map(function(x){return dayNums[x]||0;}).sort(function(a,b){return a-b;});
+    let d=new Date(ds+'T00:00:00');d.setDate(d.getDate()+1);
+    for(var i=0;i<14;i++){
+      if(targets.includes(d.getDay()))return d.toISOString().slice(0,10);
       d.setDate(d.getDate()+1);
     }
   }
-  return null;
+  return addDays(ds,7);
 }
+
 function getDiff(ds){if(!ds)return null;const d=new Date(ds),n=new Date();n.setHours(0,0,0,0);return Math.round((d-n)/(1000*60*60*24));}
 function fmtDate(ds){if(!ds)return'—';const d=new Date(ds+'T00:00:00');return d.getDate()+' '+MONTHS[d.getMonth()];}
 function fmtTime(ts){if(!ts)return'';const p=ts.split(':');return p[0]+':'+p[1];}
@@ -1573,7 +1593,7 @@ function renderBRGTasks(){
 
   var allTasks=(STATE.brgTaskList||[]).filter(function(t){return!t._pendingDelete;});
   var today=todayStr();
-  var BRG_COLS=[{id:'daily',label:'Daily'},{id:'weekly',label:'Weekly'},{id:'project',label:'Projects'}];
+  var BRG_COLS=BRG_COLS_4;
 
   function sortTasks(tasks){
     return tasks.slice().sort(function(a,b){
@@ -1639,12 +1659,14 @@ function saveBRGTask(){
   var name=document.getElementById('brg-task-name').value.trim();
   if(!name)return;
   if(!STATE.brgTaskList) STATE.brgTaskList=[];
+  var brgRecur=document.getElementById('brg-task-recur').value;
   var task={
     id:STATE.editingBRGTaskId||NID++,
     title:name,
     assignee:document.getElementById('brg-task-assignee').value,
     due:document.getElementById('brg-task-due').value||todayStr(),
-    recur:document.getElementById('brg-task-recur').value,
+    recur:brgRecur,
+    customDays:brgRecur==='custom'?getBRGCustomDays():[],
     priority:document.getElementById('brg-task-priority').checked,
     notes:document.getElementById('brg-task-notes').value.trim(),
     brgCol:(document.getElementById('brg-task-col')?document.getElementById('brg-task-col').value:STATE._brgTaskCol)||'daily',
@@ -1666,7 +1688,7 @@ function tickBRGTask(id){
   var t=(STATE.brgTaskList||[]).find(function(x){return x.id===id;});
   if(!t)return;
   if(t.recur!=='none'){
-    var next=nextOcc(t.due,t.recur,[]);
+    var next=nextOcc(t.due,t.recur,t.customDays||[]);
     t.due=next;t.done=false;
     saveState();
     showCelebration();
@@ -1733,6 +1755,8 @@ function editBRGTask(id){
   document.getElementById('brg-task-priority').checked=t.priority||false;
   document.getElementById('brg-task-notes').value=t.notes||'';
   if(document.getElementById('brg-task-col')) document.getElementById('brg-task-col').value=t.brgCol||'daily';
+  toggleBRGCustomDays();
+  setBRGCustomDays(t.customDays||[]);
   closePanel();
   openModal('brg-task');
 }
@@ -3070,6 +3094,46 @@ function deleteJubInvoice(id){
 }
 
 
+
+// ============================================================
+// NT & BRG TASK HELPERS
+// ============================================================
+function toggleNTCustomDays(){
+  var v=document.getElementById('nt-task-recur').value;
+  var el=document.getElementById('nt-custom-days');
+  if(el) el.style.display=v==='custom'?'block':'none';
+}
+
+function toggleBRGCustomDays(){
+  var v=document.getElementById('brg-task-recur').value;
+  var el=document.getElementById('brg-custom-days');
+  if(el) el.style.display=v==='custom'?'block':'none';
+}
+
+function getNTCustomDays(){
+  return Array.from(document.querySelectorAll('.nt-day-cb:checked')).map(function(cb){return cb.value;});
+}
+
+function getBRGCustomDays(){
+  return Array.from(document.querySelectorAll('.brg-day-cb:checked')).map(function(cb){return cb.value;});
+}
+
+function setNTCustomDays(days){
+  document.querySelectorAll('.nt-day-cb').forEach(function(cb){
+    cb.checked=(days||[]).includes(cb.value);
+  });
+}
+
+function setBRGCustomDays(days){
+  document.querySelectorAll('.brg-day-cb').forEach(function(cb){
+    cb.checked=(days||[]).includes(cb.value);
+  });
+}
+
+var NT_COLS_4=[{id:'daily',label:'Daily'},{id:'weekly',label:'Weekly'},{id:'project',label:'Projects'},{id:'admin',label:'Admin'}];
+var BRG_COLS_4=[{id:'daily',label:'Daily'},{id:'weekly',label:'Weekly'},{id:'project',label:'Projects'},{id:'admin',label:'Admin'}];
+
+
 // ============================================================
 // NOW TRENDING
 // ============================================================
@@ -3102,7 +3166,7 @@ function renderNTTasks(){
 
   var allTasks=(STATE.ntTasks||[]).filter(function(t){return!t._pendingDelete;});
   var today=todayStr();
-  var NT_COLS=[{id:'daily',label:'Daily'},{id:'weekly',label:'Weekly'},{id:'project',label:'Projects'}];
+  var NT_COLS=NT_COLS_4;
 
   function sortTasks(tasks){
     return tasks.slice().sort(function(a,b){
@@ -3169,12 +3233,14 @@ function saveNTTask(){
   var name=document.getElementById('nt-task-name').value.trim();
   if(!name)return;
   if(!STATE.ntTasks) STATE.ntTasks=[];
+  var ntRecur=document.getElementById('nt-task-recur').value;
   var task={
     id:STATE.editingNTTaskId||NID++,
     title:name,
     assignee:document.getElementById('nt-task-assignee').value,
     due:document.getElementById('nt-task-due').value||todayStr(),
-    recur:document.getElementById('nt-task-recur').value,
+    recur:ntRecur,
+    customDays:ntRecur==='custom'?getNTCustomDays():[],
     priority:document.getElementById('nt-task-priority').checked,
     notes:document.getElementById('nt-task-notes').value.trim(),
     ntCol:(document.getElementById('nt-task-col')?document.getElementById('nt-task-col').value:STATE._ntTaskCol)||'daily',
@@ -3196,7 +3262,7 @@ function tickNTTask(id){
   var t=(STATE.ntTasks||[]).find(function(x){return x.id===id;});
   if(!t)return;
   if(t.recur!=='none'){
-    var next=nextOcc(t.due,t.recur,[]);
+    var next=nextOcc(t.due,t.recur,t.customDays||[]);
     t.due=next;t.done=false;
     saveState();
     showCelebration();
@@ -3262,6 +3328,8 @@ function editNTTask(id){
   document.getElementById('nt-task-assignee').value=t.assignee||'both';
   document.getElementById('nt-task-priority').checked=t.priority||false;
   document.getElementById('nt-task-notes').value=t.notes||'';
+  toggleNTCustomDays();
+  setNTCustomDays(t.customDays||[]);
   closePanel();
   openModal('nt-task');
 }
@@ -3589,29 +3657,47 @@ if('serviceWorker' in navigator) {
   <div class="md">
     <div class="mt" id="nt-task-title">New NT task</div>
     <div><div class="ml">Task name</div><input type="text" id="nt-task-name" placeholder="What needs to be done?"></div>
-    <div><div class="ml">Category</div>
-      <select id="nt-task-col">
-        <option value="daily">Daily</option>
-        <option value="weekly">Weekly</option>
-        <option value="project">Project</option>
-      </select>
-    </div>
-    <div><div class="ml">Assignee</div>
-      <select id="nt-task-assignee">
-        <option value="both">Both</option>
-        <option value="Gordon">Gordon</option>
-        <option value="Darren">Darren</option>
-      </select>
+    <div class="form-row">
+      <div><div class="ml">Column</div>
+        <select id="nt-task-col">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="project">Projects</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div><div class="ml">Assignee</div>
+        <select id="nt-task-assignee">
+          <option value="both">Both</option>
+          <option value="Gordon">Gordon</option>
+          <option value="Darren">Darren</option>
+        </select>
+      </div>
     </div>
     <div><div class="ml">Due date</div><input type="date" id="nt-task-due"></div>
     <div><div class="ml">Recurrence</div>
-      <select id="nt-task-recur">
+      <select id="nt-task-recur" onchange="toggleNTCustomDays()">
         <option value="none">One-off</option>
         <option value="daily">Daily (Mon-Fri)</option>
+        <option value="daily7">Daily (7 days)</option>
         <option value="weekly">Weekly</option>
+        <option value="mwf">Mon / Wed / Fri</option>
         <option value="fortnightly">Fortnightly</option>
         <option value="monthly">Monthly</option>
+        <option value="custom">Custom days</option>
       </select>
+    </div>
+    <div id="nt-custom-days" style="display:none">
+      <div class="ml">Pick days</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;padding:4px 0">
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="mon" class="nt-day-cb"> Mon</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="tue" class="nt-day-cb"> Tue</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="wed" class="nt-day-cb"> Wed</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="thu" class="nt-day-cb"> Thu</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="fri" class="nt-day-cb"> Fri</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="sat" class="nt-day-cb"> Sat</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="sun" class="nt-day-cb"> Sun</label>
+      </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
@@ -3648,29 +3734,47 @@ if('serviceWorker' in navigator) {
   <div class="md">
     <div class="mt" id="brg-task-title">New BRG task</div>
     <div><div class="ml">Task name</div><input type="text" id="brg-task-name" placeholder="What needs to be done?"></div>
-    <div><div class="ml">Category</div>
-      <select id="brg-task-col">
-        <option value="daily">Daily</option>
-        <option value="weekly">Weekly</option>
-        <option value="project">Project</option>
-      </select>
-    </div>
-    <div><div class="ml">Assignee</div>
-      <select id="brg-task-assignee">
-        <option value="both">Both</option>
-        <option value="Gordon">Gordon</option>
-        <option value="Darren">Darren</option>
-      </select>
+    <div class="form-row">
+      <div><div class="ml">Column</div>
+        <select id="brg-task-col">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="project">Projects</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div><div class="ml">Assignee</div>
+        <select id="brg-task-assignee">
+          <option value="both">Both</option>
+          <option value="Gordon">Gordon</option>
+          <option value="Darren">Darren</option>
+        </select>
+      </div>
     </div>
     <div><div class="ml">Due date</div><input type="date" id="brg-task-due"></div>
     <div><div class="ml">Recurrence</div>
-      <select id="brg-task-recur">
+      <select id="brg-task-recur" onchange="toggleBRGCustomDays()">
         <option value="none">One-off</option>
         <option value="daily">Daily (Mon-Fri)</option>
+        <option value="daily7">Daily (7 days)</option>
         <option value="weekly">Weekly</option>
+        <option value="mwf">Mon / Wed / Fri</option>
         <option value="fortnightly">Fortnightly</option>
         <option value="monthly">Monthly</option>
+        <option value="custom">Custom days</option>
       </select>
+    </div>
+    <div id="brg-custom-days" style="display:none">
+      <div class="ml">Pick days</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;padding:4px 0">
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="mon" class="brg-day-cb"> Mon</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="tue" class="brg-day-cb"> Tue</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="wed" class="brg-day-cb"> Wed</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="thu" class="brg-day-cb"> Thu</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="fri" class="brg-day-cb"> Fri</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="sat" class="brg-day-cb"> Sat</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="sun" class="brg-day-cb"> Sun</label>
+      </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
