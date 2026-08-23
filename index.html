@@ -1044,8 +1044,12 @@ function mainCTA(){
   const b=STATE.activeBiz;
   if(b==='jubism') openJubTaskModal();
   else if(b==='photo') openJobModal();
+  else if(b==='nt'){
+    if((STATE.ntSection||'tasks')==='financials') openNTPLModal();
+    else openNTTaskModal();
+  }
   else if(b==='backroom'){
-    if(STATE.brgSection==='financials') openPLModal();
+    if((STATE.brgSection||'tasks')==='financials') openPLModal();
     else openBRGTaskModal();
   }
   else openHaulModal();
@@ -1589,7 +1593,7 @@ function renderBRGTasks(){
     var overdue=t.due&&t.due<today;
     var borderStyle=t.priority?'border-left:3px solid #FF1493;':'';
     var h='<div class="task-row" style="'+borderStyle+'" onclick="openBRGTaskPanel('+t.id+')">';
-    h+='<div class="task-cb" onclick="event.stopPropagation();console.log(&quot;tick clicked&quot;,'+t.id+');tickBRGTask('+t.id+')"></div>';
+    h+='<div class="task-cb" onclick="event.stopPropagation();tickBRGTask('+t.id+')"></div>';
     h+='<div class="task-info">';
     h+='<div class="task-title">'+(t.priority?'<span style="color:#FF1493;font-size:10px;margin-right:3px">▲</span>':'')+t.title+'</div>';
     if(t.notes) h+='<div class="task-notes-preview">'+t.notes+'</div>';
@@ -1636,10 +1640,8 @@ function openBRGTaskModal(col){
 
 function saveBRGTask(){
   var name=document.getElementById('brg-task-name').value.trim();
-  console.log('saveBRGTask called, name:', name);
   if(!name)return;
   if(!STATE.brgTaskList) STATE.brgTaskList=[];
-  console.log('brgTaskList before:', JSON.stringify(STATE.brgTaskList));
   var brgRecur=document.getElementById('brg-task-recur').value;
   var task={
     id:STATE.editingBRGTaskId||NID++,
@@ -1660,21 +1662,17 @@ function saveBRGTask(){
     STATE.brgTaskList.push(task);
   }
   STATE.editingBRGTaskId=null;
-  console.log('brgTaskList after push:', JSON.stringify(STATE.brgTaskList));
   saveState();
   closeModal('brg-task');
   renderBRGTasks();
 }
 
 function tickBRGTask(id){
-  console.log('tickBRGTask called',id,'brgTaskList',STATE.brgTaskList?STATE.brgTaskList.length:'null');
   var t=(STATE.brgTaskList||[]).find(function(x){return x.id===id;});
-  console.log('found task:',t?t.title:'NOT FOUND');
   if(!t)return;
   if(t.recur!=='none'){
     var next=nextOcc(t.due,t.recur,t.customDays||[]);
-    console.log('next occ:',next);
-    t.due=next;t.done=false;
+      t.due=next;t.done=false;
     saveState();
     showCelebration();
     showToast('↻ '+t.title+' → '+fmtDate(next),'#FF1493');
@@ -3147,7 +3145,7 @@ function renderNTTasks(){
     var overdue=t.due&&t.due<today;
     var borderStyle=t.priority?'border-left:3px solid #F47B20;':'';
     var h='<div class="task-row" style="'+borderStyle+'" onclick="openNTTaskPanel('+t.id+')">';
-    h+='<div class="task-cb" onclick="event.stopPropagation();console.log(&quot;NT tick&quot;,'+t.id+');tickNTTask('+t.id+')"></div>';
+    h+='<div class="task-cb" onclick="event.stopPropagation();tickNTTask('+t.id+')"></div>';
     h+='<div class="task-info">';
     h+='<div class="task-title">'+(t.priority?'<span style="color:#F47B20;font-size:10px;margin-right:3px">▲</span>':'')+t.title+'</div>';
     if(t.notes) h+='<div class="task-notes-preview">'+t.notes+'</div>';
@@ -3223,10 +3221,7 @@ function saveNTTask(){
 }
 
 function tickNTTask(id){
-  console.log('tickNTTask called with id:', id, 'type:', typeof id);
-  console.log('ntTasks:', STATE.ntTasks);
   var t=(STATE.ntTasks||[]).find(function(x){return x.id===id;});
-  console.log('found task:', t);
   if(!t)return;
   if(t.recur!=='none'){
     var next=nextOcc(t.due,t.recur,t.customDays||[]);
