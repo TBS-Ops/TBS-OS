@@ -1667,10 +1667,13 @@ function saveBRGTask(){
 }
 
 function tickBRGTask(id){
+  console.log('tickBRGTask called',id,'brgTaskList',STATE.brgTaskList?STATE.brgTaskList.length:'null');
   var t=(STATE.brgTaskList||[]).find(function(x){return x.id===id;});
+  console.log('found task:',t?t.title:'NOT FOUND');
   if(!t)return;
   if(t.recur!=='none'){
     var next=nextOcc(t.due,t.recur,t.customDays||[]);
+    console.log('next occ:',next);
     t.due=next;t.done=false;
     saveState();
     showCelebration();
