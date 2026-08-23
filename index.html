@@ -669,34 +669,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <!-- BRG TASK MODAL -->
-<div class="mo" id="mo-brgtask">
-  <div class="md">
-    <div class="mt" id="brgtask-title">New task</div>
-    <div><div class="ml">Task name</div><input type="text" id="bt-name" placeholder="e.g. Record podcast"></div>
-    <div><div class="ml">Category</div>
-      <select id="bt-cat">
-        <option value="ig">Instagram</option><option value="fb">Facebook</option>
-        <option value="short">Daily Short</option><option value="pod">Podcast</option>
-        <option value="ads">Ads / Marketing</option><option value="other">Other</option>
-      </select>
-    </div>
-    <div><div class="ml">Assignee</div><select id="bt-assignee"><option>Gordon</option><option>Darren</option></select></div>
-    <div><div class="ml">Due date</div><input type="date" id="bt-due"></div>
-    <div><div class="ml">Recurrence</div>
-      <select id="bt-recur">
-        <option value="none">One-off</option><option value="daily">Daily</option>
-        <option value="weekdays">Weekdays only</option><option value="weekly">Weekly</option>
-        <option value="fortnightly">Fortnightly</option><option value="monthly">Monthly</option>
-      </select>
-    </div>
-    <div><div class="ml">Notes</div><textarea id="bt-notes" placeholder="Optional..."></textarea></div>
-    <div class="ma">
-      <button class="btn" onclick="closeModal('brgtask')">Cancel</button>
-      <button class="btn primary-brg" id="brgtask-save" onclick="saveBRGTask()">Create task</button>
-    </div>
-  </div>
-</div>
-
+<!-- BRG TASK MODAL -->
 <!-- P&L MODAL -->
 <div class="mo" id="mo-pl">
   <div class="md">
@@ -1663,8 +1636,10 @@ function openBRGTaskModal(col){
 
 function saveBRGTask(){
   var name=document.getElementById('brg-task-name').value.trim();
+  console.log('saveBRGTask called, name:', name);
   if(!name)return;
   if(!STATE.brgTaskList) STATE.brgTaskList=[];
+  console.log('brgTaskList before:', JSON.stringify(STATE.brgTaskList));
   var brgRecur=document.getElementById('brg-task-recur').value;
   var task={
     id:STATE.editingBRGTaskId||NID++,
@@ -1685,6 +1660,7 @@ function saveBRGTask(){
     STATE.brgTaskList.push(task);
   }
   STATE.editingBRGTaskId=null;
+  console.log('brgTaskList after push:', JSON.stringify(STATE.brgTaskList));
   saveState();
   closeModal('brg-task');
   renderBRGTasks();
@@ -1948,27 +1924,6 @@ function openBRGPanel(id){
       <button class="btn sm danger" style="flex:1" onclick="deleteBRGTask(${id})">Delete</button>
     </div>`;
   document.getElementById('detail-panel').classList.add('open');
-}
-
-function openBRGTaskModal(cat){
-  STATE.editingBRGId=null;
-  document.getElementById('brgtask-title').textContent='New task';
-  document.getElementById('brgtask-save').textContent='Create task';
-  document.getElementById('bt-name').value='';
-  document.getElementById('bt-notes').value='';
-  document.getElementById('bt-due').value=todayStr();
-  document.getElementById('bt-recur').value='none';
-  document.getElementById('bt-cat').value=cat||'ig';
-  document.getElementById('bt-assignee').value='Gordon';
-  openModal('brgtask');
-}
-
-function saveBRGTask(){
-  const name=document.getElementById('bt-name').value.trim();if(!name)return;
-  const task={name,cat:document.getElementById('bt-cat').value,assignee:document.getElementById('bt-assignee').value,due:document.getElementById('bt-due').value||todayStr(),recur:document.getElementById('bt-recur').value,notes:document.getElementById('bt-notes').value.trim(),done:false};
-  if(STATE.editingBRGId){const idx=STATE.brgTasks.findIndex(x=>x.id===STATE.editingBRGId);if(idx>=0){task.id=STATE.editingBRGId;STATE.brgTasks[idx]=task;}}
-  else{task.id=NID++;STATE.brgTasks.push(task);}
-  STATE.editingBRGId=null;closeModal('brgtask');renderBRG();saveState();
 }
 
 function openPLModal(){
@@ -3265,7 +3220,10 @@ function saveNTTask(){
 }
 
 function tickNTTask(id){
+  console.log('tickNTTask called with id:', id, 'type:', typeof id);
+  console.log('ntTasks:', STATE.ntTasks);
   var t=(STATE.ntTasks||[]).find(function(x){return x.id===id;});
+  console.log('found task:', t);
   if(!t)return;
   if(t.recur!=='none'){
     var next=nextOcc(t.due,t.recur,t.customDays||[]);
