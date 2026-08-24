@@ -1800,7 +1800,7 @@ function renderBRGFinancials(){
     return '<div class="dash-stat"><span class="dash-stat-label">'+label+'</span><span class="dash-stat-val" style="color:'+color+';">'+val+'</span></div>';
   }
 
-  document.getElementById('subbar-wrap').innerHTML='<div class="subbar"><span style="font-size:11px;color:var(--text-secondary)">'+allWeeks.length+' week'+(allWeeks.length!==1?'s':'')+' entered &nbsp;&middot;&nbsp; Target: <strong>$'+target.toLocaleString()+'</strong></span><button class="btn sm" onclick="openModal(\'target\')" style="margin-left:6px">Edit target</button><span style="flex:1"></span></div>';
+  document.getElementById('subbar-wrap').innerHTML='<div class="subbar"><span style="font-size:11px;color:var(--text-secondary)">'+allWeeks.length+' week'+(allWeeks.length!==1?'s':'')+' · FY26/27</span><button class="btn sm" onclick="STATE.brgShowPrevFY=!STATE.brgShowPrevFY;renderBRGFinancials()" style="margin-left:6px">'+(showPrevFY?'Hide FY25/26':'Compare FY25/26')+'</button><span style="flex:1"></span><button class="btn sm" style="background:#FF1493;color:#fff;border:none" onclick="openPLModal()">+ Add week</button></div>';
 
   var html='<div class="fin-wrap">';
 
