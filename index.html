@@ -859,7 +859,8 @@ function nextOcc(ds,recur,customDays){
   }
   if(recur==='custom'&&customDays&&customDays.length){
     var dayNums={sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
-    var targets=customDays.map(function(x){return dayNums[x]||0;}).sort(function(a,b){return a-b;});
+    // Handle both number arrays (Jubism) and string arrays (NT/BRG)
+    var targets=customDays.map(function(x){return typeof x==='number'?x:(dayNums[x]||0);}).sort(function(a,b){return a-b;});
     var d=new Date(ds+'T00:00:00');d.setDate(d.getDate()+1);
     for(var i=0;i<14;i++){
       if(targets.includes(d.getDay()))return localDateStr(d);
