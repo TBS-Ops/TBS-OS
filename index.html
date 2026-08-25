@@ -837,7 +837,7 @@ function nextWeekSunday(){const d=new Date();d.setDate(d.getDate()+(7-d.getDay()
 function localDateStr(d){var y=d.getFullYear();var m=String(d.getMonth()+1).padStart(2,'0');var day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day;}
 function nextOcc(ds,recur,customDays){
   if(recur==='none')return null;
-  if(recur==='daily'){
+  if(recur==='weekdays'||recur==='daily'){
     var d=new Date(ds+'T00:00:00');d.setDate(d.getDate()+1);
     while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()+1);
     return localDateStr(d);
