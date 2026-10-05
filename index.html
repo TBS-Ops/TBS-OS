@@ -3595,9 +3595,9 @@ function renderNTFinancials(){
   html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:10px">This month</div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
   html+=statCard('Revenue',mTotals.rev,'#F47B20');
-  html+=statCard('Profit',(profit(mTotals)>=0?'+':'')+fmt(profit(mTotals)),profit(mTotals)>=0?'#0F6E56':'var(--text-primary)');
-  html+=statCard('COGS',mTotals.cogs,'#8B0057');
-  html+=statCard('Ad spend',mTotals.meta+mTotals.google,'#8B0057');
+  html+=statCard('Profit',(profit(mTotals)>=0?'+':'')+fmt(profit(mTotals)),profit(mTotals)>=0?'#0F6E56':'var(--red)');
+  html+=statCard('COGS',mTotals.cogs,'var(--text-secondary)');
+  html+=statCard('Ad spend',mTotals.meta+mTotals.google,'var(--text-secondary)');
   html+='</div></div>';
 
   // FY
@@ -3605,9 +3605,9 @@ function renderNTFinancials(){
   html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:10px">'+getFYLabel()+'</div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
   html+=statCard('Revenue',fyTotals.rev,'#F47B20');
-  html+=statCard('Profit',(profit(fyTotals)>=0?'+':'')+fmt(profit(fyTotals)),profit(fyTotals)>=0?'#0F6E56':'var(--text-primary)');
-  html+=statCard('Margin',margin(fyTotals)+'%',parseFloat(margin(fyTotals))>0?'#0F6E56':'#A32D2D');
-  html+=statCard('Total costs',fyTotals.cogs+fyTotals.meta+fyTotals.google+fyTotals.shipping+fyTotals.other,'#8B0057');
+  html+=statCard('Profit',(profit(fyTotals)>=0?'+':'')+fmt(profit(fyTotals)),profit(fyTotals)>=0?'#0F6E56':'var(--red)');
+  html+=statCard('Margin',margin(fyTotals)+'%',parseFloat(margin(fyTotals))>0?'#0F6E56':'var(--red)');
+  html+=statCard('Total costs',fyTotals.cogs+fyTotals.meta+fyTotals.google+fyTotals.shipping+fyTotals.other,'var(--text-secondary)');
   html+='</div></div>';
 
   // Latest week
@@ -3617,9 +3617,9 @@ function renderNTFinancials(){
     html+='<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:10px">Latest week — w/c '+fmtDate(latestWeek.date)+'</div>';
     html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
     html+=statCard('Revenue',lw.rev,'#F47B20');
-    html+=statCard('Profit',(profit(lw)>=0?'+':'')+fmt(profit(lw)),profit(lw)>=0?'#0F6E56':'var(--text-primary)');
-    html+=statCard('Meta ads',latestWeek.meta||0,'#8B0057');
-    html+=statCard('Google ads',latestWeek.google||0,'#8B0057');
+    html+=statCard('Profit',(profit(lw)>=0?'+':'')+fmt(profit(lw)),profit(lw)>=0?'#0F6E56':'var(--red)');
+    html+=statCard('Meta ads',latestWeek.meta||0,'var(--text-secondary)');
+    html+=statCard('Google ads',latestWeek.google||0,'var(--text-secondary)');
     html+='</div></div>';
   }
   html+='</div>'; // end 3-col
