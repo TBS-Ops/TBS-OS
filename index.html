@@ -27,11 +27,11 @@
 }
 [data-theme="dark"]{
   --bg-primary:#1c1c1e;--bg-secondary:#2c2c2e;--bg-tertiary:#18181a;
-  --text-primary:#f0f0f0;--text-secondary:#a0a0a0;--text-tertiary:#606060;
-  --border-light:rgba(255,255,255,0.08);--border-mid:rgba(255,255,255,0.15);
+  --text-primary:#f2f2f2;--text-secondary:#b8b8b8;--text-tertiary:#888888;
+  --border-light:rgba(255,255,255,0.1);--border-mid:rgba(255,255,255,0.18);
   --blue:#D4AF36;--blue-light:#0C2D4A;--blue-dark:#85B7EB;
-  --green:#1B3A8C;--green-light:#04342C;
-  --amber:#FF1493;--amber-light:#3A2200;
+  --green:#3CB88A;--green-light:#04342C;
+  --amber:#FF4DB8;--amber-light:#3A0020;
   --orange:#F0997B;--orange-light:#2A1200;
   --purple:#AFA9EC;--purple-light:#1E1B3A;
   --red:#F09595;--red-light:#2A0F0F;
@@ -340,6 +340,43 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* TOAST */
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:9px 18px;border-radius:99px;font-size:12px;z-index:999;transition:opacity 0.3s;pointer-events:none;opacity:0}
+
+/* MOBILE */
+@media(max-width:640px){
+  body{font-size:14px}
+  .topbar{padding:8px 12px;gap:6px}
+  .logo{font-size:14px;margin-right:4px}
+  .biz-tab{padding:5px 9px;font-size:11px}
+  .dark-toggle{padding:4px 8px;font-size:11px}
+  .section-bar{padding:6px 12px;gap:1px;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch}
+  .sec-tab{padding:5px 11px;font-size:11px;white-space:nowrap}
+  .subbar{padding:6px 12px;gap:4px}
+  .subbar2{padding:5px 12px;gap:4px}
+  .btn{padding:5px 10px;font-size:12px}
+  .btn.sm{padding:4px 8px;font-size:11px}
+  .summary-bar{padding:8px 12px;gap:6px}
+  .stat-card{padding:6px 10px;min-width:70px}
+  #main-content{padding:12px}
+  /* Kanban board — horizontal scroll on mobile */
+  .jub-board{display:flex;flex-direction:column;gap:16px;overflow-x:visible}
+  .jub-col{width:100%;min-width:unset}
+  /* Modals */
+  .md{padding:16px;border-radius:var(--radius-lg) var(--radius-lg) 0 0;position:fixed;bottom:0;top:auto;left:0;right:0;transform:none;max-width:100%;max-height:90vh;overflow-y:auto;width:100% !important}
+  .mo.open{align-items:flex-end}
+  /* Panels */
+  .detail-panel{width:100% !important;max-width:100% !important;left:0 !important;right:0 !important;bottom:0 !important;top:auto !important;transform:none !important;height:auto;max-height:85vh;border-radius:16px 16px 0 0;overflow-y:auto;border:none !important;box-shadow:0 -4px 24px rgba(0,0,0,0.18)}
+  /* Tables — allow horizontal scroll */
+  .job-table-wrap,.week-table-wrap,.item-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .job-table,.week-table,.item-table{min-width:500px}
+  /* Collapse multi-col grids in main content on mobile */
+  .dash-grid{grid-template-columns:1fr}
+  .dash-stat-row{grid-template-columns:repeat(2,1fr)}
+  .form-row{grid-template-columns:1fr}
+  .cal-grid{gap:2px}
+  .week-cards{grid-template-columns:repeat(2,1fr)}
+  /* Topbar wraps cleanly */
+  .biz-tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+}
 </style>
 
   <!-- Firebase SDKs -->
@@ -693,11 +730,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="section-sep">Costs</div>
     <div class="form-row">
       <div><div class="ml">Ad spend ($)</div><input type="number" id="pl-ads" placeholder="0.00" step="0.01"></div>
-      <div><div class="ml">COGS ($)</div><input type="number" id="pl-cogs" placeholder="0.00" step="0.01"></div>
+      <div><div class="ml">COGS – Etsy/Other ($)</div><input type="number" id="pl-cogs" placeholder="0.00" step="0.01"></div>
     </div>
     <div class="form-row">
+      <div><div class="ml">COGS – Printful ($)</div><input type="number" id="pl-printful-cogs" placeholder="0.00" step="0.01"></div>
       <div><div class="ml">Shopify / apps ($)</div><input type="number" id="pl-shopify" placeholder="0.00" step="0.01"></div>
+    </div>
+    <div class="form-row">
       <div><div class="ml">Other costs ($)</div><input type="number" id="pl-othercost" placeholder="0.00" step="0.01"></div>
+      <div></div>
     </div>
     <div><div class="ml">Notes</div><textarea id="pl-notes" placeholder="Optional notes..."></textarea></div>
     <div class="ma">
@@ -1354,7 +1395,7 @@ function renderPhoto(){
       <div class="stat-card"><span class="stat-label">Invoiced</span><span class="stat-val amber">$${invoiced.toFixed(0)}</span></div>
       <div class="stat-card"><span class="stat-label">Paid</span><span class="stat-val blue">$${paid.toFixed(0)}</span></div>
       <div class="stat-card"><span class="stat-label">Profit</span><span class="stat-val green">$${totalProfit.toFixed(0)}</span></div>
-      <div style="margin-left:auto"><button class="btn sm" onclick="openModal(&quot;agents&quot;)">Manage agents</button></div>
+      <div style="margin-left:auto"><button class="btn sm" onclick="renderAgentList();openModal(&quot;agents&quot;)">Manage agents</button></div>
     </div>
     <div class="subbar" style="overflow-x:auto;flex-wrap:nowrap">
       <span style="font-size:11px;color:var(--text-secondary);white-space:nowrap">Status:</span>
@@ -1394,7 +1435,7 @@ function renderPhoto(){
         return`<tr class="job-row${STATE.selectedPanelId===j.id&&STATE.panelType==='job'?' sel':''}" onclick="openJobPanel(${j.id})">
           <td style="white-space:nowrap;color:var(--text-secondary)">${fmtDate(j.date)}</td>
           <td style="white-space:nowrap;color:var(--text-secondary)">${fmtTime(j.time)||'—'}</td>
-          <td style="font-weight:500;min-width:160px">${j.title}</td>
+          <td style="font-weight:500;min-width:160px">${j.title}${editAlertHtml(j,true)}</td>
           <td style="min-width:130px"><div style="display:flex;flex-wrap:wrap;gap:3px">${shoots||'<span style="color:var(--text-tertiary);font-size:11px">—</span>'}</div></td>
           <td><span class="type-pill ${j.type==='re'?'tp-re':j.type==='jr'?'tp-jr':j.type==='other'?'tp-other':'tp-cv'}">${j.type==='re'?'Real Estate':j.type==='cv'?'Commercial':j.type==='jr'?'Jubism Retainer':'Other'}</span></td>
           <td style="color:var(--text-secondary)">${j.agent||'—'}</td>
@@ -1417,6 +1458,22 @@ function toggleArchived(){
 function setPhotoFilter(f){STATE.photoFilter=f;STATE.selectedPanelId=null;closePanel();renderPhoto();}
 function setPhotoTypeFilter(f){STATE.photoTypeFilter=f;STATE.selectedPanelId=null;closePanel();renderPhoto();}
 
+function editAlertHtml(j,compact){
+  if(!j.completedAt)return'';
+  const elapsed=Date.now()-new Date(j.completedAt).getTime();
+  const hrs24=24*60*60*1000;
+  if(elapsed>=hrs24)return'';
+  const remaining=hrs24-elapsed;
+  const h=Math.floor(remaining/3600000);
+  const m=Math.floor((remaining%3600000)/60000);
+  const label=h>0?h+'h '+m+'m left':m+'m left';
+  if(compact)return`<span style="background:#c0392b;color:#fff;font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px;margin-left:5px">⏰ EDIT ${label}</span>`;
+  return`<div style="background:#c0392b;color:#fff;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+    <span style="font-size:20px">⏰</span>
+    <div><div style="font-weight:700;font-size:13px">Edit alert — for Darren</div><div style="font-size:12px;opacity:0.9">Edits due within 24hrs of shoot completion. ${label} remaining.</div></div>
+  </div>`;
+}
+
 function openJobPanel(id){
   const j=STATE.jobs.find(x=>x.id===id);if(!j)return;
   STATE.selectedPanelId=id;STATE.panelType='job';
@@ -1426,6 +1483,7 @@ function openJobPanel(id){
   document.getElementById('panel-title').textContent=j.title;
   const mapsUrl=j.address?'maps://maps.apple.com/?q='+encodeURIComponent(j.address):'';
   document.getElementById('panel-body').innerHTML=`
+    ${editAlertHtml(j,false)}
     <hr class="pdiv">
     <div class="pl">Date & time</div><div class="pv">${fmtDate(j.date)}${j.time?' at '+fmtTime(j.time):''}</div>
     <div class="pl">Type</div><div class="pv">${j.type==='re'?'Real Estate':j.type==='cv'?'Commercial / Video':j.type==='jr'?'Jubism Retainer':'Other'}</div>
@@ -1453,7 +1511,20 @@ function openJobPanel(id){
   renderPhoto();
 }
 
-function quickJobStatus(id,status){const j=STATE.jobs.find(x=>x.id===id);if(j)j.status=status;saveState();openJobPanel(id);renderPhoto();}
+function quickJobStatus(id,status){
+  const j=STATE.jobs.find(x=>x.id===id);if(!j)return;
+  const wasComplete=j.status==='complete'||j.status==='edit-complete';
+  j.status=status;
+  // Record timestamp when shoot is marked complete (any completion status)
+  if((status==='complete'||status==='edit-complete')&&!wasComplete){
+    j.completedAt=new Date().toISOString();
+  }
+  // Clear completedAt if status moved back out of complete
+  if(status!=='complete'&&status!=='edit-complete'){
+    delete j.completedAt;
+  }
+  saveState();openJobPanel(id);renderPhoto();
+}
 
 function openJobModal(editId){
   STATE.editingJobId=editId||null;
@@ -1491,7 +1562,14 @@ function deleteJob(id){
 
 function saveJob(){
   const title=document.getElementById('nj-title').value.trim();if(!title)return;
-  const job={title,type:document.getElementById('nj-type').value,assignee:document.getElementById('nj-assignee').value,date:document.getElementById('nj-date').value,time:document.getElementById('nj-time').value,agent:document.getElementById('nj-agent').value,shootTypes:[...STATE.selectedShootTypes],status:document.getElementById('nj-status').value,invoice:parseFloat(document.getElementById('nj-invoice').value)||0,cost:parseFloat(document.getElementById('nj-cost').value)||0,notes:document.getElementById('nj-notes').value.trim()};
+  const newStatus=document.getElementById('nj-status').value;
+  const existingJob=STATE.editingJobId?STATE.jobs.find(x=>x.id===STATE.editingJobId):null;
+  const wasComplete=existingJob&&(existingJob.status==='complete'||existingJob.status==='edit-complete');
+  const nowComplete=newStatus==='complete'||newStatus==='edit-complete';
+  const job={title,type:document.getElementById('nj-type').value,assignee:document.getElementById('nj-assignee').value,date:document.getElementById('nj-date').value,time:document.getElementById('nj-time').value,agent:document.getElementById('nj-agent').value,shootTypes:[...STATE.selectedShootTypes],status:newStatus,invoice:parseFloat(document.getElementById('nj-invoice').value)||0,cost:parseFloat(document.getElementById('nj-cost').value)||0,notes:document.getElementById('nj-notes').value.trim()};
+  // Preserve or set completedAt
+  if(existingJob&&existingJob.completedAt&&nowComplete) job.completedAt=existingJob.completedAt;
+  else if(nowComplete&&!wasComplete) job.completedAt=new Date().toISOString();
   if(STATE.editingJobId){const idx=STATE.jobs.findIndex(x=>x.id===STATE.editingJobId);if(idx>=0){job.id=STATE.editingJobId;STATE.jobs[idx]=job;}}
   else{job.id=NID++;STATE.jobs.push(job);}
   STATE.editingJobId=null;closeModal('job');saveState();
@@ -1579,8 +1657,21 @@ function renderBRGTasks(){
   var today=todayStr();
   var BRG_COLS=BRG_COLS_4;
 
-  function sortTasks(tasks){
+  function isBProjActive(t){
+    if(!t.startDate)return false;
+    return t.startDate<=today&&(!t.endDate||t.endDate>=today);
+  }
+  function isBProjOverdue(t){
+    return t.endDate&&t.endDate<today;
+  }
+
+  function sortTasks(tasks,col){
     return tasks.slice().sort(function(a,b){
+      if(col==='project'){
+        var aA=isBProjActive(a)?0:isBProjOverdue(a)?1:2;
+        var bA=isBProjActive(b)?0:isBProjOverdue(b)?1:2;
+        if(aA!==bA)return aA-bA;
+      }
       if(a.priority&&!b.priority)return -1;
       if(!a.priority&&b.priority)return 1;
       if(!a.due&&!b.due)return 0;
@@ -1590,16 +1681,33 @@ function renderBRGTasks(){
     });
   }
 
-  function taskCard(t){
-    var overdue=t.due&&t.due<today;
-    var borderStyle=t.priority?'border-left:3px solid #FF1493;':'';
+  function taskCard(t,col){
+    var isProj=col==='project';
+    var projActive=isProj&&isBProjActive(t);
+    var projOverdue=isProj&&isBProjOverdue(t);
+    var overdue=(!isProj&&t.due&&t.due<today)||(isProj&&projOverdue);
+    var borderColor=projOverdue?'#A32D2D':projActive?'#0F6E56':t.priority?'#FF1493':'';
+    var borderStyle=borderColor?'border-left:3px solid '+borderColor+';':'';
     var h='<div class="task-row" style="'+borderStyle+'" onclick="openBRGTaskPanel('+t.id+')">';
     h+='<div class="task-cb" onclick="event.stopPropagation();tickBRGTask('+t.id+')"></div>';
     h+='<div class="task-info">';
-    h+='<div class="task-title">'+(t.priority?'<span style="color:#FF1493;font-size:10px;margin-right:3px">▲</span>':'')+t.title+'</div>';
+    h+='<div class="task-title">';
+    if(projOverdue) h+='<span style="color:#A32D2D;font-size:10px;margin-right:3px">⚠</span>';
+    else if(projActive) h+='<span style="color:#0F6E56;font-size:10px;margin-right:3px">▶</span>';
+    else if(t.priority) h+='<span style="color:#FF1493;font-size:10px;margin-right:3px">▲</span>';
+    h+=t.title+'</div>';
+    if(isProj&&(t.startDate||t.endDate)){
+      h+='<div style="font-size:10px;color:var(--text-tertiary);margin-top:1px">';
+      if(t.startDate) h+=fmtDate(t.startDate);
+      if(t.startDate&&t.endDate) h+=' → ';
+      if(t.endDate) h+=fmtDate(t.endDate);
+      if(projOverdue) h+=' <span style="color:#A32D2D;font-weight:600">OVERDUE</span>';
+      else if(projActive) h+=' <span style="color:#0F6E56;font-weight:600">ACTIVE</span>';
+      h+='</div>';
+    }
     if(t.notes) h+='<div class="task-notes-preview">'+t.notes+'</div>';
     h+='<div class="task-meta">';
-    if(t.due) h+='<span class="due-'+(overdue?'overdue':t.due===today?'today':'upcoming')+'">'+fmtDate(t.due)+'</span>';
+    if(t.due&&!isProj) h+='<span class="due-'+(overdue?'overdue':t.due===today?'today':'upcoming')+'">'+fmtDate(t.due)+'</span>';
     if(t.recur&&t.recur!=='none') h+='<span class="recur-badge">'+(RECUR_LABELS[t.recur]||t.recur)+'</span>';
     h+=avHtml(t.assignee==='both'?'Gordon':t.assignee||'Gordon');
     if(t.assignee==='both') h+=avHtml('Darren');
@@ -1609,7 +1717,7 @@ function renderBRGTasks(){
 
   var html='<div class="jub-board">';
   BRG_COLS.forEach(function(col){
-    var colTasks=sortTasks(allTasks.filter(function(t){return(t.brgCol||'daily')===col.id;}));
+    var colTasks=sortTasks(allTasks.filter(function(t){return(t.brgCol||'daily')===col.id;}),col.id);
     html+='<div class="jub-col">';
     html+='<div class="jub-col-header">';
     html+='<span class="jub-col-title" style="color:#FF1493">'+col.label+'</span>';
@@ -1617,7 +1725,7 @@ function renderBRGTasks(){
     html+='<button class="add-task-btn-sm" onclick="openBRGTaskModal(&quot;'+col.id+'&quot;)">+</button>';
     html+='</div>';
     html+='<div class="jub-col-body">';
-    colTasks.forEach(function(t){html+=taskCard(t);});
+    colTasks.forEach(function(t){html+=taskCard(t,col.id);});
     html+='</div></div>';
   });
   html+='</div>';
@@ -1636,6 +1744,9 @@ function openBRGTaskModal(col){
   document.getElementById('brg-task-priority').checked=false;
   document.getElementById('brg-task-notes').value='';
   if(document.getElementById('brg-task-col')) document.getElementById('brg-task-col').value=STATE._brgTaskCol||'daily';
+  var bsd=document.getElementById('brg-task-start');if(bsd)bsd.value='';
+  var bed=document.getElementById('brg-task-end');if(bed)bed.value='';
+  toggleBRGProjectDates();
   openModal('brg-task');
 }
 
@@ -1656,6 +1767,11 @@ function saveBRGTask(){
     brgCol:(document.getElementById('brg-task-col')?document.getElementById('brg-task-col').value:STATE._brgTaskCol)||'daily',
     done:false
   };
+  var brgCol=task.brgCol;
+  if(brgCol==='project'){
+    task.startDate=document.getElementById('brg-task-start')?document.getElementById('brg-task-start').value||'':'';
+    task.endDate=document.getElementById('brg-task-end')?document.getElementById('brg-task-end').value||'':'';
+  }
   if(STATE.editingBRGTaskId){
     var idx=(STATE.brgTaskList||[]).findIndex(function(t){return t.id===STATE.editingBRGTaskId;});
     if(idx>=0) STATE.brgTaskList[idx]=task;
@@ -1739,7 +1855,10 @@ function editBRGTask(id){
   document.getElementById('brg-task-priority').checked=t.priority||false;
   document.getElementById('brg-task-notes').value=t.notes||'';
   if(document.getElementById('brg-task-col')) document.getElementById('brg-task-col').value=t.brgCol||'daily';
+  var bsd2=document.getElementById('brg-task-start');if(bsd2)bsd2.value=t.startDate||'';
+  var bed2=document.getElementById('brg-task-end');if(bed2)bed2.value=t.endDate||'';
   toggleBRGCustomDays();
+  toggleBRGProjectDates();
   setBRGCustomDays(t.customDays||[]);
   closePanel();
   openModal('brg-task');
@@ -1772,7 +1891,8 @@ function renderBRGFinancials(){
   var ordersYTD=ytd.reduce(function(s,w){return s+parseInt(w.orders||0)+parseInt(w.etsyOrders||0);},0);
   var sessionsYTD=ytd.reduce(function(s,w){return s+parseInt(w.sessions||0);},0);
   var unitsYTD=ytd.reduce(function(s,w){return s+parseInt(w.units||0);},0);
-  var cogsYTD=ytd.reduce(function(s,w){return s+parseFloat(w.cogs||0);},0);
+  var cogsYTD=ytd.reduce(function(s,w){return s+parseFloat(w.cogs||0)+parseFloat(w.printfulCogs||0);},0);
+  var printfulCogsYTD=ytd.reduce(function(s,w){return s+parseFloat(w.printfulCogs||0);},0);
   var adsYTD=ytd.reduce(function(s,w){return s+parseFloat(w.ads||0);},0);
   var otherYTD=ytd.reduce(function(s,w){return s+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
   var totalCostsYTD=cogsYTD+adsYTD+otherYTD;
@@ -1793,7 +1913,7 @@ function renderBRGFinancials(){
   var bestLever=parseFloat(convRate)<1?'Lift conv. rate':ordersNeeded>500?'More traffic':'Increase AOV';
   var tw=allWeeks.length?allWeeks[allWeeks.length-1]:null;
   var twRev=tw?parseFloat(tw.rev||0)+parseFloat(tw.etsyRev||0):0;
-  var twCosts=tw?parseFloat(tw.ads||0)+parseFloat(tw.cogs||0)+parseFloat(tw.shopify||0)+parseFloat(tw.othercost||0):0;
+  var twCosts=tw?parseFloat(tw.ads||0)+parseFloat(tw.cogs||0)+parseFloat(tw.printfulCogs||0)+parseFloat(tw.shopify||0)+parseFloat(tw.othercost||0):0;
   var twProfit=twRev-twCosts;
 
   function pSign(n){return (n>=0?'+':'')+'$'+Math.abs(n).toFixed(0);}
@@ -1849,8 +1969,9 @@ function renderBRGFinancials(){
   // Marketing snapshot
   html+='<div class="dash-card" style="border-top:3px solid var(--orange)">';
   html+='<div class="fin-section-title" style="margin-bottom:10px">Marketing & profit \u2014 YTD</div>';
-  html+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">';
-  html+=sc('COGS YTD','$'+cogsYTD.toFixed(0),'var(--amber)');
+  html+='<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px">';
+  html+=sc('COGS YTD','$'+(cogsYTD-printfulCogsYTD).toFixed(0),'var(--amber)');
+  html+=sc('Printful YTD','$'+printfulCogsYTD.toFixed(0),'var(--amber)');
   html+=sc('Ad spend YTD','$'+adsYTD.toFixed(0),'var(--amber)');
   html+=sc('Other costs YTD','$'+otherYTD.toFixed(0),'var(--amber)');
   html+=sc('Profit YTD',pSign(profitYTD),profitYTD>=0?'var(--green)':'var(--text-primary)');
@@ -1864,11 +1985,12 @@ function renderBRGFinancials(){
     html+='<div class="fin-section-title" style="margin:0">Latest week \u2014 w/c '+fmtDate(tw.date)+'</div>';
     if(tw.notes) html+='<span style="font-size:11px;color:var(--text-secondary);font-style:italic">&quot;'+tw.notes+'&quot;</span>';
     html+='</div>';
-    html+='<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px">';
+    html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px">';
     html+=sc('Website','$'+parseFloat(tw.rev||0).toFixed(0),'var(--blue)');
     html+=sc('Etsy','$'+parseFloat(tw.etsyRev||0).toFixed(0),'var(--blue)');
     html+=sc('Ad spend','$'+parseFloat(tw.ads||0).toFixed(0),'var(--amber)');
     html+=sc('COGS','$'+parseFloat(tw.cogs||0).toFixed(0),'var(--amber)');
+    html+=sc('Printful','$'+parseFloat(tw.printfulCogs||0).toFixed(0),'var(--amber)');
     html+=sc('Sessions',parseInt(tw.sessions||0).toLocaleString(),'var(--text-primary)');
     html+=sc('Profit',pSign(twProfit),twProfit>=0?'var(--green)':'var(--text-primary)');
     html+='</div></div>';
@@ -1877,13 +1999,13 @@ function renderBRGFinancials(){
   // Weekly table
   html+='<div><div class="fin-section-title" style="margin-bottom:8px">Weekly breakdown</div>';
   html+='<div style="overflow-x:auto"><table class="week-table" style="min-width:820px">';
-  html+='<thead><tr><th>Week w/c</th><th>Web rev</th><th>Etsy rev</th><th>Total rev</th><th>Orders</th><th>Sessions</th><th>Ad spend</th><th>COGS</th><th>Profit</th><th>Margin</th><th></th></tr></thead><tbody>';
+  html+='<thead><tr><th>Week w/c</th><th>Web rev</th><th>Etsy rev</th><th>Total rev</th><th>Orders</th><th>Sessions</th><th>Ad spend</th><th>COGS</th><th>Printful</th><th>Profit</th><th>Margin</th><th></th></tr></thead><tbody>';
 
   var revWeeks=[...allWeeks].reverse();
   for(var i=0;i<revWeeks.length;i++){
     var w=revWeeks[i];
     var rev=parseFloat(w.rev||0)+parseFloat(w.etsyRev||0);
-    var costs=parseFloat(w.ads||0)+parseFloat(w.shopify||0)+parseFloat(w.cogs||0)+parseFloat(w.othercost||0);
+    var costs=parseFloat(w.ads||0)+parseFloat(w.shopify||0)+parseFloat(w.cogs||0)+parseFloat(w.printfulCogs||0)+parseFloat(w.othercost||0);
     var p=rev-costs;
     var margin=rev>0?Math.round((p/rev)*100):0;
     var orders=parseInt(w.orders||0)+parseInt(w.etsyOrders||0);
@@ -1898,6 +2020,7 @@ function renderBRGFinancials(){
     html+='<td>'+parseInt(w.sessions||0).toLocaleString()+'</td>';
     html+='<td style="color:var(--amber)">$'+parseFloat(w.ads||0).toFixed(0)+'</td>';
     html+='<td style="color:var(--amber)">$'+parseFloat(w.cogs||0).toFixed(0)+'</td>';
+    html+='<td style="color:var(--amber)">$'+parseFloat(w.printfulCogs||0).toFixed(0)+'</td>';
     html+='<td class="'+pCls+'">'+pSign(p)+'</td>';
     html+='<td><div class="margin-bar-wrap"><div class="margin-bar"><div class="margin-fill" style="width:'+Math.max(0,margin)+'%;"></div></div><span style="font-size:11px;color:'+mColor+';min-width:32px">'+margin+'%</span></div></td>';
     html+='<td><div style="display:flex;gap:4px"><button class="btn sm" onclick="openEditPL('+w.id+')">Edit</button><button class="btn sm danger" onclick="deletePL('+w.id+')">Delete</button></div></td>';
@@ -1935,7 +2058,7 @@ function openPLModal(){
   // Default to this Monday
   const mon=new Date();mon.setDate(mon.getDate()-(mon.getDay()||7)+1);
   document.getElementById('pl-date').value=mon.toISOString().slice(0,10);
-  ['pl-rev','pl-orders','pl-etsy-rev','pl-etsy-orders','pl-sessions','pl-units','pl-ads','pl-cogs','pl-shopify','pl-othercost'].forEach(id=>document.getElementById(id).value='');
+  ['pl-rev','pl-orders','pl-etsy-rev','pl-etsy-orders','pl-sessions','pl-units','pl-ads','pl-cogs','pl-printful-cogs','pl-shopify','pl-othercost'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pl-notes').value='';
   openModal('pl');
 }
@@ -1966,8 +2089,9 @@ function openEditPL(id){
   document.getElementById('pl-sessions').value=w.sessions||'';
   document.getElementById('pl-units').value=w.units||'';
   document.getElementById('pl-ads').value=w.ads||'';
-  document.getElementById('pl-shopify').value=w.shopify||'';
   document.getElementById('pl-cogs').value=w.cogs||'';
+  document.getElementById('pl-printful-cogs').value=w.printfulCogs||'';
+  document.getElementById('pl-shopify').value=w.shopify||'';
   document.getElementById('pl-othercost').value=w.othercost||'';
   document.getElementById('pl-notes').value=w.notes||'';
   openModal('pl');
@@ -1985,6 +2109,7 @@ function savePL(){
     units:parseInt(document.getElementById('pl-units').value)||0,
     ads:parseFloat(document.getElementById('pl-ads').value)||0,
     cogs:parseFloat(document.getElementById('pl-cogs').value)||0,
+    printfulCogs:parseFloat(document.getElementById('pl-printful-cogs').value)||0,
     shopify:parseFloat(document.getElementById('pl-shopify').value)||0,
     othercost:parseFloat(document.getElementById('pl-othercost').value)||0,
     notes:document.getElementById('pl-notes').value.trim()
@@ -2422,7 +2547,44 @@ function renderDashboard(){
   var brgProfitMonth=brgMonth-brgMonthWeeks.reduce(function(s,w){return s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
   var brgFYWeeks=STATE.weekly.filter(function(w){return isInFY(w.date);});
   var brgFY=brgFYWeeks.reduce(function(s,w){return s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0);},0);
-  var brgProfitFY=brgFY-brgFYWeeks.reduce(function(s,w){return s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
+  var brgProfitFY=brgFY-brgFYWeeks.reduce(function(s,w){return s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.printfulCogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
+
+  // Last month calculations
+  var lastMonth=thisMonth===0?11:thisMonth-1;
+  var lastMonthYear=thisMonth===0?thisYear-1:thisYear;
+  var lastMonthName=new Date(lastMonthYear,lastMonth,1).toLocaleDateString('en-AU',{month:'long'});
+
+  var jubLastMonth=(STATE.jubInvoices||[]).filter(function(inv){
+    if(!inv.paid||!inv.date)return false;
+    var d=new Date(inv.date+'T00:00:00');
+    return d.getMonth()===lastMonth&&d.getFullYear()===lastMonthYear;
+  }).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
+
+  var photoLastMonthJobs=STATE.jobs.filter(function(j){
+    if(!j.date||j.status!=='invoice-paid')return false;
+    var d=new Date(j.date+'T00:00:00');
+    return d.getMonth()===lastMonth&&d.getFullYear()===lastMonthYear;
+  });
+  var photoLastMonth=photoLastMonthJobs.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
+  var photoProfitLastMonth=photoLastMonth-photoLastMonthJobs.reduce(function(s,j){return s+parseFloat(j.cost||0);},0);
+
+  var ntLastMonthWeeks=(STATE.ntWeekly||[]).filter(function(w){
+    if(!w.date)return false;
+    var d=new Date(w.date+'T00:00:00');
+    return d.getMonth()===lastMonth&&d.getFullYear()===lastMonthYear;
+  });
+  var ntLastMonth=ntLastMonthWeeks.reduce(function(s,w){return s+parseFloat(w.rev||0);},0);
+  var ntProfitLastMonth=ntLastMonth-ntLastMonthWeeks.reduce(function(s,w){return s+parseFloat(w.cogs||0)+parseFloat(w.meta||0)+parseFloat(w.google||0)+parseFloat(w.shipping||0)+parseFloat(w.other||0);},0);
+
+  var brgLastMonthWeeks=STATE.weekly.filter(function(w){
+    if(!w.date)return false;
+    var d=new Date(w.date+'T00:00:00');
+    return d.getMonth()===lastMonth&&d.getFullYear()===lastMonthYear;
+  });
+  var brgLastMonth=brgLastMonthWeeks.reduce(function(s,w){return s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0);},0);
+  var brgProfitLastMonth=brgLastMonth-brgLastMonthWeeks.reduce(function(s,w){return s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.printfulCogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
+
+  var totalRevLastMonth=jubLastMonth+photoLastMonth+ntLastMonth+brgLastMonth;
 
   // Totals — all except Flippers
   var totalRevMonth=jubMonth+photoMonth+ntMonth+brgMonth;
@@ -2518,31 +2680,46 @@ function renderDashboard(){
   html+='<div style="font-size:10px;color:var(--text-tertiary)">Profit</div></div>';
   html+='<div style="flex:1;display:flex;flex-direction:column;gap:8px">';
   var streams=[
-    {label:'Jubism',color:'#D4AF36',month:jubMonth,fy:jubFY,profMonth:jubMonth,profFY:jubFY},
-    {label:'Photography',color:'#1B3A8C',month:photoMonth,fy:photoFY,profMonth:photoProfitMonth,profFY:photoProfitFY},
-    {label:'Now Trending',color:'#F47B20',month:ntMonth,fy:ntFY,profMonth:ntProfitMonth,profFY:ntProfitFY},
-    {label:'BackRoom Gear',color:'#FF1493',month:brgMonth,fy:brgFY,profMonth:brgProfitMonth,profFY:brgProfitFY}
+    {label:'Jubism',color:'#D4AF36',lastM:jubLastMonth,profLastM:jubLastMonth,month:jubMonth,fy:jubFY,profMonth:jubMonth,profFY:jubFY},
+    {label:'Photography',color:'#1B3A8C',lastM:photoLastMonth,profLastM:photoProfitLastMonth,month:photoMonth,fy:photoFY,profMonth:photoProfitMonth,profFY:photoProfitFY},
+    {label:'Now Trending',color:'#F47B20',lastM:ntLastMonth,profLastM:ntProfitLastMonth,month:ntMonth,fy:ntFY,profMonth:ntProfitMonth,profFY:ntProfitFY},
+    {label:'BackRoom Gear',color:'#FF1493',lastM:brgLastMonth,profLastM:brgProfitLastMonth,month:brgMonth,fy:brgFY,profMonth:brgProfitMonth,profFY:brgProfitFY}
   ];
+  // Column headers
+  html+='<div style="display:flex;align-items:center;gap:6px;padding-bottom:4px;border-bottom:0.5px solid var(--border-light);margin-bottom:4px">'+
+    '<div style="width:10px;flex-shrink:0"></div>'+
+    '<div style="flex:1"></div>'+
+    '<div style="text-align:right;min-width:72px;font-size:10px;color:var(--text-tertiary);text-transform:uppercase">'+lastMonthName+'</div>'+
+    '<div style="text-align:right;min-width:72px;font-size:10px;color:var(--text-tertiary);text-transform:uppercase">This month</div>'+
+    '<div style="text-align:right;min-width:66px;font-size:10px;color:var(--text-tertiary);text-transform:uppercase">FY</div>'+
+  '</div>';
   streams.forEach(function(s){
+    var pLastColor=s.profLastM>=0?'#0F6E56':'var(--text-primary)';
     var pColor=s.profMonth>=0?'#0F6E56':'var(--text-primary)';
     var pFYColor=s.profFY>=0?'#0F6E56':'var(--text-primary)';
     html+='<div style="display:flex;align-items:center;gap:6px">'+
       '<div style="width:10px;height:10px;border-radius:50%;background:'+s.color+';flex-shrink:0"></div>'+
       '<div style="flex:1;font-size:12px;color:var(--text-secondary)">'+s.label+'</div>'+
-      '<div style="text-align:right">'+
+      '<div style="text-align:right;min-width:72px">'+
+        '<div style="font-size:12px;font-weight:500;color:var(--text-secondary)">'+fmt2(s.lastM)+'</div>'+
+        '<div style="font-size:10px;color:'+pLastColor+'">'+fmt2(s.profLastM)+' profit</div>'+
+      '</div>'+
+      '<div style="text-align:right;min-width:72px">'+
         '<div style="font-size:13px;font-weight:600;color:'+s.color+'">'+fmt2(s.month)+'</div>'+
         '<div style="font-size:10px;color:'+pColor+'">'+fmt2(s.profMonth)+' profit</div>'+
       '</div>'+
-      '<div style="text-align:right;min-width:70px">'+
+      '<div style="text-align:right;min-width:66px">'+
         '<div style="font-size:11px;color:var(--text-tertiary)">'+fmt2(s.fy)+' FY</div>'+
         '<div style="font-size:10px;color:'+pFYColor+'">'+fmt2(s.profFY)+'</div>'+
       '</div>'+
     '</div>';
   });
-  html+='<div style="border-top:0.5px solid var(--border-light);padding-top:6px;margin-top:2px;display:flex;justify-content:space-between">';
-  html+='<span style="font-size:12px;font-weight:600;color:var(--text-primary)">Total</span>';
-  html+='<span style="font-size:13px;font-weight:700;color:var(--text-primary)">'+fmt2(totalRevMonth)+'</span>';
-  html+='</div>';
+  html+='<div style="border-top:0.5px solid var(--border-light);padding-top:6px;margin-top:2px;display:flex;justify-content:space-between;align-items:center">'+
+    '<span style="font-size:12px;font-weight:600;color:var(--text-primary)">Total</span>'+
+    '<span style="font-size:11px;color:var(--text-secondary)">'+fmt2(totalRevLastMonth)+'</span>'+
+    '<span style="font-size:13px;font-weight:700;color:var(--text-primary)">'+fmt2(totalRevMonth)+'</span>'+
+    '<span style="font-size:11px;color:var(--text-tertiary)">FY →</span>'+
+  '</div>';
   html+='</div></div></div>';
 
   // RIGHT: Goal progress wheels
@@ -2566,7 +2743,7 @@ function renderDashboard(){
   // BOTTOM ROW: 4 stream tiles
   html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">';
 
-  function streamTile(name,color,revM,profM,revFY,profFY,extra){
+  function streamTile(name,color,revLM,profLM,revM,profM,revFY,profFY,extra){
     return'<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:14px 16px;border-top:3px solid '+color+'">'+
       '<div style="font-size:10px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">'+name+'</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'+
@@ -2576,6 +2753,12 @@ function renderDashboard(){
         '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px">'+
           '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">Profit MTD</div>'+
           '<div style="font-size:15px;font-weight:600;color:'+(profM>=0?'#0F6E56':'var(--text-primary)')+'">'+( profM<0?'-':'')+fmt2(Math.abs(profM))+'</div></div>'+
+        '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px;opacity:0.75">'+
+          '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">'+lastMonthName+' rev</div>'+
+          '<div style="font-size:13px;font-weight:500;color:'+color+'">'+fmt2(revLM)+'</div></div>'+
+        '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px;opacity:0.75">'+
+          '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">'+lastMonthName+' profit</div>'+
+          '<div style="font-size:13px;font-weight:500;color:'+(profLM>=0?'#0F6E56':'var(--text-primary)')+'">'+( profLM<0?'-':'')+fmt2(Math.abs(profLM))+'</div></div>'+
         '<div style="background:var(--bg-secondary);border-radius:8px;padding:8px 10px">'+
           '<div style="font-size:10px;color:var(--text-tertiary);margin-bottom:2px">Rev FY</div>'+
           '<div style="font-size:14px;font-weight:500;color:'+color+'">'+fmt2(revFY)+'</div></div>'+
@@ -2588,15 +2771,15 @@ function renderDashboard(){
   var jubExtra='<div style="display:flex;gap:8px;flex-wrap:wrap">'+
     (jubPending>0?'<span style="font-size:11px;background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:99px">'+fmt2(jubPending)+' pending</span>':'')+
     '<span onclick="switchBiz(&quot;jubism&quot;)" style="font-size:11px;color:#D4AF36;cursor:pointer">Invoices →</span></div>';
-  html+=streamTile('Jubism','#D4AF36',jubMonth,jubMonth,jubFY,jubFY,jubExtra);
+  html+=streamTile('Jubism','#D4AF36',jubLastMonth,jubLastMonth,jubMonth,jubMonth,jubFY,jubFY,jubExtra);
 
   var photoUnpaidTotal=photoUnpaid.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
   var photoExtra=photoUnpaid.length>0?
     '<span style="font-size:11px;background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:99px">'+fmt2(photoUnpaidTotal)+' unpaid · '+photoUnpaid.length+' invoice'+(photoUnpaid.length>1?'s':'')+'</span>':'';
-  html+=streamTile('Photography','#1B3A8C',photoMonth,photoProfitMonth,photoFY,photoProfitFY,photoExtra);
+  html+=streamTile('Photography','#1B3A8C',photoLastMonth,photoProfitLastMonth,photoMonth,photoProfitMonth,photoFY,photoProfitFY,photoExtra);
 
-  html+=streamTile('Now Trending','#F47B20',ntMonth,ntProfitMonth,ntFY,ntProfitFY,'');
-  html+=streamTile('BackRoom Gear','#FF1493',brgMonth,brgProfitMonth,brgFY,brgProfitFY,'');
+  html+=streamTile('Now Trending','#F47B20',ntLastMonth,ntProfitLastMonth,ntMonth,ntProfitMonth,ntFY,ntProfitFY,'');
+  html+=streamTile('BackRoom Gear','#FF1493',brgLastMonth,brgProfitLastMonth,brgMonth,brgProfitMonth,brgFY,brgProfitFY,'');
 
   html+='</div>';
   html+='</div>';
@@ -2683,7 +2866,7 @@ function getMonday(d){
   return new Date(d.setDate(diff));
 }
 
-function ftKey(d){return d.toISOString().slice(0,10);}
+function ftKey(d){return localDateStr(d);}
 
 function getCurrentFortnight(){
   var now=new Date();
@@ -2717,7 +2900,7 @@ function getFortnightDays(ft){
   var end=new Date(ft.end+'T00:00:00');
   while(d<=end){
     var dow=d.getDay();
-    if(dow>=1&&dow<=5){days.push(d.toISOString().slice(0,10));}
+    if(dow>=1&&dow<=5){days.push(localDateStr(d));}
     d.setDate(d.getDate()+1);
   }
   return days;
@@ -3067,10 +3250,22 @@ function toggleNTCustomDays(){
   if(el) el.style.display=v==='custom'?'block':'none';
 }
 
+function toggleNTProjectDates(){
+  var col=document.getElementById('nt-task-col');
+  var pd=document.getElementById('nt-project-dates');
+  if(col&&pd) pd.style.display=col.value==='project'?'block':'none';
+}
+
 function toggleBRGCustomDays(){
   var v=document.getElementById('brg-task-recur').value;
   var el=document.getElementById('brg-custom-days');
   if(el) el.style.display=v==='custom'?'block':'none';
+}
+
+function toggleBRGProjectDates(){
+  var col=document.getElementById('brg-task-col');
+  var pd=document.getElementById('brg-project-dates');
+  if(col&&pd) pd.style.display=col.value==='project'?'block':'none';
 }
 
 function getNTCustomDays(){
@@ -3131,8 +3326,23 @@ function renderNTTasks(){
   var today=todayStr();
   var NT_COLS=NT_COLS_4;
 
-  function sortTasks(tasks){
+  function isProjectActive(t){
+    // Active = has startDate <= today && (no endDate or endDate >= today)
+    if(!t.startDate)return false;
+    return t.startDate<=today&&(!t.endDate||t.endDate>=today);
+  }
+  function isProjectOverdue(t){
+    return t.endDate&&t.endDate<today;
+  }
+
+  function sortTasks(tasks,col){
     return tasks.slice().sort(function(a,b){
+      // Project column: active float top, then overdue, then priority
+      if(col==='project'){
+        var aActive=isProjectActive(a)?0:isProjectOverdue(a)?1:2;
+        var bActive=isProjectActive(b)?0:isProjectOverdue(b)?1:2;
+        if(aActive!==bActive)return aActive-bActive;
+      }
       if(a.priority&&!b.priority)return -1;
       if(!a.priority&&b.priority)return 1;
       if(!a.due&&!b.due)return 0;
@@ -3142,16 +3352,33 @@ function renderNTTasks(){
     });
   }
 
-  function taskCard(t){
-    var overdue=t.due&&t.due<today;
-    var borderStyle=t.priority?'border-left:3px solid #F47B20;':'';
+  function taskCard(t,col){
+    var isProj=col==='project';
+    var projActive=isProj&&isProjectActive(t);
+    var projOverdue=isProj&&isProjectOverdue(t);
+    var overdue=(!isProj&&t.due&&t.due<today)||(isProj&&projOverdue);
+    var borderColor=projOverdue?'#A32D2D':projActive?'#0F6E56':t.priority?'#F47B20':'';
+    var borderStyle=borderColor?'border-left:3px solid '+borderColor+';':'';
     var h='<div class="task-row" style="'+borderStyle+'" onclick="openNTTaskPanel('+t.id+')">';
     h+='<div class="task-cb" onclick="event.stopPropagation();tickNTTask('+t.id+')"></div>';
     h+='<div class="task-info">';
-    h+='<div class="task-title">'+(t.priority?'<span style="color:#F47B20;font-size:10px;margin-right:3px">▲</span>':'')+t.title+'</div>';
+    h+='<div class="task-title">';
+    if(projOverdue) h+='<span style="color:#A32D2D;font-size:10px;margin-right:3px">⚠</span>';
+    else if(projActive) h+='<span style="color:#0F6E56;font-size:10px;margin-right:3px">▶</span>';
+    else if(t.priority) h+='<span style="color:#F47B20;font-size:10px;margin-right:3px">▲</span>';
+    h+=t.title+'</div>';
+    if(isProj&&(t.startDate||t.endDate)){
+      h+='<div style="font-size:10px;color:var(--text-tertiary);margin-top:1px">';
+      if(t.startDate) h+=fmtDate(t.startDate);
+      if(t.startDate&&t.endDate) h+=' → ';
+      if(t.endDate) h+=fmtDate(t.endDate);
+      if(projOverdue) h+=' <span style="color:#A32D2D;font-weight:600">OVERDUE</span>';
+      else if(projActive) h+=' <span style="color:#0F6E56;font-weight:600">ACTIVE</span>';
+      h+='</div>';
+    }
     if(t.notes) h+='<div class="task-notes-preview">'+t.notes+'</div>';
     h+='<div class="task-meta">';
-    if(t.due) h+='<span class="due-'+(overdue?'overdue':t.due===today?'today':'upcoming')+'">'+fmtDate(t.due)+'</span>';
+    if(t.due&&!isProj) h+='<span class="due-'+(overdue?'overdue':t.due===today?'today':'upcoming')+'">'+fmtDate(t.due)+'</span>';
     if(t.recur&&t.recur!=='none') h+='<span class="recur-badge">'+(RECUR_LABELS[t.recur]||t.recur)+'</span>';
     h+=avHtml(t.assignee==='both'?'Gordon':t.assignee||'Gordon');
     if(t.assignee==='both') h+=avHtml('Darren');
@@ -3161,7 +3388,7 @@ function renderNTTasks(){
 
   var html='<div class="jub-board">';
   NT_COLS.forEach(function(col){
-    var colTasks=sortTasks(allTasks.filter(function(t){return(t.ntCol||'daily')===col.id;}));
+    var colTasks=sortTasks(allTasks.filter(function(t){return(t.ntCol||'daily')===col.id;}),col.id);
     html+='<div class="jub-col">';
     html+='<div class="jub-col-header">';
     html+='<span class="jub-col-title" style="color:#F47B20">'+col.label+'</span>';
@@ -3169,7 +3396,7 @@ function renderNTTasks(){
     html+='<button class="add-task-btn-sm" onclick="openNTTaskModal(&quot;'+col.id+'&quot;)">+</button>';
     html+='</div>';
     html+='<div class="jub-col-body">';
-    colTasks.forEach(function(t){html+=taskCard(t);});
+    colTasks.forEach(function(t){html+=taskCard(t,col.id);});
     html+='</div></div>';
   });
   html+='</div>';
@@ -3189,6 +3416,9 @@ function openNTTaskModal(col){
   document.getElementById('nt-task-priority').checked=false;
   document.getElementById('nt-task-notes').value='';
   if(document.getElementById('nt-task-col')) document.getElementById('nt-task-col').value=STATE._ntTaskCol||'daily';
+  if(document.getElementById('nt-task-start')) document.getElementById('nt-task-start').value='';
+  if(document.getElementById('nt-task-end')) document.getElementById('nt-task-end').value='';
+  toggleNTProjectDates();
   openModal('nt-task');
 }
 
@@ -3197,6 +3427,7 @@ function saveNTTask(){
   if(!name)return;
   if(!STATE.ntTasks) STATE.ntTasks=[];
   var ntRecur=document.getElementById('nt-task-recur').value;
+  var ntCol=(document.getElementById('nt-task-col')?document.getElementById('nt-task-col').value:STATE._ntTaskCol)||'daily';
   var task={
     id:STATE.editingNTTaskId||NID++,
     title:name,
@@ -3206,8 +3437,10 @@ function saveNTTask(){
     customDays:ntRecur==='custom'?getNTCustomDays():[],
     priority:document.getElementById('nt-task-priority').checked,
     notes:document.getElementById('nt-task-notes').value.trim(),
-    ntCol:(document.getElementById('nt-task-col')?document.getElementById('nt-task-col').value:STATE._ntTaskCol)||'daily',
-    done:false
+    ntCol:ntCol,
+    done:false,
+    startDate:ntCol==='project'?(document.getElementById('nt-task-start')?document.getElementById('nt-task-start').value:''):'',
+    endDate:ntCol==='project'?(document.getElementById('nt-task-end')?document.getElementById('nt-task-end').value:''):''
   };
   if(STATE.editingNTTaskId){
     var idx=STATE.ntTasks.findIndex(function(t){return t.id===STATE.editingNTTaskId;});
@@ -3291,7 +3524,10 @@ function editNTTask(id){
   document.getElementById('nt-task-assignee').value=t.assignee||'both';
   document.getElementById('nt-task-priority').checked=t.priority||false;
   document.getElementById('nt-task-notes').value=t.notes||'';
+  if(document.getElementById('nt-task-start')) document.getElementById('nt-task-start').value=t.startDate||'';
+  if(document.getElementById('nt-task-end')) document.getElementById('nt-task-end').value=t.endDate||'';
   toggleNTCustomDays();
+  toggleNTProjectDates();
   setNTCustomDays(t.customDays||[]);
   closePanel();
   openModal('nt-task');
@@ -3347,9 +3583,11 @@ function renderNTFinancials(){
   html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">';
 
   function statCard(label,val,color){
+    // val may be a pre-formatted string (with sign) or a number — display directly
+    var display=typeof val==='number'?fmt(val):val;
     return'<div style="background:var(--bg-secondary);border-radius:8px;padding:10px 12px">'+
       '<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:3px">'+label+'</div>'+
-      '<div style="font-size:18px;font-weight:600;color:'+(color||'var(--text-primary)')+'">'+fmt(val)+'</div></div>';
+      '<div style="font-size:18px;font-weight:600;color:'+(color||'var(--text-primary)')+'">'+display+'</div></div>';
   }
 
   // MTD
@@ -3620,7 +3858,7 @@ if('serviceWorker' in navigator) {
     <div><div class="ml">Task name</div><input type="text" id="nt-task-name" placeholder="What needs to be done?"></div>
     <div class="form-row">
       <div><div class="ml">Column</div>
-        <select id="nt-task-col">
+        <select id="nt-task-col" onchange="toggleNTProjectDates()">
           <option value="daily">Daily</option>
           <option value="weekly">Weekly</option>
           <option value="project">Projects</option>
@@ -3636,6 +3874,12 @@ if('serviceWorker' in navigator) {
       </div>
     </div>
     <div><div class="ml">Due date</div><input type="date" id="nt-task-due"></div>
+    <div id="nt-project-dates" style="display:none">
+      <div class="form-row">
+        <div><div class="ml">Start date</div><input type="date" id="nt-task-start"></div>
+        <div><div class="ml">End date</div><input type="date" id="nt-task-end"></div>
+      </div>
+    </div>
     <div><div class="ml">Recurrence</div>
       <select id="nt-task-recur" onchange="toggleNTCustomDays()">
         <option value="none">One-off</option>
@@ -3697,7 +3941,7 @@ if('serviceWorker' in navigator) {
     <div><div class="ml">Task name</div><input type="text" id="brg-task-name" placeholder="What needs to be done?"></div>
     <div class="form-row">
       <div><div class="ml">Column</div>
-        <select id="brg-task-col">
+        <select id="brg-task-col" onchange="toggleBRGProjectDates()">
           <option value="daily">Daily</option>
           <option value="weekly">Weekly</option>
           <option value="project">Projects</option>
@@ -3713,6 +3957,12 @@ if('serviceWorker' in navigator) {
       </div>
     </div>
     <div><div class="ml">Due date</div><input type="date" id="brg-task-due"></div>
+    <div id="brg-project-dates" style="display:none">
+      <div class="form-row">
+        <div><div class="ml">Start date</div><input type="date" id="brg-task-start"></div>
+        <div><div class="ml">End date</div><input type="date" id="brg-task-end"></div>
+      </div>
+    </div>
     <div><div class="ml">Recurrence</div>
       <select id="brg-task-recur" onchange="toggleBRGCustomDays()">
         <option value="none">One-off</option>
