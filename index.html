@@ -53,6 +53,18 @@
 [data-theme="dark"] .task-cb-brg:hover{border-color:var(--amber)}
 [data-theme="dark"] .task-cb-brg.checked{background:var(--amber);border-color:var(--amber)}
 [data-theme="dark"] body{background:var(--bg-tertiary)}
+/* Dark mode badge overrides — light-bg/dark-text badges need inverting */
+[data-theme="dark"] .sp-complete{background:#1C3300;color:#8ECC4A}
+[data-theme="dark"] .sp-edit-complete{background:#1C3300;color:#8ECC4A}
+[data-theme="dark"] .sp-sent-agent{background:var(--teal-light);color:#0A1A14}
+[data-theme="dark"] .sp-invoice-sent{background:#2A1A00;color:#F5A73E}
+[data-theme="dark"] .sp-invoice-paid{background:#1C3300;color:#8ECC4A}
+[data-theme="dark"] .tp-jr{background:#1C3300;color:#8ECC4A}
+[data-theme="dark"] .sb-sold{background:#1C3300;color:#8ECC4A}
+[data-theme="dark"] .sb-shipped{background:#1C3300;color:#8ECC4A}
+[data-theme="dark"] .loc-badge{background:#1C3300;color:#8ECC4A}
+[data-theme="dark"] .av.g{background:#2A2660;color:#CECBF6}
+[data-theme="dark"] .av.d{background:#04342C;color:#9FE1CB}
 .dark-toggle{background:none;border:1px solid var(--border-mid);border-radius:99px;padding:4px 10px;cursor:pointer;font-size:12px;color:var(--text-secondary);transition:all 0.15s;font-family:inherit;display:flex;align-items:center;gap:5px}
 .dark-toggle:hover{background:var(--bg-secondary);color:var(--text-primary)}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg-tertiary);color:var(--text-primary);min-height:100vh;font-size:13px}
@@ -2769,13 +2781,13 @@ function renderDashboard(){
   }
 
   var jubExtra='<div style="display:flex;gap:8px;flex-wrap:wrap">'+
-    (jubPending>0?'<span style="font-size:11px;background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:99px">'+fmt2(jubPending)+' pending</span>':'')+
+    (jubPending>0?'<span style="font-size:11px;background:var(--amber-light);color:var(--amber);padding:2px 8px;border-radius:99px">'+fmt2(jubPending)+' pending</span>':'')+
     '<span onclick="switchBiz(&quot;jubism&quot;)" style="font-size:11px;color:#D4AF36;cursor:pointer">Invoices →</span></div>';
   html+=streamTile('Jubism','#D4AF36',jubLastMonth,jubLastMonth,jubMonth,jubMonth,jubFY,jubFY,jubExtra);
 
   var photoUnpaidTotal=photoUnpaid.reduce(function(s,j){return s+parseFloat(j.invoice||0);},0);
   var photoExtra=photoUnpaid.length>0?
-    '<span style="font-size:11px;background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:99px">'+fmt2(photoUnpaidTotal)+' unpaid · '+photoUnpaid.length+' invoice'+(photoUnpaid.length>1?'s':'')+'</span>':'';
+    '<span style="font-size:11px;background:var(--amber-light);color:var(--amber);padding:2px 8px;border-radius:99px">'+fmt2(photoUnpaidTotal)+' unpaid · '+photoUnpaid.length+' invoice'+(photoUnpaid.length>1?'s':'')+'</span>':'';
   html+=streamTile('Photography','#1B3A8C',photoLastMonth,photoProfitLastMonth,photoMonth,photoProfitMonth,photoFY,photoProfitFY,photoExtra);
 
   html+=streamTile('Now Trending','#F47B20',ntLastMonth,ntProfitLastMonth,ntMonth,ntProfitMonth,ntFY,ntProfitFY,'');
@@ -2956,7 +2968,7 @@ function renderJubTracker(innerOnly){
       var isFuture=d>today;
       var label=DAY_LABELS_FT[idx]||'?';
       var style='';
-      if(done) style='background:#E6F1FB;border-color:#185FA5;color:#0C447C;cursor:pointer;';
+      if(done) style='background:var(--blue-light);border-color:var(--blue);color:var(--blue-dark);cursor:pointer;';
       else if(isFuture) style='opacity:0.35;cursor:default;';
       else style='cursor:pointer;';
       if(isToday&&!done) style+='border-width:2px;border-color:var(--text-primary);';
@@ -2965,9 +2977,9 @@ function renderJubTracker(innerOnly){
     }).join('');
   }
 
-  var statusBadge=ft.status==='paid'?'<span style="font-size:11px;background:#EAF3DE;color:#27500A;padding:2px 8px;border-radius:99px;">✅ Paid</span>':
-    ft.status==='invoiced'?'<span style="font-size:11px;background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:99px;">Invoice sent</span>':
-    '<span style="font-size:11px;background:#E6F1FB;color:#0C447C;padding:2px 8px;border-radius:99px;">Active</span>';
+  var statusBadge=ft.status==='paid'?'<span style="font-size:11px;background:var(--green-light);color:var(--green);padding:2px 8px;border-radius:99px;">✅ Paid</span>':
+    ft.status==='invoiced'?'<span style="font-size:11px;background:var(--amber-light);color:var(--amber);padding:2px 8px;border-radius:99px;">Invoice sent</span>':
+    '<span style="font-size:11px;background:var(--blue-light);color:var(--blue-dark);padding:2px 8px;border-radius:99px;">Active</span>';
 
   var invoiceBtn=ft.status==='active'?'<button onclick="markJubInvoiced()" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit">Mark invoiced</button>':
     ft.status==='invoiced'?'<button onclick="markJubPaid()" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid #0F6E56;background:transparent;cursor:pointer;color:#0F6E56;font-family:inherit">Mark paid</button>':'';
@@ -2995,7 +3007,7 @@ function renderJubTracker(innerOnly){
   html+='</div>';
 
   html+='<div style="border-top:1px solid var(--border-light);padding-top:8px;display:flex;align-items:center;justify-content:space-between">';
-  html+='<div style="font-size:13px;font-weight:500;color:#185FA5">Earned this fortnight: $'+totalEarned.toLocaleString()+'</div>';
+  html+='<div style="font-size:13px;font-weight:500;color:var(--blue-dark)">Earned this fortnight: $'+totalEarned.toLocaleString()+'</div>';
   html+='<div style="font-size:11px;color:var(--text-secondary)">'+fmtDate(ft.start)+' – '+fmtDate(ft.end)+'</div>';
   html+='</div>';
   html+='</div>';
@@ -3085,7 +3097,7 @@ function openJubPaymentsHistory(){
     payments.forEach(function(p){
       html+='<tr style="border-bottom:0.5px solid var(--border-light)">';
       html+='<td style="padding:8px">'+fmtDate(p.date)+'</td>';
-      html+='<td style="padding:8px;font-weight:500;color:#185FA5">'+fmt(p.amount)+'</td>';
+      html+='<td style="padding:8px;font-weight:500;color:var(--blue-dark)">'+fmt(p.amount)+'</td>';
       html+='<td style="padding:8px;color:var(--text-secondary)">'+(p.notes||'—')+'</td>';
       html+='<td style="padding:8px;display:flex;gap:4px">';
       html+='<button onclick="editJubPayment('+p.id+')" style="font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;font-family:inherit">Edit</button>';
@@ -3162,9 +3174,9 @@ function renderJubismInvoices(){
   html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:14px;border-top:3px solid #D4AF36">';
   html+='<div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;font-weight:600;margin-bottom:6px">Paid FY26/27</div>';
   html+='<div style="font-size:24px;font-weight:700;color:#D4AF36">'+fmt(paidFY)+'</div></div>';
-  html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:14px;border-top:3px solid #854F0B">';
+  html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:14px;border-top:3px solid var(--orange)">';
   html+='<div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;font-weight:600;margin-bottom:6px">Pending</div>';
-  html+='<div style="font-size:24px;font-weight:700;color:#854F0B">'+fmt(pendingFY)+'</div></div>';
+  html+='<div style="font-size:24px;font-weight:700;color:var(--orange)">'+fmt(pendingFY)+'</div></div>';
   html+='<div style="background:var(--bg-primary);border:1px solid var(--border-mid);border-radius:12px;padding:14px;border-top:3px solid var(--border-mid)">';
   html+='<div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;font-weight:600;margin-bottom:6px">Last FY (FY25/26)</div>';
   html+='<div style="font-size:24px;font-weight:700;color:var(--text-secondary)">'+fmt(lastFYPaid)+'</div></div>';
@@ -3187,10 +3199,10 @@ function renderJubismInvoices(){
       html+='<tr style="border-bottom:0.5px solid var(--border-light)">';
       html+='<td style="padding:10px 14px;font-weight:500">'+(inv.period||'—')+'</td>';
       html+='<td style="padding:10px 14px;color:var(--text-secondary)">'+(inv.date?fmtDate(inv.date):'—')+'</td>';
-      html+='<td style="padding:10px 14px;text-align:right;font-weight:600;color:#D4AF36">'+fmt(inv.amount)+'</td>';
+      html+='<td style="padding:10px 14px;text-align:right;font-weight:600;color:var(--blue)">'+fmt(inv.amount)+'</td>';
       html+='<td style="padding:10px 14px;text-align:center">';
       if(inv.paid){
-        html+='<span style="background:#EAF3DE;color:#27500A;font-size:11px;padding:3px 10px;border-radius:99px;font-weight:500">✓ Paid</span>';
+        html+='<span style="background:var(--green-light);color:var(--green);font-size:11px;padding:3px 10px;border-radius:99px;font-weight:500">✓ Paid</span>';
       } else {
         html+='<button onclick="markJubInvoicePaid('+inv.id+')" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid #0F6E56;background:transparent;cursor:pointer;color:#0F6E56;font-family:inherit">Mark paid</button>';
       }
@@ -3634,11 +3646,11 @@ function renderNTFinancials(){
     var m=margin(wt);
     html+='<tr>';
     html+='<td style="font-weight:500;white-space:nowrap">'+fmtDate(w.date)+'</td>';
-    html+='<td style="color:#F47B20">'+fmt(wt.rev)+'</td>';
-    html+='<td style="color:#8B0057">'+fmt(wt.cogs)+'</td>';
-    html+='<td style="color:#8B0057">'+fmt(wt.meta)+'</td>';
-    html+='<td style="color:#8B0057">'+fmt(wt.google)+'</td>';
-    html+='<td style="color:#8B0057">'+fmt(wt.shipping)+'</td>';
+    html+='<td style="color:#F47B20;font-weight:500">'+fmt(wt.rev)+'</td>';
+    html+='<td style="color:var(--text-secondary)">'+fmt(wt.cogs)+'</td>';
+    html+='<td style="color:var(--text-secondary)">'+fmt(wt.meta)+'</td>';
+    html+='<td style="color:var(--text-secondary)">'+fmt(wt.google)+'</td>';
+    html+='<td style="color:var(--text-secondary)">'+fmt(wt.shipping)+'</td>';
     html+='<td style="color:var(--text-tertiary)">'+fmt(wt.other)+'</td>';
     html+='<td class="'+(p>=0?'profit-pos':'profit-neg-readable')+'">'+(p>=0?'+':'-')+fmt(Math.abs(p))+'</td>';
     html+='<td style="color:'+(parseFloat(m)>=0?'#0F6E56':'#A32D2D')+'">'+m+'%</td>';
