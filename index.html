@@ -1928,7 +1928,7 @@ function renderBRGFinancials(){
   var twCosts=tw?parseFloat(tw.ads||0)+parseFloat(tw.cogs||0)+parseFloat(tw.printfulCogs||0)+parseFloat(tw.shopify||0)+parseFloat(tw.othercost||0):0;
   var twProfit=twRev-twCosts;
 
-  function pSign(n){return (n>=0?'+':'')+'$'+Math.abs(n).toFixed(0);}
+  function pSign(n){return (n>=0?'+':'-')+'$'+Math.abs(n).toFixed(0);}
   function sc(label,val,color){
     return '<div class="dash-stat"><span class="dash-stat-label">'+label+'</span><span class="dash-stat-val" style="color:'+color+';">'+val+'</span></div>';
   }
@@ -2513,14 +2513,35 @@ function renderDashboard(){
   var thisYear=now.getFullYear();
   var t=getFinTargets();
 
-  // Jubism paid invoices
-  var jubMonth=(STATE.jubInvoices||[]).filter(function(inv){
-    if(!inv.paid||!inv.date)return false;
-    var d=new Date(inv.date+'T00:00:00');
-    return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;
-  }).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
-  var jubFY=(STATE.jubInvoices||[]).filter(function(inv){return inv.paid&&isInFY(inv.date);}).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
-  var jubPending=(STATE.jubInvoices||[]).filter(function(inv){return!inv.paid;}).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
+  // Jubism — use shared helpers for partial-payment support
+  // jubMonth: sum of payments received whose payment date is in this calendar month
+  var jubMonth=(STATE.jubInvoices||[]).reduce(function(s,inv){
+    // Legacy fully-paid invoice (no payments array): attribute to invoice date month
+    if(inv.paid===true&&(!inv.payments||!inv.payments.length)){
+      if(!inv.date)return s;
+      var d=new Date(inv.date+'T00:00:00');
+      if(d.getMonth()===thisMonth&&d.getFullYear()===thisYear) s+=parseFloat(inv.amount||0);
+      return s;
+    }
+    // New model: sum individual payments by their date
+    (inv.payments||[]).forEach(function(p){
+      if(!p.date)return;
+      var d=new Date(p.date+'T00:00:00');
+      if(d.getMonth()===thisMonth&&d.getFullYear()===thisYear) s+=parseFloat(p.amount||0);
+    });
+    return s;
+  },0);
+  // jubFY: sum of payments received within the financial year
+  var jubFY=(STATE.jubInvoices||[]).reduce(function(s,inv){
+    if(inv.paid===true&&(!inv.payments||!inv.payments.length)){
+      if(isInFY(inv.date)) s+=parseFloat(inv.amount||0);
+      return s;
+    }
+    (inv.payments||[]).forEach(function(p){if(isInFY(p.date)) s+=parseFloat(p.amount||0);});
+    return s;
+  },0);
+  // jubPending: sum of remaining balances across all invoices
+  var jubPending=(STATE.jubInvoices||[]).reduce(function(s,inv){return s+jubRemaining(inv);},0);
 
   // Photography
   var photoMonthJobs=STATE.jobs.filter(function(j){
@@ -2556,7 +2577,7 @@ function renderDashboard(){
     return d.getMonth()===thisMonth&&d.getFullYear()===thisYear;
   });
   var brgMonth=brgMonthWeeks.reduce(function(s,w){return s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0);},0);
-  var brgProfitMonth=brgMonth-brgMonthWeeks.reduce(function(s,w){return s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
+  var brgProfitMonth=brgMonth-brgMonthWeeks.reduce(function(s,w){return s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.printfulCogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
   var brgFYWeeks=STATE.weekly.filter(function(w){return isInFY(w.date);});
   var brgFY=brgFYWeeks.reduce(function(s,w){return s+parseFloat(w.rev||0)+parseFloat(w.etsyRev||0);},0);
   var brgProfitFY=brgFY-brgFYWeeks.reduce(function(s,w){return s+parseFloat(w.ads||0)+parseFloat(w.cogs||0)+parseFloat(w.printfulCogs||0)+parseFloat(w.shopify||0)+parseFloat(w.othercost||0);},0);
@@ -2566,11 +2587,20 @@ function renderDashboard(){
   var lastMonthYear=thisMonth===0?thisYear-1:thisYear;
   var lastMonthName=new Date(lastMonthYear,lastMonth,1).toLocaleDateString('en-AU',{month:'long'});
 
-  var jubLastMonth=(STATE.jubInvoices||[]).filter(function(inv){
-    if(!inv.paid||!inv.date)return false;
-    var d=new Date(inv.date+'T00:00:00');
-    return d.getMonth()===lastMonth&&d.getFullYear()===lastMonthYear;
-  }).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
+  var jubLastMonth=(STATE.jubInvoices||[]).reduce(function(s,inv){
+    if(inv.paid===true&&(!inv.payments||!inv.payments.length)){
+      if(!inv.date)return s;
+      var d=new Date(inv.date+'T00:00:00');
+      if(d.getMonth()===lastMonth&&d.getFullYear()===lastMonthYear) s+=parseFloat(inv.amount||0);
+      return s;
+    }
+    (inv.payments||[]).forEach(function(p){
+      if(!p.date)return;
+      var d=new Date(p.date+'T00:00:00');
+      if(d.getMonth()===lastMonth&&d.getFullYear()===lastMonthYear) s+=parseFloat(p.amount||0);
+    });
+    return s;
+  },0);
 
   var photoLastMonthJobs=STATE.jobs.filter(function(j){
     if(!j.date||j.status!=='invoice-paid')return false;
