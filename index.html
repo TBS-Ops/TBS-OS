@@ -3272,8 +3272,12 @@ function renderJubismInvoices(){
       }
       html+='</td>';
       html+='<td style="padding:10px 14px;white-space:nowrap">';
-      if(status!=='paid'){
-        html+='<button onclick="openJubInvPaymentModal('+inv.id+')" style="font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid #D4AF36;background:transparent;cursor:pointer;color:#D4AF36;font-family:inherit;margin-right:4px">+ Payment</button>';
+      if(status==='unpaid'){
+        html+='<button onclick="openJubInvPaymentModal('+inv.id+',true)" style="font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid #0F6E56;background:transparent;cursor:pointer;color:#0F6E56;font-family:inherit;margin-right:4px">✓ Mark as Paid</button>';
+        html+='<button onclick="openJubInvPaymentModal('+inv.id+')" style="font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid #D4AF36;background:transparent;cursor:pointer;color:#D4AF36;font-family:inherit;margin-right:4px">+ Part Payment</button>';
+      } else if(status==='partpaid'){
+        html+='<button onclick="openJubInvPaymentModal('+inv.id+',true)" style="font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid #0F6E56;background:transparent;cursor:pointer;color:#0F6E56;font-family:inherit;margin-right:4px">✓ Pay Balance</button>';
+        html+='<button onclick="openJubInvPaymentModal('+inv.id+')" style="font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid #D4AF36;background:transparent;cursor:pointer;color:#D4AF36;font-family:inherit;margin-right:4px">+ Part Payment</button>';
       }
       html+='<button onclick="deleteJubInvoice('+inv.id+')" style="font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--red);background:transparent;cursor:pointer;color:var(--red);font-family:inherit">Delete</button>';
       html+='</td>';
@@ -3283,11 +3287,15 @@ function renderJubismInvoices(){
         payments.forEach(function(p,pi){
           var isLast=pi===payments.length-1;
           html+='<tr style="border-bottom:'+(isLast?'0.5px solid var(--border-light)':'none')+';background:var(--bg-secondary)">';
-          html+='<td style="padding:4px 14px 4px 28px;font-size:12px;color:var(--text-tertiary)" colspan="2">↳ Payment '+fmtDate(p.date)+'</td>';
+          var payDateLabel=p.date?fmtDate(p.date):'<span style="color:var(--amber);font-style:italic">no date set</span>';
+          html+='<td style="padding:4px 14px 4px 28px;font-size:12px;color:var(--text-tertiary)" colspan="2">↳ Payment '+payDateLabel+'</td>';
           html+='<td></td>';
           html+='<td style="padding:4px 14px;text-align:right;font-size:12px;color:var(--green)">'+fmt(p.amount)+'</td>';
           html+='<td></td><td></td>';
-          html+='<td style="padding:4px 14px;text-align:right"><button onclick="deleteJubInvPayment('+inv.id+','+p.id+')" style="font-size:10px;padding:1px 6px;border-radius:99px;border:1px solid var(--red);background:transparent;cursor:pointer;color:var(--red);font-family:inherit">×</button></td>';
+          html+='<td style="padding:4px 14px;text-align:right;white-space:nowrap">'+
+            '<button onclick="openJubEditPaymentModal('+inv.id+','+p.id+')" title="Edit payment date" style="font-size:10px;padding:1px 6px;border-radius:99px;border:1px solid var(--border-mid);background:transparent;cursor:pointer;color:var(--text-secondary);font-family:inherit;margin-right:3px">✎</button>'+
+            '<button onclick="deleteJubInvPayment('+inv.id+','+p.id+')" style="font-size:10px;padding:1px 6px;border-radius:99px;border:1px solid var(--red);background:transparent;cursor:pointer;color:var(--red);font-family:inherit">×</button>'+
+          '</td>';
           html+='</tr>';
         });
       }
@@ -3322,14 +3330,25 @@ function saveJubInvoice(){
   renderJubismInvoices();
 }
 
-function openJubInvPaymentModal(invId){
-  document.getElementById('jub-pay-inv-id').value=invId;
-  document.getElementById('jub-pay-amount').value='';
-  document.getElementById('jub-pay-date').value=todayStr();
-  // Show remaining balance as a hint
+function openJubInvPaymentModal(invId, markAsPaid){
   var inv=(STATE.jubInvoices||[]).find(function(x){return x.id===invId;});
-  var hint=inv?(' — balance '+fmt(jubRemaining(inv))):'';
-  document.getElementById('jub-pay-hint').textContent=hint;
+  if(!inv) return;
+  var remaining=jubRemaining(inv);
+  document.getElementById('jub-pay-inv-id').value=invId;
+  document.getElementById('jub-pay-date').value=todayStr();
+  if(markAsPaid){
+    // Mark as Paid: pre-fill the full remaining balance; amount is read-only
+    document.getElementById('jub-pay-amount').value=remaining.toFixed(2);
+    document.getElementById('jub-pay-amount').readOnly=true;
+    document.getElementById('jub-pay-modal-title').textContent='Confirm payment received';
+    document.getElementById('jub-pay-hint').textContent='Paying remaining balance of '+fmt(remaining)+' — change the date if needed.';
+  } else {
+    // Partial payment: editable amount
+    document.getElementById('jub-pay-amount').value='';
+    document.getElementById('jub-pay-amount').readOnly=false;
+    document.getElementById('jub-pay-modal-title').textContent='Record invoice payment';
+    document.getElementById('jub-pay-hint').textContent='Balance remaining: '+fmt(remaining);
+  }
   openModal('jub-inv-payment');
 }
 
@@ -3357,6 +3376,33 @@ function deleteJubInvPayment(invId, payId){
   if(!inv||!inv.payments)return;
   inv.payments=inv.payments.filter(function(p){return p.id!==payId;});
   saveState();
+  renderJubismInvoices();
+}
+
+function openJubEditPaymentModal(invId, payId){
+  var inv=(STATE.jubInvoices||[]).find(function(x){return x.id===invId;});
+  if(!inv||!inv.payments)return;
+  var pay=inv.payments.find(function(p){return p.id===payId;});
+  if(!pay)return;
+  document.getElementById('jub-edit-pay-inv-id').value=invId;
+  document.getElementById('jub-edit-pay-id').value=payId;
+  document.getElementById('jub-edit-pay-amount-display').textContent=fmt(pay.amount);
+  document.getElementById('jub-edit-pay-date').value=pay.date||todayStr();
+  openModal('jub-edit-payment');
+}
+
+function saveJubEditPayment(){
+  var invId=parseInt(document.getElementById('jub-edit-pay-inv-id').value);
+  var payId=parseInt(document.getElementById('jub-edit-pay-id').value);
+  var newDate=document.getElementById('jub-edit-pay-date').value;
+  if(!newDate)return;
+  var inv=(STATE.jubInvoices||[]).find(function(x){return x.id===invId;});
+  if(!inv||!inv.payments)return;
+  var pay=inv.payments.find(function(p){return p.id===payId;});
+  if(!pay)return;
+  pay.date=newDate;
+  saveState();
+  closeModal('jub-edit-payment');
   renderJubismInvoices();
 }
 
@@ -4063,7 +4109,7 @@ if('serviceWorker' in navigator) {
 <!-- JUB INVOICE PAYMENT MODAL -->
 <div class="mo" id="mo-jub-inv-payment">
   <div class="md" style="width:380px">
-    <div class="mt">Record invoice payment</div>
+    <div class="mt" id="jub-pay-modal-title">Record invoice payment</div>
     <input type="hidden" id="jub-pay-inv-id">
     <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px" id="jub-pay-hint"></div>
     <div><div class="ml">Amount received ($)</div><input type="number" id="jub-pay-amount" placeholder="0.00" step="0.01"></div>
@@ -4071,6 +4117,21 @@ if('serviceWorker' in navigator) {
     <div class="ma">
       <button class="btn" onclick="closeModal('jub-inv-payment')">Cancel</button>
       <button class="btn" style="background:#D4AF36;color:#000;font-weight:600" onclick="saveJubInvPayment()">Save payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- JUB EDIT PAYMENT DATE MODAL -->
+<div class="mo" id="mo-jub-edit-payment">
+  <div class="md" style="width:360px">
+    <div class="mt">Edit payment date</div>
+    <input type="hidden" id="jub-edit-pay-inv-id">
+    <input type="hidden" id="jub-edit-pay-id">
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">Payment amount: <strong id="jub-edit-pay-amount-display"></strong></div>
+    <div><div class="ml">Date received</div><input type="date" id="jub-edit-pay-date"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('jub-edit-payment')">Cancel</button>
+      <button class="btn" style="background:#D4AF36;color:#000;font-weight:600" onclick="saveJubEditPayment()">Save date</button>
     </div>
   </div>
 </div>
