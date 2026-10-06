@@ -3145,11 +3145,32 @@ function getJubismFY(){
 // ============================================================
 // JUBISM INVOICE TRACKER
 // ============================================================
+// --- Jubism invoice helpers ---
+function jubPaidAmount(inv){
+  // backwards compat: inv.paid===true with no payments array = fully paid
+  if(inv.paid===true&&(!inv.payments||!inv.payments.length)) return parseFloat(inv.amount||0);
+  return (inv.payments||[]).reduce(function(s,p){return s+parseFloat(p.amount||0);},0);
+}
+function jubRemaining(inv){
+  return Math.max(0, parseFloat(inv.amount||0) - jubPaidAmount(inv));
+}
+function jubStatus(inv){
+  var paid=jubPaidAmount(inv);
+  var remaining=jubRemaining(inv);
+  if(remaining<=0) return 'paid';
+  if(paid>0) return 'partpaid';
+  return 'unpaid';
+}
+
 function renderJubismInvoices(){
   var invoices=(STATE.jubInvoices||[]).slice().sort(function(a,b){return b.date>a.date?1:-1;});
   var fyInvoices=invoices.filter(function(inv){return isInFY(inv.date);});
-  var paidFY=fyInvoices.filter(function(inv){return inv.paid;}).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
-  var pendingFY=fyInvoices.filter(function(inv){return!inv.paid;}).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
+
+  // Paid FY = sum of actual payments received on FY invoices
+  var paidFY=fyInvoices.reduce(function(s,inv){return s+jubPaidAmount(inv);},0);
+  // Pending = sum of remaining balances on FY invoices
+  var pendingFY=fyInvoices.reduce(function(s,inv){return s+jubRemaining(inv);},0);
+
   var lastFYInvoices=invoices.filter(function(inv){
     if(!inv.date)return false;
     var d=new Date(inv.date+'T00:00:00');
@@ -3158,7 +3179,8 @@ function renderJubismInvoices(){
     lastFYStart.setFullYear(lastFYStart.getFullYear()-1);
     return d>=lastFYStart&&d<fyStart;
   });
-  var lastFYPaid=lastFYInvoices.filter(function(inv){return inv.paid;}).reduce(function(s,inv){return s+parseFloat(inv.amount||0);},0);
+  // Last FY paid = actual payments received
+  var lastFYPaid=lastFYInvoices.reduce(function(s,inv){return s+jubPaidAmount(inv);},0);
 
   document.getElementById('subbar-wrap').innerHTML=
     '<div class="subbar">'+
@@ -3191,24 +3213,54 @@ function renderJubismInvoices(){
     html+='<thead><tr style="border-bottom:1px solid var(--border-mid);background:var(--bg-secondary)">';
     html+='<th style="text-align:left;padding:10px 14px;font-weight:500;color:var(--text-tertiary)">Period</th>';
     html+='<th style="text-align:left;padding:10px 14px;font-weight:500;color:var(--text-tertiary)">Date</th>';
-    html+='<th style="text-align:right;padding:10px 14px;font-weight:500;color:var(--text-tertiary)">Amount</th>';
+    html+='<th style="text-align:right;padding:10px 14px;font-weight:500;color:var(--text-tertiary)">Invoiced</th>';
+    html+='<th style="text-align:right;padding:10px 14px;font-weight:500;color:var(--text-tertiary)">Paid</th>';
+    html+='<th style="text-align:right;padding:10px 14px;font-weight:500;color:var(--text-tertiary)">Balance</th>';
     html+='<th style="text-align:center;padding:10px 14px;font-weight:500;color:var(--text-tertiary)">Status</th>';
     html+='<th style="padding:10px 14px"></th>';
     html+='</tr></thead><tbody>';
     invoices.forEach(function(inv){
-      html+='<tr style="border-bottom:0.5px solid var(--border-light)">';
+      var status=jubStatus(inv);
+      var paidAmt=jubPaidAmount(inv);
+      var remaining=jubRemaining(inv);
+      var payments=inv.payments||[];
+      // If old-style fully paid, synthesise a display row but no payment history to show
+      var isLegacyPaid=(inv.paid===true&&!payments.length);
+      html+='<tr style="border-bottom:'+(payments.length?'none':'0.5px solid var(--border-light)')+'">';
       html+='<td style="padding:10px 14px;font-weight:500">'+(inv.period||'—')+'</td>';
       html+='<td style="padding:10px 14px;color:var(--text-secondary)">'+(inv.date?fmtDate(inv.date):'—')+'</td>';
       html+='<td style="padding:10px 14px;text-align:right;font-weight:600;color:var(--blue)">'+fmt(inv.amount)+'</td>';
+      html+='<td style="padding:10px 14px;text-align:right;color:var(--green)">'+fmt(paidAmt)+'</td>';
+      html+='<td style="padding:10px 14px;text-align:right;font-weight:600;color:'+(remaining>0?'var(--orange)':'var(--text-tertiary)')+'">'+fmt(remaining)+'</td>';
       html+='<td style="padding:10px 14px;text-align:center">';
-      if(inv.paid){
+      if(status==='paid'){
         html+='<span style="background:var(--green-light);color:var(--green);font-size:11px;padding:3px 10px;border-radius:99px;font-weight:500">✓ Paid</span>';
+      } else if(status==='partpaid'){
+        html+='<span style="background:var(--amber-light);color:var(--amber);font-size:11px;padding:3px 10px;border-radius:99px;font-weight:500">Part Paid</span>';
       } else {
-        html+='<button onclick="markJubInvoicePaid('+inv.id+')" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid #0F6E56;background:transparent;cursor:pointer;color:#0F6E56;font-family:inherit">Mark paid</button>';
+        html+='<span style="background:var(--bg-secondary);color:var(--text-tertiary);font-size:11px;padding:3px 10px;border-radius:99px;font-weight:500">Unpaid</span>';
       }
       html+='</td>';
-      html+='<td style="padding:10px 14px"><button onclick="deleteJubInvoice('+inv.id+')" style="font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--red);background:transparent;cursor:pointer;color:var(--red);font-family:inherit">Delete</button></td>';
+      html+='<td style="padding:10px 14px;white-space:nowrap">';
+      if(status!=='paid'){
+        html+='<button onclick="openJubInvPaymentModal('+inv.id+')" style="font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid #D4AF36;background:transparent;cursor:pointer;color:#D4AF36;font-family:inherit;margin-right:4px">+ Payment</button>';
+      }
+      html+='<button onclick="deleteJubInvoice('+inv.id+')" style="font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--red);background:transparent;cursor:pointer;color:var(--red);font-family:inherit">Delete</button>';
+      html+='</td>';
       html+='</tr>';
+      // Payment history rows
+      if(payments.length){
+        payments.forEach(function(p,pi){
+          var isLast=pi===payments.length-1;
+          html+='<tr style="border-bottom:'+(isLast?'0.5px solid var(--border-light)':'none')+';background:var(--bg-secondary)">';
+          html+='<td style="padding:4px 14px 4px 28px;font-size:12px;color:var(--text-tertiary)" colspan="2">↳ Payment '+fmtDate(p.date)+'</td>';
+          html+='<td></td>';
+          html+='<td style="padding:4px 14px;text-align:right;font-size:12px;color:var(--green)">'+fmt(p.amount)+'</td>';
+          html+='<td></td><td></td>';
+          html+='<td style="padding:4px 14px;text-align:right"><button onclick="deleteJubInvPayment('+inv.id+','+p.id+')" style="font-size:10px;padding:1px 6px;border-radius:99px;border:1px solid var(--red);background:transparent;cursor:pointer;color:var(--red);font-family:inherit">×</button></td>';
+          html+='</tr>';
+        });
+      }
     });
     html+='</tbody></table>';
   }
@@ -3233,16 +3285,49 @@ function saveJubInvoice(){
     period:document.getElementById('jub-inv-period').value.trim(),
     amount:amount,
     date:document.getElementById('jub-inv-date').value,
-    paid:false
+    payments:[]
   });
   saveState();
   closeModal('jub-invoice');
   renderJubismInvoices();
 }
 
-function markJubInvoicePaid(id){
-  var inv=(STATE.jubInvoices||[]).find(function(x){return x.id===id;});
-  if(inv){inv.paid=true;saveState();renderJubismInvoices();}
+function openJubInvPaymentModal(invId){
+  document.getElementById('jub-pay-inv-id').value=invId;
+  document.getElementById('jub-pay-amount').value='';
+  document.getElementById('jub-pay-date').value=todayStr();
+  // Show remaining balance as a hint
+  var inv=(STATE.jubInvoices||[]).find(function(x){return x.id===invId;});
+  var hint=inv?(' — balance '+fmt(jubRemaining(inv))):'';
+  document.getElementById('jub-pay-hint').textContent=hint;
+  openModal('jub-inv-payment');
+}
+
+function saveJubInvPayment(){
+  var invId=parseInt(document.getElementById('jub-pay-inv-id').value);
+  var amount=parseFloat(document.getElementById('jub-pay-amount').value);
+  if(!amount)return;
+  var inv=(STATE.jubInvoices||[]).find(function(x){return x.id===invId;});
+  if(!inv)return;
+  if(!inv.payments) inv.payments=[];
+  inv.payments.push({
+    id:NID++,
+    amount:amount,
+    date:document.getElementById('jub-pay-date').value
+  });
+  // Clear legacy paid flag if present — payments array is now the source of truth
+  delete inv.paid;
+  saveState();
+  closeModal('jub-inv-payment');
+  renderJubismInvoices();
+}
+
+function deleteJubInvPayment(invId, payId){
+  var inv=(STATE.jubInvoices||[]).find(function(x){return x.id===invId;});
+  if(!inv||!inv.payments)return;
+  inv.payments=inv.payments.filter(function(p){return p.id!==payId;});
+  saveState();
+  renderJubismInvoices();
 }
 
 function deleteJubInvoice(id){
@@ -3941,6 +4026,21 @@ if('serviceWorker' in navigator) {
     <div class="ma">
       <button class="btn" onclick="closeModal('jub-invoice')">Cancel</button>
       <button class="btn" style="background:#D4AF36;color:#000;font-weight:600" onclick="saveJubInvoice()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- JUB INVOICE PAYMENT MODAL -->
+<div class="mo" id="mo-jub-inv-payment">
+  <div class="md" style="width:380px">
+    <div class="mt">Record invoice payment</div>
+    <input type="hidden" id="jub-pay-inv-id">
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px" id="jub-pay-hint"></div>
+    <div><div class="ml">Amount received ($)</div><input type="number" id="jub-pay-amount" placeholder="0.00" step="0.01"></div>
+    <div><div class="ml">Date received</div><input type="date" id="jub-pay-date"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeModal('jub-inv-payment')">Cancel</button>
+      <button class="btn" style="background:#D4AF36;color:#000;font-weight:600" onclick="saveJubInvPayment()">Save payment</button>
     </div>
   </div>
 </div>
